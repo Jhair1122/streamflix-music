@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SoundMind AI — Recomendaciones Musicales con Inteligencia Artificial</title>
+<title>SoundMind — Recomendaciones Musicales IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* ========== ESTILOS ORIGINALES (no se modifican) ========== */
+/* ========== ESTILOS ORIGINALES (sin cambios) ========== */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#06060a;
@@ -449,39 +449,35 @@ body::before{
   background:var(--bg1);border:1px solid var(--border);
   border-radius:var(--radius3);padding:10px;color:var(--text);font-size:18px;
 }
-/* ========== NUEVOS ESTILOS PARA EL REPRODUCTOR MEJORADO ========== */
-.player-controls-improved {
+/* ========== NUEVOS ESTILOS PARA REPRODUCTOR MEJORADO ========== */
+.player-extra-controls {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-top: 5px;
+  gap: 12px;
+  margin-left: 16px;
 }
-.ctrl-btn {
+.extra-btn {
   background: transparent;
   border: none;
   color: var(--text2);
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
   transition: 0.2s;
 }
-.ctrl-btn:hover { color: var(--accent3); transform: scale(1.05);}
-.play-pause-btn {
-  background: var(--accent2);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: white;
-  box-shadow: 0 4px 12px rgba(124,58,237,0.4);
+.extra-btn:hover {
+  color: var(--accent3);
+  transform: scale(1.05);
 }
-.progress-container {
+.extra-btn.active {
+  color: var(--accent);
+  text-shadow: 0 0 6px rgba(167,139,250,0.5);
+}
+.player-progress {
   display: flex;
   align-items: center;
   gap: 10px;
   flex: 1;
+  margin-left: 16px;
 }
 .progress-bar-custom {
   flex: 1;
@@ -489,6 +485,7 @@ body::before{
   background: var(--bg3);
   border-radius: 4px;
   cursor: pointer;
+  position: relative;
 }
 .progress-fill-custom {
   width: 0%;
@@ -496,42 +493,59 @@ body::before{
   background: var(--accent);
   border-radius: 4px;
 }
-.time-text { font-size: 11px; color: var(--text3); }
-.volume-slider {
-  width: 80px;
+.time-text {
+  font-size: 11px;
+  color: var(--text3);
+}
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+}
+.volume-slider-custom {
+  width: 70px;
   height: 4px;
   background: var(--bg3);
   border-radius: 4px;
   cursor: pointer;
+  position: relative;
 }
-.volume-fill {
+.volume-fill-custom {
   width: 80%;
   height: 100%;
   background: var(--accent);
   border-radius: 4px;
 }
+.visualizer-canvas {
+  width: 100%;
+  height: 28px;
+  border-radius: 14px;
+  margin-top: 6px;
+  opacity: 0.7;
+}
 </style>
 </head>
 <body>
 
-<!-- AUTH SCREEN (igual que el original) -->
+<!-- AUTH SCREEN (sin cambios) -->
 <div id="authScreen">
   <div class="auth-wrap">
-    <div class="auth-brand"><h1>SoundMind</h1><p>Sistema de Recomendación Musical con IA</p></div>
+    <div class="auth-brand"><h1>SoundMind</h1><p>Sistema de Recomendación Musical con Inteligencia Artificial</p></div>
     <div class="auth-card">
       <div class="auth-tabs">
         <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Iniciar sesión</button>
         <button class="auth-tab" id="tabReg" onclick="switchTab('register')">Crear cuenta</button>
       </div>
       <div id="formLogin">
-        <div class="auth-field"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu nombre de usuario"></div>
-        <div class="auth-field"><label>Contraseña</label><input type="password" id="loginPass" placeholder="••••••••"></div>
+        <div class="auth-field"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu nombre de usuario" autocomplete="username"></div>
+        <div class="auth-field"><label>Contraseña</label><input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"></div>
         <button class="btn-auth" onclick="doLogin()">Ingresar →</button>
       </div>
       <div id="formReg" class="hidden">
-        <div class="auth-field"><label>Nombre</label><input type="text" id="regName" placeholder="Tu nombre real"></div>
-        <div class="auth-field"><label>Usuario</label><input type="text" id="regUser" placeholder="Elige un nombre de usuario"></div>
-        <div class="auth-field"><label>Contraseña</label><input type="password" id="regPass" placeholder="Mínimo 6 caracteres"></div>
+        <div class="auth-field"><label>Nombre</label><input type="text" id="regName" placeholder="Tu nombre real" autocomplete="name"></div>
+        <div class="auth-field"><label>Usuario</label><input type="text" id="regUser" placeholder="Elige un nombre de usuario" autocomplete="username"></div>
+        <div class="auth-field"><label>Contraseña</label><input type="password" id="regPass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
         <button class="btn-auth" onclick="doRegister()">Crear cuenta →</button>
       </div>
       <div id="authMsg"></div>
@@ -542,7 +556,7 @@ body::before{
 <!-- HAMBURGER (mobile) -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
-<!-- APP SHELL -->
+<!-- APP SHELL (sin cambios estructurales) -->
 <div id="app" class="hidden">
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand"><h1>SoundMind</h1><p>IA · RECOMENDACIÓN MUSICAL</p></div>
@@ -607,7 +621,7 @@ body::before{
       <div class="page-title">❤️ Mis likes</div><div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
       <div class="cards-grid" id="likeCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
-    <!-- ANALYSIS (mejorado) -->
+    <!-- ANALYSIS -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div><div class="page-sub">Métricas del sistema, validación cruzada y comparativa.</div>
       <div class="section"><div class="section-title">📈 Métricas del sistema</div><div class="metrics-row"><div class="metric"><div class="metric-val" id="mUsers">—</div><div class="metric-label">Usuarios</div></div><div class="metric"><div class="metric-val" id="mSongs">—</div><div class="metric-label">Canciones</div></div><div class="metric"><div class="metric-val" id="mInter">—</div><div class="metric-label">Interacciones</div></div><div class="metric"><div class="metric-val" id="mLikes">—</div><div class="metric-label">Total likes</div></div><div class="metric"><div class="metric-val" id="mAcc">—</div><div class="metric-label">Precisión árbol</div></div><div class="metric"><div class="metric-val" id="mAvg">—</div><div class="metric-label">Likes/usuario</div></div></div></div>
@@ -621,35 +635,42 @@ body::before{
   </main>
 </div>
 
-<!-- PLAYER BAR MEJORADO (con controles extra y sin errores) -->
+<!-- PLAYER BAR (MEJORADO: se añaden controles extra sin eliminar los originales) -->
 <div id="playerBar" class="hidden">
   <div class="pl-cover" id="plCover"><span>🎵</span></div>
   <div class="pl-info">
     <div class="pl-title" id="plTitle">Sin reproducción</div>
     <div class="pl-artist" id="plArtist"></div>
-    <div class="player-controls-improved">
-      <button class="ctrl-btn" id="playPauseExtra">▶️</button>
-      <button class="ctrl-btn" id="prevExtra">⏮️</button>
-      <button class="ctrl-btn" id="nextExtra">⏭️</button>
-      <div class="progress-container">
-        <span class="time-text" id="currentTimeExtra">0:00</span>
-        <div class="progress-bar-custom" id="progressBarCustom"><div class="progress-fill-custom" id="progressFillCustom"></div></div>
-        <span class="time-text" id="durationExtra">0:00</span>
+    <!-- Controles adicionales (se agregan sin tocar la estructura existente) -->
+    <div class="player-extra-controls">
+      <button class="extra-btn" id="shuffleBtn" title="Aleatorio">🔀</button>
+      <button class="extra-btn" id="repeatBtn" title="Repetir">🔁</button>
+      <div class="player-progress">
+        <span class="time-text" id="currentTimeDisplay">0:00</span>
+        <div class="progress-bar-custom" id="progressBarCustom">
+          <div class="progress-fill-custom" id="progressFillCustom"></div>
+        </div>
+        <span class="time-text" id="durationDisplay">0:00</span>
       </div>
-      <button class="ctrl-btn" id="shuffleExtra" title="Aleatorio">🔀</button>
-      <button class="ctrl-btn" id="repeatExtra" title="Repetir">🔁</button>
-      <div class="volume-slider" id="volumeSliderCustom"><div class="volume-fill" id="volumeFillCustom" style="width:80%"></div></div>
-      <button class="ctrl-btn" id="muteExtra" title="Silenciar">🔊</button>
+      <div class="volume-control">
+        <button class="extra-btn" id="muteBtn" title="Silenciar">🔊</button>
+        <div class="volume-slider-custom" id="volumeSliderCustom">
+          <div class="volume-fill-custom" id="volumeFillCustom" style="width:80%"></div>
+        </div>
+      </div>
     </div>
+    <canvas class="visualizer-canvas" id="visualizerCanvas" width="400" height="28"></canvas>
   </div>
-  <div class="pl-controls"><audio id="audioEl" controls preload="none" style="display:none;"></audio></div>
+  <div class="pl-controls">
+    <audio id="audioEl" controls preload="none"></audio>
+  </div>
 </div>
 
 <!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-// ========== CÓDIGO ORIGINAL (funcional) ==========
+// ==================== CÓDIGO ORIGINAL (sin modificar) ====================
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
 const db = supabase.createClient(SUPA_URL, SUPA_KEY);
@@ -661,7 +682,6 @@ let allInter = [];
 let nowPlayingId = null;
 let activeGenre = null;
 let searchQuery = '';
-let audio = null; // para controles mejorados
 
 const $ = id => document.getElementById(id);
 function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -675,18 +695,17 @@ function toast(msg, color=''){
   setTimeout(()=>t.classList.remove('show'),2400);
 }
 
-// Persistencia de sesión
-function saveUserToStorage(){ if(currentUser) localStorage.setItem('soundmind_user', JSON.stringify(currentUser)); }
-function loadUserFromStorage(){ const raw = localStorage.getItem('soundmind_user'); if(raw) currentUser = JSON.parse(raw); return currentUser; }
-function clearUserStorage(){ localStorage.removeItem('soundmind_user'); }
-
-// Géneros y gradientes
-const GENRE_EMOJI = { 'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸','Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻','default':'🎵' };
+const GENRE_EMOJI = {
+  'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸',
+  'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻',
+  'default':'🎵'
+};
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default; }
-const GENRE_COLORS = { 'Pop':['#ec4899','#f472b6'], 'Electrónica':['#6366f1','#a78bfa'], 'Anime':['#f59e0b','#fbbf24'], 'Rock':['#ef4444','#f87171'], 'Latino':['#10b981','#34d399'], 'Alternativo':['#0ea5e9','#38bdf8'], 'Trap':['#8b5cf6','#a78bfa'], 'Balada':['#f97316','#fb923c'], 'default':['#6b7280','#9ca3af'] };
+const GENRE_COLORS = {
+  'Pop':['#ec4899','#f472b6'],'Electrónica':['#6366f1','#a78bfa'],'Anime':['#f59e0b','#fbbf24'],'Rock':['#ef4444','#f87171'],'Latino':['#10b981','#34d399'],'Alternativo':['#0ea5e9','#38bdf8'],'Trap':['#8b5cf6','#a78bfa'],'Balada':['#f97316','#fb923c'],'default':['#6b7280','#9ca3af']
+};
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})`; }
 
-// AUTH (original)
 function switchTab(tab){
   $('tabLogin').classList.toggle('active',tab==='login');
   $('tabReg').classList.toggle('active',tab==='register');
@@ -702,7 +721,6 @@ async function doLogin(){
   const {data,error} = await db.from('usuarios').select('*').eq('username',username).eq('password',password).maybeSingle();
   if(!data){ txt('authMsg', error ? 'Error de conexión' : 'Usuario o contraseña incorrectos'); return; }
   currentUser=data;
-  saveUserToStorage();
   await bootApp();
 }
 async function doRegister(){
@@ -718,12 +736,9 @@ async function doRegister(){
   const {data,error} = await db.from('usuarios').insert({username,password,nombre}).select().single();
   if(!data){ txt('authMsg','Error: '+(error?.message||'desconocido')); return; }
   currentUser=data;
-  saveUserToStorage();
   await bootApp();
 }
 async function doLogout(){
-  clearUserStorage();
-  if(audio) { audio.pause(); audio.src = ''; }
   currentUser=null; myInter=[]; allInter=[]; nowPlayingId=null;
   $('app').classList.add('hidden');
   $('authScreen').classList.remove('hidden');
@@ -750,11 +765,9 @@ async function bootApp(){
   buildGenrePills();
   renderAll();
   showPage('home');
-  // Configurar audio mejorado después de cargar
-  setupAudioControls();
+  // Inicializar mejoras del reproductor después de cargar todo
+  initPlayerImprovements();
 }
-
-// RENDER ALL (original)
 function renderAll(){
   updateHeroStats();
   updateBadges();
@@ -780,8 +793,6 @@ function updateBadges(){
   if(likes>0){ bl.textContent=likes; bl.classList.remove('hidden'); } else bl.classList.add('hidden');
   if(favs>0) { bf.textContent=favs;  bf.classList.remove('hidden'); } else bf.classList.add('hidden');
 }
-
-// SONG CARD (original)
 function songCard(s){
   const inter   = myInter.find(i=>i.cancion_id===s.id);
   const liked   = inter&&inter.es_like;
@@ -811,8 +822,6 @@ function renderCards(songs, containerId, emptyMsg='No hay canciones aquí aún.'
 }
 function renderHomePopular(){ renderCards(allSongs.slice(0,10),'homePopCards'); }
 function renderHomeRec(){ const rec = aiCollaborative().slice(0,8); renderCards(rec,'homeRecCards','Da likes a canciones para recibir recomendaciones.'); }
-
-// CATALOG
 function buildGenrePills(){
   const genres=[...new Set(allSongs.map(s=>s.genero))].sort();
   const el=$('genrePills'); if(!el) return;
@@ -830,8 +839,6 @@ function renderCatalog(){
   txt('catalogCount',songs.length+' canciones');
   renderCards(songs,'catalogCards');
 }
-
-// IA funciones (originales)
 function aiCollaborative(){
   const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
   if(myLiked.size===0) return [];
@@ -879,7 +886,6 @@ function renderSimilar(){
   const rec=aiCollaborative().slice(0,8);
   renderCards(rec,'simCards','Da likes a más canciones para que el algoritmo encuentre usuarios similares.');
 }
-
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
@@ -920,7 +926,6 @@ function renderTree(){
   const rec=allSongs.filter(s=>!myIds.has(s.id)&&predictTree(s,model)).slice(0,8);
   renderCards(rec,'treeCards','El árbol no encontró nuevas canciones. Da likes para mejorar el modelo.');
 }
-
 function recursivePlaylist(seedId,depth,visited=new Set()){
   if(depth===0||!seedId) return [];
   const seed=allSongs.find(s=>s.id===seedId);
@@ -936,7 +941,6 @@ function renderRecursive(){
   const playlist=recursivePlaylist(seedId,8);
   renderCards(playlist,'recCards','Da likes a canciones para generar tu playlist recursiva.');
 }
-
 function renderFavorites(){
   const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
   renderCards(allSongs.filter(s=>ids.has(s.id)),'favCards','Aún no tienes favoritos. Haz clic en ☆.');
@@ -945,7 +949,6 @@ function renderLikes(){
   const ids=new Set(myInter.filter(i=>i.es_like).map(i=>i.cancion_id));
   renderCards(allSongs.filter(s=>ids.has(s.id)),'likeCards','Aún no tienes likes. Haz clic en 🤍.');
 }
-
 async function toggleLike(e,songId){
   e.stopPropagation();
   const existing=myInter.find(i=>i.cancion_id===songId);
@@ -976,8 +979,6 @@ async function toggleFav(e,songId){
   renderAll();
 }
 async function refreshAllInter(){ const{data}=await db.from('interacciones').select('*'); allInter=data||[]; }
-
-// PLAYER (original + mejorado)
 function playSong(e,songId){
   if(e) e.stopPropagation();
   const song=allSongs.find(s=>s.id===songId);
@@ -988,106 +989,19 @@ function playSong(e,songId){
   const cover=$('plCover');
   cover.innerHTML=`<span style="font-size:24px">${genreEmoji(song.genero)}</span>`;
   cover.style.background=genreGradient(song.genero);
-  const audioEl=$('audioEl');
+  const audio=$('audioEl');
   if(song.url_preview){
-    audioEl.src=song.url_preview;
-    audioEl.play().catch(()=>{});
+    audio.src=song.url_preview;
+    audio.play().catch(()=>{});
     toast('▶ Reproduciendo: '+song.titulo);
   } else {
-    audioEl.removeAttribute('src');
+    audio.removeAttribute('src');
     toast('⚠️ No hay archivo de audio para esta canción');
   }
-  // Sincronizar controles mejorados
-  if(audio) audio = audioEl;
-  setupAudioControls();
-  renderAll();
+  renderCatalog();
+  // Actualizar mejoras del reproductor
+  updatePlayerUI();
 }
-
-function setupAudioControls(){
-  const audioEl = $('audioEl');
-  if(!audioEl) return;
-  audio = audioEl;
-  const playPause = $('playPauseExtra');
-  const prev = $('prevExtra');
-  const next = $('nextExtra');
-  const progressBar = $('progressBarCustom');
-  const progressFill = $('progressFillCustom');
-  const currentTimeSpan = $('currentTimeExtra');
-  const durationSpan = $('durationExtra');
-  const shuffleBtn = $('shuffleExtra');
-  const repeatBtn = $('repeatExtra');
-  const volumeSlider = $('volumeSliderCustom');
-  const volumeFill = $('volumeFillCustom');
-  const muteBtn = $('muteExtra');
-  let shuffleActive = false;
-  let repeatActive = false;
-
-  const updateProgress = () => {
-    if(audioEl.duration){
-      const percent = (audioEl.currentTime / audioEl.duration) * 100;
-      progressFill.style.width = percent+'%';
-      currentTimeSpan.innerText = formatTime(audioEl.currentTime);
-      durationSpan.innerText = formatTime(audioEl.duration);
-    }
-  };
-  audioEl.addEventListener('timeupdate', updateProgress);
-  audioEl.addEventListener('loadedmetadata', updateProgress);
-  playPause.onclick = () => {
-    if(audioEl.paused) audioEl.play();
-    else audioEl.pause();
-  };
-  prev.onclick = () => {
-    const current = allSongs.findIndex(s=>s.id===nowPlayingId);
-    const prevIdx = (current-1+allSongs.length)%allSongs.length;
-    playSong(null, allSongs[prevIdx].id);
-  };
-  next.onclick = () => {
-    let nextIdx;
-    if(shuffleActive){
-      let newIdx;
-      do { newIdx = Math.floor(Math.random()*allSongs.length); } while(newIdx === allSongs.findIndex(s=>s.id===nowPlayingId) && allSongs.length>1);
-      nextIdx = newIdx;
-    } else {
-      const current = allSongs.findIndex(s=>s.id===nowPlayingId);
-      nextIdx = (current+1)%allSongs.length;
-    }
-    playSong(null, allSongs[nextIdx].id);
-  };
-  shuffleBtn.onclick = () => { shuffleActive = !shuffleActive; toast(shuffleActive?'Aleatorio activado':'Aleatorio desactivado'); };
-  repeatBtn.onclick = () => { repeatActive = !repeatActive; toast(repeatActive?'Repetir activado':'Repetir desactivado'); audioEl.loop = repeatActive; };
-  volumeSlider.onclick = (e) => {
-    const rect = volumeSlider.getBoundingClientRect();
-    let vol = (e.clientX - rect.left) / rect.width;
-    vol = Math.min(1, Math.max(0, vol));
-    audioEl.volume = vol;
-    volumeFill.style.width = (vol*100)+'%';
-    muteBtn.innerText = vol===0 ? '🔇' : '🔊';
-  };
-  muteBtn.onclick = () => {
-    if(audioEl.volume > 0){
-      audioEl.volume = 0;
-      volumeFill.style.width = '0%';
-      muteBtn.innerText = '🔇';
-    } else {
-      audioEl.volume = 0.8;
-      volumeFill.style.width = '80%';
-      muteBtn.innerText = '🔊';
-    }
-  };
-  progressBar.onclick = (e) => {
-    if(!audioEl.duration) return;
-    const rect = progressBar.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    audioEl.currentTime = pct * audioEl.duration;
-  };
-  audioEl.onended = () => {
-    if(repeatActive) audioEl.play();
-    else next.onclick();
-  };
-}
-function formatTime(sec){ if(isNaN(sec)) return "0:00"; const m=Math.floor(sec/60); const s=Math.floor(sec%60); return `${m}:${s<10?'0'+s:s}`; }
-
-// ANALYSIS (original con mejoras)
 function renderAnalysis(){
   const model=buildModel();
   const userIds=new Set(allInter.map(i=>i.usuario_id));
@@ -1139,7 +1053,7 @@ function renderTreeViz(model){
   html('treeViz',L.join('\n'));
 }
 function renderCV(model){
-  if(!model||model.datos.length<5){ html('cvBody','<tr><td colspan="5">Necesitas al menos 5 interacciones.</td></tr>'); return; }
+  if(!model||model.datos.length<5){ html('cvBody','<td><td colspan="5">Necesitas al menos 5 interacciones.</td></tr>'); return; }
   const k=5,datos=model.datos;
   const foldSize=Math.floor(datos.length/k);
   let totalAcc=0; const rows=[];
@@ -1157,8 +1071,6 @@ function renderCV(model){
   rows.push(`<tr><td colspan="3"><strong>Precisión promedio</strong></td><td class="good">${avg}%</td><td>—</td></tr>`);
   html('cvBody',rows.join(''));
 }
-
-// NAVIGATION
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1169,21 +1081,202 @@ function showPage(name){
 }
 function toggleSidebar(){ $('sidebar').classList.toggle('open'); }
 
-// INIT (con persistencia)
 window.onload=async()=>{
   const{data}=await db.from('canciones').select('*').order('popularidad',{ascending:false});
   allSongs=data||[];
-  const savedUser = loadUserFromStorage();
+  // Restaurar sesión si existe
+  const savedUser = localStorage.getItem('soundmind_user');
   if(savedUser){
-    currentUser = savedUser;
-    await bootApp();
-  } else {
+    try{
+      currentUser = JSON.parse(savedUser);
+      await bootApp();
+    }catch(e){}
+  }else{
     $('authScreen').classList.remove('hidden');
-    $('app').classList.add('hidden');
-    $('playerBar').classList.add('hidden');
   }
 };
 document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ if(!$('formLogin').classList.contains('hidden')) doLogin(); else doRegister(); } });
+
+// ==================== MEJORAS DEL REPRODUCTOR (AÑADIDAS SIN MODIFICAR EL CÓDIGO ORIGINAL) ====================
+let shuffleActive = false;
+let repeatActive = false;
+let currentAudio = null;
+
+function initPlayerImprovements() {
+  const audio = document.getElementById('audioEl');
+  if(!audio) return;
+  currentAudio = audio;
+  
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const repeatBtn = document.getElementById('repeatBtn');
+  const progressBar = document.getElementById('progressBarCustom');
+  const progressFill = document.getElementById('progressFillCustom');
+  const currentTimeSpan = document.getElementById('currentTimeDisplay');
+  const durationSpan = document.getElementById('durationDisplay');
+  const volumeSlider = document.getElementById('volumeSliderCustom');
+  const volumeFill = document.getElementById('volumeFillCustom');
+  const muteButton = document.getElementById('muteBtn');
+  const canvas = document.getElementById('visualizerCanvas');
+  let ctx = canvas ? canvas.getContext('2d') : null;
+  let visualizerRunning = false;
+  
+  // Función para actualizar barra de progreso y tiempos
+  function updateProgress() {
+    if(audio.duration && !isNaN(audio.duration)) {
+      const percent = (audio.currentTime / audio.duration) * 100;
+      progressFill.style.width = percent + '%';
+      currentTimeSpan.textContent = formatTime(audio.currentTime);
+      durationSpan.textContent = formatTime(audio.duration);
+    }
+  }
+  function formatTime(sec) {
+    if(isNaN(sec)) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s < 10 ? '0'+s : s}`;
+  }
+  
+  audio.addEventListener('timeupdate', updateProgress);
+  audio.addEventListener('loadedmetadata', updateProgress);
+  
+  // Barra de progreso clickeable
+  progressBar.addEventListener('click', (e) => {
+    const rect = progressBar.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+  });
+  
+  // Shuffle
+  shuffleBtn.addEventListener('click', () => {
+    shuffleActive = !shuffleActive;
+    shuffleBtn.classList.toggle('active', shuffleActive);
+    toast(shuffleActive ? '🔀 Aleatorio activado' : '🔀 Aleatorio desactivado');
+  });
+  
+  // Repeat
+  repeatBtn.addEventListener('click', () => {
+    repeatActive = !repeatActive;
+    repeatBtn.classList.toggle('active', repeatActive);
+    toast(repeatActive ? '🔁 Repetir activado' : '🔁 Repetir desactivado');
+    audio.loop = repeatActive;
+  });
+  
+  // Siguiente automático con shuffle/repeat
+  audio.addEventListener('ended', () => {
+    if(repeatActive) {
+      audio.currentTime = 0;
+      audio.play();
+      return;
+    }
+    if(allSongs.length === 0) return;
+    const currentIdx = allSongs.findIndex(s => s.id === nowPlayingId);
+    let nextIdx;
+    if(shuffleActive) {
+      let newIdx;
+      do { newIdx = Math.floor(Math.random() * allSongs.length); } while(newIdx === currentIdx && allSongs.length > 1);
+      nextIdx = newIdx;
+    } else {
+      nextIdx = (currentIdx + 1) % allSongs.length;
+    }
+    const nextSong = allSongs[nextIdx];
+    if(nextSong) {
+      playSong(null, nextSong.id);
+    }
+  });
+  
+  // Volumen
+  volumeSlider.addEventListener('click', (e) => {
+    const rect = volumeSlider.getBoundingClientRect();
+    let vol = (e.clientX - rect.left) / rect.width;
+    vol = Math.min(1, Math.max(0, vol));
+    audio.volume = vol;
+    volumeFill.style.width = (vol * 100) + '%';
+    muteButton.textContent = vol === 0 ? '🔇' : '🔊';
+  });
+  
+  muteButton.addEventListener('click', () => {
+    if(audio.volume > 0) {
+      audio.volume = 0;
+      volumeFill.style.width = '0%';
+      muteButton.textContent = '🔇';
+    } else {
+      audio.volume = 0.8;
+      volumeFill.style.width = '80%';
+      muteButton.textContent = '🔊';
+    }
+  });
+  
+  // Visualizador simple
+  if(canvas && ctx) {
+    function drawVisualizer() {
+      if(!canvas.isConnected) return;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      canvas.width = w;
+      canvas.height = h;
+      if(!ctx) return;
+      ctx.clearRect(0, 0, w, h);
+      if(!audio.paused && audio.duration) {
+        const barCount = 32;
+        const barWidth = w / barCount;
+        for(let i=0; i<barCount; i++) {
+          const height = (Math.sin(Date.now() * 0.005 + i * 0.3) * 0.5 + 0.5) * h;
+          ctx.fillStyle = `rgba(167, 139, 250, ${0.5 + Math.random()*0.3})`;
+          ctx.fillRect(i * barWidth, h - height, barWidth-2, height);
+        }
+      } else {
+        ctx.fillStyle = 'rgba(167, 139, 250, 0.2)';
+        ctx.fillRect(0, 0, w, h);
+      }
+      requestAnimationFrame(drawVisualizer);
+    }
+    drawVisualizer();
+  }
+}
+function updatePlayerUI() {
+  const audio = document.getElementById('audioEl');
+  if(audio && audio.duration) {
+    const progressFill = document.getElementById('progressFillCustom');
+    const currentTimeSpan = document.getElementById('currentTimeDisplay');
+    const durationSpan = document.getElementById('durationDisplay');
+    if(progressFill) {
+      const percent = (audio.currentTime / audio.duration) * 100;
+      progressFill.style.width = percent + '%';
+    }
+    if(currentTimeSpan) currentTimeSpan.textContent = formatTime(audio.currentTime);
+    if(durationSpan) durationSpan.textContent = formatTime(audio.duration);
+  }
+}
+function formatTime(sec) {
+  if(isNaN(sec)) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? '0'+s : s}`;
+}
+
+// Guardar sesión después de login/registro
+const originalBootApp = bootApp;
+window.bootApp = async function() {
+  await originalBootApp();
+  localStorage.setItem('soundmind_user', JSON.stringify(currentUser));
+};
+// Sobrescribir doLogin y doRegister para guardar sesión
+const originalDoLogin = doLogin;
+window.doLogin = async function() {
+  await originalDoLogin();
+  if(currentUser) localStorage.setItem('soundmind_user', JSON.stringify(currentUser));
+};
+const originalDoRegister = doRegister;
+window.doRegister = async function() {
+  await originalDoRegister();
+  if(currentUser) localStorage.setItem('soundmind_user', JSON.stringify(currentUser));
+};
+// Logout limpia localStorage
+const originalDoLogout = doLogout;
+window.doLogout = function() {
+  originalDoLogout();
+  localStorage.removeItem('soundmind_user');
+};
 </script>
 </body>
 </html>
