@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>SoundMind AI — Recomendaciones Musicales con IA</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>SoundMind AI — Recomendaciones Musicales Inteligentes</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -13,28 +13,45 @@
 
 <!-- ==================== MODAL DE AUTENTICACIÓN ==================== -->
 <div id="authModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-brand">🎧 SoundMind <span class="ai-badge">AI</span></div>
-        <p class="modal-sub">Recomendaciones con inteligencia artificial</p>
-        <div class="auth-tabs">
-            <button class="tab-btn active" data-tab="login">Iniciar sesión</button>
-            <button class="tab-btn" data-tab="register">Crear cuenta</button>
+    <div class="modal-card">
+        <div class="logo-brand">🎧 SoundMind <span class="ai-tag">AI</span></div>
+        <p class="subtitle">Recomendaciones con inteligencia artificial</p>
+        <div class="tabs">
+            <button class="tab active" data-tab="login">Iniciar sesión</button>
+            <button class="tab" data-tab="register">Crear cuenta</button>
         </div>
+        <!-- Login -->
         <div id="loginPanel">
-            <div class="input-field"><label>Usuario</label><input type="text" id="loginUsername" placeholder="Ej: juan123"></div>
-            <div class="input-field"><label>Contraseña</label><input type="password" id="loginPassword" placeholder="••••••"></div>
+            <div class="input-group">
+                <label>Usuario</label>
+                <input type="text" id="loginUser" placeholder="Ej: juan123">
+            </div>
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input type="password" id="loginPass" placeholder="••••••">
+            </div>
             <div id="loginError" class="error-msg hidden">Usuario o contraseña incorrectos</div>
-            <button id="doLoginBtn" class="btn-grad">Ingresar →</button>
+            <button id="loginBtn" class="btn-primary">Ingresar →</button>
         </div>
+        <!-- Registro -->
         <div id="registerPanel" class="hidden">
-            <div class="input-field"><label>Nombre completo</label><input type="text" id="regNombre" placeholder="Tu nombre"></div>
-            <div class="input-field"><label>Usuario</label><input type="text" id="regUsername" placeholder="Nombre de usuario único"></div>
-            <div class="input-field"><label>Contraseña</label><input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"></div>
-            <div id="regError" class="error-msg hidden">El usuario ya existe o error</div>
-            <button id="doRegisterBtn" class="btn-grad">Crear cuenta →</button>
+            <div class="input-group">
+                <label>Nombre</label>
+                <input type="text" id="regName" placeholder="Tu nombre">
+            </div>
+            <div class="input-group">
+                <label>Usuario</label>
+                <input type="text" id="regUser" placeholder="Nombre de usuario único">
+            </div>
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input type="password" id="regPass" placeholder="Mínimo 6 caracteres">
+            </div>
+            <div id="regError" class="error-msg hidden">El usuario ya existe</div>
+            <button id="registerBtn" class="btn-primary">Crear cuenta →</button>
         </div>
-        <div class="guest-divider">──── o ────</div>
-        <button id="guestModeBtn" class="btn-guest">🔓 Explorar sin cuenta</button>
+        <div class="divider">──── o ────</div>
+        <button id="guestBtn" class="btn-guest">🔓 Explorar sin cuenta</button>
     </div>
 </div>
 
@@ -42,11 +59,11 @@
 <div id="app" class="app hidden">
     <!-- SIDEBAR IZQUIERDA -->
     <aside class="sidebar">
-        <div class="logo-side">
+        <div class="logo-area">
             <span class="logo-icon">🧠</span>
             <span class="logo-text">SoundMind <span class="version">AI</span></span>
         </div>
-        <nav class="nav-menu">
+        <nav class="main-nav">
             <a href="#" class="nav-link active" data-view="home">🏠 Inicio</a>
             <a href="#" class="nav-link" data-view="catalog">🎵 Catálogo</a>
             <a href="#" class="nav-link" data-view="recommend">✨ Recomendaciones IA</a>
@@ -54,53 +71,53 @@
             <a href="#" class="nav-link" data-view="recursive">🔄 Playlist recursiva</a>
             <a href="#" class="nav-link" data-view="analysis">📊 Panel IA</a>
         </nav>
-        <div class="playlist-side">
+        <div class="likes-section">
             <h4>MIS FAVORITOS</h4>
-            <div id="likesCountSide">0 canciones</div>
+            <div id="likesCount">0 canciones</div>
         </div>
-        <div class="user-side">
-            <div class="user-avatar" id="sideAvatar">👤</div>
-            <div class="user-side-info">
-                <span id="sideUserName">Invitado</span>
-                <small id="sideUserGenre">—</small>
+        <div class="user-section">
+            <div class="avatar" id="sidebarAvatar">👤</div>
+            <div class="user-info">
+                <span id="sidebarUserName">Invitado</span>
+                <small id="sidebarGenre">—</small>
             </div>
-            <button id="logoutSideBtn" class="logout-btn">Salir</button>
+            <button id="logoutBtn" class="logout-button">Salir</button>
         </div>
     </aside>
 
     <!-- CONTENIDO CENTRAL -->
-    <main class="main-content">
-        <header class="top-bar">
-            <div class="search-container">
+    <main class="main-area">
+        <header class="top-header">
+            <div class="search-wrap">
                 <input type="text" id="searchInput" placeholder="Buscar canción, artista..." class="search-input">
-                <button id="voiceSearchBtn" class="voice-btn" title="Buscar por voz">🎤</button>
+                <button id="voiceBtn" class="voice-button" title="Buscar por voz">🎤</button>
             </div>
-            <div class="user-top" id="userTopBtn">
-                <div class="user-avatar-small" id="topAvatar">👤</div>
+            <div class="user-profile" id="userProfileBtn">
+                <div class="avatar-small" id="topAvatar">👤</div>
                 <span id="topUserName">Invitado</span>
-                <div class="dropdown hidden" id="userDropdown">
+                <div class="dropdown-menu hidden" id="userDropdown">
                     <button id="dropdownLogout">Cerrar sesión</button>
                 </div>
             </div>
         </header>
 
-        <div class="content-area">
-            <div class="hero-banner">
+        <div class="content">
+            <div class="hero">
                 <h1>Hola, <span id="heroName">amante de la música</span> 🎵</h1>
-                <p>Descubre nuevas canciones recomendadas por inteligencia artificial según tus gustos y comportamiento.</p>
+                <p>Descubre nuevas canciones recomendadas por inteligencia artificial según tus gustos.</p>
             </div>
             <div class="section-header">
                 <h2 id="sectionTitle">Canciones destacadas</h2>
-                <span id="sectionBadge" class="badge-ia">🤖 IA activa</span>
+                <span id="iaBadge" class="ia-badge">🤖 IA activa</span>
             </div>
-            <div id="songsGrid" class="cards-grid">
-                <div class="loading-spinner">Cargando música...</div>
+            <div id="songsGrid" class="songs-grid">
+                <div class="loader">Cargando música...</div>
             </div>
         </div>
     </main>
 
     <!-- SIDEBAR DERECHA (Ahora reproduciendo) -->
-    <aside class="right-sidebar">
+    <aside class="right-panel">
         <div class="now-card">
             <div class="now-cover" id="nowCover">
                 <img src="https://placehold.co/400x400/1a1a2e/6366f1?text=🎧" alt="cover" id="nowCoverImg">
@@ -108,47 +125,47 @@
             <div class="now-info">
                 <h4 id="nowTitle">Ninguna canción</h4>
                 <p id="nowArtist">—</p>
-                <div class="song-detail"><span>🎸 Artista principal</span> <strong id="nowComposer">—</strong></div>
+                <div class="credits"><span>🎸 Artista</span> <strong id="nowComposer">—</strong></div>
             </div>
         </div>
-        <div class="queue-card">
+        <div class="queue-box">
             <h4>A continuación</h4>
-            <div id="queueContent"><p class="empty-queue">Selecciona una canción</p></div>
+            <div id="queueList"><p class="empty-queue">Selecciona una canción</p></div>
         </div>
     </aside>
 </div>
 
 <!-- ==================== REPRODUCTOR INFERIOR ==================== -->
-<footer class="player-bar hidden" id="playerBar">
+<footer id="playerBar" class="player-bar hidden">
     <div class="player-left">
-        <div class="disc-cover" id="discCover">
+        <div class="disc-container" id="discContainer">
             <div class="disc" id="discRotate">🎵</div>
         </div>
-        <div class="track-meta">
+        <div class="track-details">
             <span id="playerTitle">Sin reproducción</span>
             <span id="playerArtist">—</span>
         </div>
         <button id="deleteSongBtn" class="delete-btn" title="Eliminar canción">🗑️</button>
     </div>
     <div class="player-center">
-        <div class="progress-wrap">
+        <div class="progress-row">
             <span id="currentTime">0:00</span>
             <div class="progress-bar" id="progressBar"><div id="progressFill" class="progress-fill"></div></div>
             <span id="durationTime">0:00</span>
         </div>
-        <canvas id="visualizerCanvas" width="400" height="32" class="viz"></canvas>
+        <canvas id="visualizerCanvas" width="400" height="32" class="visualizer"></canvas>
         <div class="controls">
-            <button id="shuffleBtn" class="ctrl" title="Aleatorio">🔀</button>
-            <button id="prevBtn" class="ctrl">⏮️</button>
-            <button id="playPauseBtn" class="play-btn">▶️</button>
-            <button id="nextBtn" class="ctrl">⏭️</button>
-            <button id="repeatBtn" class="ctrl" title="Repetir">🔁</button>
-            <button id="likePlayerBtn" class="like-action" title="Me gusta">❤️</button>
+            <button id="shuffleBtn" class="control" title="Aleatorio">🔀</button>
+            <button id="prevBtn" class="control">⏮️</button>
+            <button id="playPauseBtn" class="play-button">▶️</button>
+            <button id="nextBtn" class="control">⏭️</button>
+            <button id="repeatBtn" class="control" title="Repetir">🔁</button>
+            <button id="likePlayerBtn" class="like-btn" title="Me gusta">❤️</button>
         </div>
     </div>
     <div class="player-right">
         <span id="volumeIcon">🔊</span>
-        <div class="vol-slider" id="volSlider"><div id="volFill" class="vol-fill" style="width: 80%"></div></div>
+        <div class="volume-slider" id="volumeSlider"><div id="volumeFill" class="volume-fill" style="width: 80%"></div></div>
     </div>
 </footer>
 
