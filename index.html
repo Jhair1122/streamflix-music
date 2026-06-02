@@ -252,7 +252,7 @@
         <div class="page-sub" style="margin-bottom:0">Las interacciones se dividen en 5 partes. En cada iteración se entrena con 4 y se evalúa con 1.</div>
         <table class="cv-table">
           <thead><tr><th>Fold</th><th>Entrenamiento</th><th>Prueba</th><th>Precisión</th><th>Likes detectados</th></tr></thead>
-          <tbody id="cvBody"><tr><td colspan="5" style="color:var(--text2);padding:20px">Calculando…</td></tr></tbody>
+          <tbody id="cvBody"><tr><td colspan="5" style="color:var(--text2);padding:20px">Calculando…</td></table></tbody>
         </table>
       </div>
 
@@ -302,34 +302,20 @@
           <strong>Escalabilidad:</strong> Supabase Pro ($25/mes) → 8GB DB, 50GB bandwidth → soporta >10,000 usuarios activos
         </div>
       </div>
-    </div><!-- /page-analysis -->
+    </div>
 
-  </main><!-- /main -->
-</div><!-- /app -->
+  </main>
+</div>
 
-<!-- REPRODUCTOR MODERNO -->
+<!-- PLAYER BAR (nativo con controles) -->
 <div id="playerBar" class="hidden">
   <div class="pl-cover" id="plCover"><span>🎵</span></div>
   <div class="pl-info">
     <div class="pl-title" id="plTitle">Sin reproducción</div>
     <div class="pl-artist" id="plArtist"></div>
   </div>
-  <div class="player-controls">
-    <div class="player-buttons">
-      <button class="play-pause-btn" id="playPauseBtn">▶️</button>
-      <button class="next-btn" id="nextTrackBtn">⏭️</button>
-      <div id="loadingSpinner" class="loading-spinner" style="display:none;"></div>
-      <div class="now-playing-wave" id="waveAnim" style="display:none;">
-        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-      </div>
-    </div>
-    <div class="progress-container">
-      <span class="time" id="currentTime">0:00</span>
-      <div class="progress-bar" id="progressBar">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-      <span class="time" id="duration">0:00</span>
-    </div>
+  <div class="pl-controls">
+    <audio id="audioEl" controls preload="none"></audio>
   </div>
 </div>
 
