@@ -939,7 +939,7 @@ body::before{
 <div id="toast"></div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     JAVASCRIPT (mejorado con persistencia y reproductor moderno)
+     JAVASCRIPT (CORREGIDO: sin parpadeo + reproductor fiable)
 ══════════════════════════════════════════════════════════════ -->
 <script>
 // ────────────────────────────────────────────────
@@ -963,6 +963,7 @@ let searchQuery  = '';
 // Estado del reproductor moderno
 let audioObj = null;
 let isPlaying = false;
+let audioErrorCount = 0;   // para evitar bucles infinitos
 
 // ────────────────────────────────────────────────
 // UTILS
@@ -1003,7 +1004,7 @@ const GENRE_COLORS = {
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
 // ────────────────────────────────────────────────
-// PERSISTENCIA DE SESIÓN (no cierra al actualizar)
+// PERSISTENCIA DE SESIÓN (sin parpadeo)
 // ────────────────────────────────────────────────
 function saveUserToLocalStorage(user){ localStorage.setItem('soundmind_user', JSON.stringify(user)); }
 function clearUserLocalStorage(){ localStorage.removeItem('soundmind_user'); }
@@ -1051,7 +1052,7 @@ async function doRegister(){
 
 async function doLogout(){
   clearUserLocalStorage();
-  if(audioObj){ audioObj.pause(); audioObj.src = ''; }
+  resetPlayer();
   currentUser=null; myInter=[]; allInter=[]; nowPlayingId=null;
   $('app').classList.add('hidden');
   $('playerBar').classList.add('hidden');
@@ -1061,9 +1062,159 @@ async function doLogout(){
 }
 
 // ────────────────────────────────────────────────
+// REPRODUCTOR: LIMPIEZA Y MANEJO ROBUSTO
+// ────────────────────────────────────────────────
+function resetPlayer() {
+  if(audioObj){
+    audioObj.pause();
+    audioObj.src = '';
+    // Eliminar todos los event listeners (clonando y reemplazando)
+    const old = audioObj;
+    audioObj = null;
+    old.removeEventListener('canplaythrough', null);
+    old.removeEventListener('timeupdate', null);
+    old.removeEventListener('loadedmetadata', null);
+    old.removeEventListener('ended', null);
+    old.removeEventListener('error', null);
+  }
+  isPlaying = false;
+  audioErrorCount = 0;
+  nowPlayingId = null;
+  $('playPauseBtn').innerHTML = '▶️';
+  $('waveAnim').style.display = 'none';
+  $('loadingSpinner').style.display = 'none';
+  $('progressFill').style.width = '0%';
+  $('currentTime').innerText = '0:00';
+  $('duration').innerText = '0:00';
+  txt('plTitle', 'Sin reproducción');
+  txt('plArtist', '');
+}
+
+function formatTime(sec){
+  if(isNaN(sec)) return '0:00';
+  const m = Math.floor(sec/60);
+  const s = Math.floor(sec%60);
+  return `${m}:${s<10?'0'+s:s}`;
+}
+
+function playSong(e, songId){
+  if(e) e.stopPropagation();
+  const song = allSongs.find(s=>s.id===songId);
+  if(!song) return;
+  if(!song.url_preview){
+    toast('⚠️ No hay archivo de audio para esta canción');
+    return;
+  }
+
+  // Limpiar reproductor anterior completamente
+  resetPlayer();
+  nowPlayingId = songId;
+
+  // Actualizar UI del reproductor
+  txt('plTitle', song.titulo);
+  txt('plArtist', song.artista);
+  const coverDiv = $('plCover');
+  coverDiv.innerHTML = `<span style="font-size:28px">${genreEmoji(song.genero)}</span>`;
+  coverDiv.style.background = genreGradient(song.genero);
+  $('loadingSpinner').style.display = 'inline-block';
+  $('waveAnim').style.display = 'none';
+  $('playPauseBtn').innerHTML = '⏸️';
+
+  // Crear nuevo audio
+  const audio = new Audio(song.url_preview);
+  audioObj = audio;
+  audioErrorCount = 0;
+
+  // Eventos
+  audio.addEventListener('canplaythrough', () => {
+    $('loadingSpinner').style.display = 'none';
+    $('waveAnim').style.display = 'flex';
+    audio.play().catch(err => {
+      console.warn('Error en play():', err);
+      toast('No se pudo reproducir el audio');
+      resetPlayer();
+    });
+    isPlaying = true;
+    toast(`▶ Reproduciendo: ${song.titulo}`);
+  });
+
+  audio.addEventListener('timeupdate', () => {
+    if(audio.duration){
+      const percent = (audio.currentTime / audio.duration) * 100;
+      $('progressFill').style.width = percent + '%';
+      $('currentTime').innerText = formatTime(audio.currentTime);
+    }
+  });
+
+  audio.addEventListener('loadedmetadata', () => {
+    $('duration').innerText = formatTime(audio.duration);
+  });
+
+  audio.addEventListener('ended', () => {
+    // Reproducir siguiente canción (diferente a la actual)
+    const otherSongs = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
+    if(otherSongs.length){
+      const randomIdx = Math.floor(Math.random() * otherSongs.length);
+      playSong(null, otherSongs[randomIdx].id);
+    } else {
+      resetPlayer();
+    }
+  });
+
+  audio.addEventListener('error', (err) => {
+    console.error('Audio error:', err);
+    $('loadingSpinner').style.display = 'none';
+    toast('Error al cargar el audio.');
+    if(audioErrorCount < 2){
+      audioErrorCount++;
+      // Intentar pasar a la siguiente una sola vez
+      const otherSongs = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
+      if(otherSongs.length){
+        const randomIdx = Math.floor(Math.random() * otherSongs.length);
+        playSong(null, otherSongs[randomIdx].id);
+      } else {
+        resetPlayer();
+      }
+    } else {
+      resetPlayer();
+    }
+  });
+
+  // Forzar recarga de la UI de tarjetas para mostrar el badge "En reproducción"
+  renderAll();
+}
+
+// Controles del reproductor
+function togglePlayPause(){
+  if(!audioObj) return;
+  if(isPlaying){
+    audioObj.pause();
+    $('playPauseBtn').innerHTML = '▶️';
+    $('waveAnim').style.display = 'none';
+    isPlaying = false;
+  } else {
+    audioObj.play().catch(e=>toast('Error al reanudar'));
+    $('playPauseBtn').innerHTML = '⏸️';
+    $('waveAnim').style.display = 'flex';
+    isPlaying = true;
+  }
+}
+function nextTrack(){
+  if(!allSongs.length) return;
+  let nextSong = null;
+  if(nowPlayingId){
+    const other = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
+    if(other.length) nextSong = other[Math.floor(Math.random() * other.length)];
+  }
+  if(!nextSong) nextSong = allSongs.find(s => s.url_preview);
+  if(nextSong) playSong(null, nextSong.id);
+}
+
+// ────────────────────────────────────────────────
 // BOOT (carga datos y renderiza)
 // ────────────────────────────────────────────────
 async function bootApp(){
+  // Ocultar pantalla de login y mostrar app
   $('authScreen').classList.add('hidden');
   $('app').classList.remove('hidden');
   $('playerBar').classList.remove('hidden');
@@ -1090,7 +1241,7 @@ async function bootApp(){
 }
 
 // ────────────────────────────────────────────────
-// RENDER ALL
+// RENDER ALL (sin cambios funcionales)
 // ────────────────────────────────────────────────
 function renderAll(){
   updateHeroStats();
@@ -1397,136 +1548,6 @@ async function refreshAllInter(){
 }
 
 // ────────────────────────────────────────────────
-// REPRODUCTOR MODERNO + SIGUIENTE AUTOMÁTICO
-// ────────────────────────────────────────────────
-function formatTime(sec){
-  if(isNaN(sec)) return '0:00';
-  const m = Math.floor(sec/60);
-  const s = Math.floor(sec%60);
-  return `${m}:${s<10?'0'+s:s}`;
-}
-
-function playSong(e, songId){
-  if(e) e.stopPropagation();
-  const song = allSongs.find(s=>s.id===songId);
-  if(!song) return;
-  if(!song.url_preview){
-    toast('⚠️ No hay archivo de audio para esta canción');
-    return;
-  }
-  // Detener audio anterior
-  if(audioObj){
-    audioObj.pause();
-    audioObj.src = '';
-  }
-  // Crear nuevo audio
-  audioObj = new Audio(song.url_preview);
-  nowPlayingId = songId;
-  isPlaying = false;
-
-  // Actualizar UI del reproductor
-  txt('plTitle', song.titulo);
-  txt('plArtist', song.artista);
-  const coverDiv = $('plCover');
-  coverDiv.innerHTML = `<span style="font-size:28px">${genreEmoji(song.genero)}</span>`;
-  coverDiv.style.background = genreGradient(song.genero);
-  // Mostrar spinner y ocultar onda
-  $('loadingSpinner').style.display = 'inline-block';
-  $('waveAnim').style.display = 'none';
-  $('playPauseBtn').innerHTML = '⏸️';
-  
-  // Evento cuando el audio puede reproducirse
-  audioObj.addEventListener('canplaythrough', () => {
-    $('loadingSpinner').style.display = 'none';
-    $('waveAnim').style.display = 'flex';
-    audioObj.play();
-    isPlaying = true;
-    toast(`▶ Reproduciendo: ${song.titulo}`);
-  });
-  audioObj.addEventListener('timeupdate', () => {
-    const percent = (audioObj.currentTime / audioObj.duration) * 100;
-    $('progressFill').style.width = percent + '%';
-    $('currentTime').innerText = formatTime(audioObj.currentTime);
-  });
-  audioObj.addEventListener('loadedmetadata', () => {
-    $('duration').innerText = formatTime(audioObj.duration);
-  });
-  audioObj.addEventListener('ended', () => {
-    // Reproducir siguiente canción automáticamente (aleatoria, no la misma)
-    const otherSongs = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
-    if(otherSongs.length){
-      const randomIdx = Math.floor(Math.random() * otherSongs.length);
-      playSong(null, otherSongs[randomIdx].id);
-    } else {
-      // Detener todo
-      $('playPauseBtn').innerHTML = '▶️';
-      $('waveAnim').style.display = 'none';
-      isPlaying = false;
-      nowPlayingId = null;
-      txt('plTitle', 'Sin reproducción');
-      txt('plArtist', '');
-      $('progressFill').style.width = '0%';
-      $('currentTime').innerText = '0:00';
-      $('duration').innerText = '0:00';
-    }
-  });
-  audioObj.addEventListener('error', (err) => {
-    console.error('Audio error', err);
-    $('loadingSpinner').style.display = 'none';
-    toast('Error al cargar el audio. Pasando a la siguiente...');
-    // Saltar a la siguiente
-    const otherSongs = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
-    if(otherSongs.length){
-      const randomIdx = Math.floor(Math.random() * otherSongs.length);
-      playSong(null, otherSongs[randomIdx].id);
-    }
-  });
-  renderAll(); // actualiza el badge "En reproducción"
-}
-
-// Controles del reproductor
-function togglePlayPause(){
-  if(!audioObj) return;
-  if(isPlaying){
-    audioObj.pause();
-    $('playPauseBtn').innerHTML = '▶️';
-    $('waveAnim').style.display = 'none';
-    isPlaying = false;
-  } else {
-    audioObj.play();
-    $('playPauseBtn').innerHTML = '⏸️';
-    $('waveAnim').style.display = 'flex';
-    isPlaying = true;
-  }
-}
-function nextTrack(){
-  if(!allSongs.length) return;
-  let nextSong = null;
-  if(nowPlayingId){
-    const other = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
-    if(other.length) nextSong = other[Math.floor(Math.random() * other.length)];
-  }
-  if(!nextSong) nextSong = allSongs.find(s => s.url_preview);
-  if(nextSong) playSong(null, nextSong.id);
-}
-
-// Asignar eventos del reproductor después de que el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  const playPause = $('playPauseBtn');
-  const nextBtn = $('nextTrackBtn');
-  const progBar = $('progressBar');
-  if(playPause) playPause.addEventListener('click', togglePlayPause);
-  if(nextBtn) nextBtn.addEventListener('click', nextTrack);
-  if(progBar) progBar.addEventListener('click', (e) => {
-    if(!audioObj) return;
-    const rect = progBar.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percent = x / rect.width;
-    audioObj.currentTime = percent * audioObj.duration;
-  });
-});
-
-// ────────────────────────────────────────────────
 // ANALYSIS
 // ────────────────────────────────────────────────
 function renderAnalysis(){
@@ -1595,7 +1616,7 @@ function renderTreeViz(model){
 
 function renderCV(model){
   if(!model||model.datos.length<5){
-    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada.</td></tr>');
+    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada. </td></tr>');
     return;
   }
   const k=5,datos=model.datos;
@@ -1631,21 +1652,59 @@ function showPage(name){
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
 // ────────────────────────────────────────────────
-// INIT: Restaurar sesión si existe
+// INIT: SIN PARPADEO - ocultar login antes de pintar
 // ────────────────────────────────────────────────
-window.onload = async () => {
-  // Precargar canciones para que estén disponibles rápidamente
-  const {data} = await db.from('canciones').select('*').order('popularidad',{ascending:false});
-  allSongs = data || [];
-  // Verificar usuario guardado
-  const savedUser = getUserFromLocalStorage();
-  if(savedUser){
-    currentUser = savedUser;
-    await bootApp();
+// Verificación inmediata (síncrona) antes de que el DOM termine de cargar
+(function() {
+  const saved = getUserFromLocalStorage();
+  if(saved){
+    // Ocultar authScreen y mostrar app inmediatamente (sin esperar onload)
+    const authDiv = document.getElementById('authScreen');
+    const appDiv = document.getElementById('app');
+    if(authDiv) authDiv.style.display = 'none';
+    if(appDiv) appDiv.style.display = 'flex';
+    // Forzar clase hidden para que no interfiera
+    if(authDiv) authDiv.classList.add('hidden');
+    if(appDiv) appDiv.classList.remove('hidden');
+    // Guardar usuario temporalmente
+    currentUser = saved;
+    // Cargar datos después
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Precargar canciones
+      const {data} = await db.from('canciones').select('*').order('popularidad',{ascending:false});
+      allSongs = data || [];
+      await bootApp();  // bootApp ya oculta correctamente
+    });
   } else {
-    $('authScreen').classList.remove('hidden');
+    // Asegurar que authScreen está visible y app oculta
+    const authDiv = document.getElementById('authScreen');
+    const appDiv = document.getElementById('app');
+    if(authDiv) authDiv.style.display = 'flex';
+    if(appDiv) appDiv.style.display = 'none';
+    window.addEventListener('DOMContentLoaded', () => {
+      // Precargar canciones para agilizar
+      db.from('canciones').select('*').order('popularidad',{ascending:false}).then(res=>{
+        allSongs = res.data || [];
+      });
+    });
   }
-};
+})();
+
+// Asignar eventos del reproductor después de que el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+  const playPause = $('playPauseBtn');
+  const nextBtn = $('nextTrackBtn');
+  const progBar = $('progressBar');
+  if(playPause) playPause.addEventListener('click', togglePlayPause);
+  if(nextBtn) nextBtn.addEventListener('click', nextTrack);
+  if(progBar) progBar.addEventListener('click', (e) => {
+    if(!audioObj) return;
+    const rect = progBar.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = x / rect.width;
+    audioObj.currentTime = percent * audioObj.duration;
+  });
+});
 
 // Enter key en auth
 document.addEventListener('keydown', e => {
