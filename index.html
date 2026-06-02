@@ -3,78 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>WaveMind AI — Recomendaciones Musicales con IA</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌊</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>SoundMind AI — Recomendaciones Musicales con IA</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- TensorFlow opcional (no necesario para funcionalidad básica, pero se incluye por si se quiere ampliar) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- MODAL DE AUTENTICACIÓN -->
-<div id="authModal" class="modal-overlay">
-    <div class="modal-card">
-        <div class="modal-logo">🌊 WaveMind <span class="ai-badge">AI</span></div>
-        <p class="modal-sub">Recomendaciones inteligentes para tu oído</p>
-        <div class="modal-tabs">
+<!-- ==================== MODAL DE AUTENTICACIÓN ==================== -->
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-brand">🎧 SoundMind <span class="ai-badge">AI</span></div>
+        <p class="modal-sub">Recomendaciones con inteligencia artificial</p>
+        <div class="auth-tabs">
             <button class="tab-btn active" data-tab="login">Iniciar sesión</button>
             <button class="tab-btn" data-tab="register">Crear cuenta</button>
         </div>
         <div id="loginPanel">
-            <div class="input-group"><label>Usuario</label><input type="text" id="loginUsername" placeholder="ej: juancarlos"></div>
-            <div class="input-group"><label>Contraseña</label><input type="password" id="loginPassword" placeholder="••••••"></div>
-            <div id="loginError" class="form-error hidden">Usuario o contraseña incorrectos</div>
-            <button id="doLoginBtn" class="btn-primary">Ingresar →</button>
+            <div class="input-field"><label>Usuario</label><input type="text" id="loginUsername" placeholder="Ej: juan123"></div>
+            <div class="input-field"><label>Contraseña</label><input type="password" id="loginPassword" placeholder="••••••"></div>
+            <div id="loginError" class="error-msg hidden">Usuario o contraseña incorrectos</div>
+            <button id="doLoginBtn" class="btn-grad">Ingresar →</button>
         </div>
         <div id="registerPanel" class="hidden">
-            <div class="input-group"><label>Nombre completo</label><input type="text" id="regNombre" placeholder="Tu nombre"></div>
-            <div class="input-group"><label>Usuario</label><input type="text" id="regUsername" placeholder="Nombre de usuario"></div>
-            <div class="input-group"><label>Contraseña</label><input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"></div>
-            <div id="regError" class="form-error hidden">El usuario ya existe</div>
-            <button id="doRegisterBtn" class="btn-primary">Crear cuenta →</button>
+            <div class="input-field"><label>Nombre completo</label><input type="text" id="regNombre" placeholder="Tu nombre"></div>
+            <div class="input-field"><label>Usuario</label><input type="text" id="regUsername" placeholder="Nombre de usuario único"></div>
+            <div class="input-field"><label>Contraseña</label><input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"></div>
+            <div id="regError" class="error-msg hidden">El usuario ya existe o error</div>
+            <button id="doRegisterBtn" class="btn-grad">Crear cuenta →</button>
         </div>
-        <div class="guest-row"><button id="guestBtn" class="guest-btn">🎧 Explorar sin cuenta</button></div>
+        <div class="guest-divider">──── o ────</div>
+        <button id="guestModeBtn" class="btn-guest">🔓 Explorar sin cuenta</button>
     </div>
 </div>
 
-<!-- APLICACIÓN PRINCIPAL -->
-<div id="app" class="app-shell hidden">
-    <!-- BARRA LATERAL IZQUIERDA -->
+<!-- ==================== APLICACIÓN PRINCIPAL ==================== -->
+<div id="app" class="app hidden">
+    <!-- SIDEBAR IZQUIERDA -->
     <aside class="sidebar">
-        <div class="logo-area">
-            <div class="logo-wave">🌊</div>
-            <span class="logo-text">WaveMind<span class="ai-pill">AI</span></span>
+        <div class="logo-side">
+            <span class="logo-icon">🧠</span>
+            <span class="logo-text">SoundMind <span class="version">AI</span></span>
         </div>
-        <nav class="main-nav">
+        <nav class="nav-menu">
             <a href="#" class="nav-link active" data-view="home">🏠 Inicio</a>
-            <a href="#" class="nav-link" data-view="library">📚 Biblioteca</a>
+            <a href="#" class="nav-link" data-view="catalog">🎵 Catálogo</a>
             <a href="#" class="nav-link" data-view="recommend">✨ Recomendaciones IA</a>
-            <a href="#" class="nav-link admin-only" id="uploadNavBtn" style="display: none;">⬆️ Subir música</a>
+            <a href="#" class="nav-link" data-view="tree">🌳 Árbol de decisión</a>
+            <a href="#" class="nav-link" data-view="recursive">🔄 Playlist recursiva</a>
+            <a href="#" class="nav-link" data-view="analysis">📊 Panel IA</a>
         </nav>
-        <div class="playlists-section">
-            <h4>MIS PLAYLISTS</h4>
-            <div id="playlistsContainer"></div>
-            <button id="newPlaylistBtn" class="new-playlist-btn">+ Nueva playlist</button>
+        <div class="playlist-side">
+            <h4>MIS FAVORITOS</h4>
+            <div id="likesCountSide">0 canciones</div>
         </div>
-        <div class="user-sidebar">
-            <div class="user-avatar" id="sidebarAvatar">👤</div>
-            <div><span id="sidebarUserName">Invitado</span><br><small id="sidebarStats">—</small></div>
-            <button id="sidebarLogout" class="logout-btn">Salir</button>
+        <div class="user-side">
+            <div class="user-avatar" id="sideAvatar">👤</div>
+            <div class="user-side-info">
+                <span id="sideUserName">Invitado</span>
+                <small id="sideUserGenre">—</small>
+            </div>
+            <button id="logoutSideBtn" class="logout-btn">Salir</button>
         </div>
     </aside>
 
     <!-- CONTENIDO CENTRAL -->
-    <div class="main-content">
+    <main class="main-content">
         <header class="top-bar">
             <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="¿Qué quieres escuchar?">
-                <button id="voiceSearchBtn" class="voice-btn" title="Búsqueda por voz">🎤</button>
+                <input type="text" id="searchInput" placeholder="Buscar canción, artista..." class="search-input">
+                <button id="voiceSearchBtn" class="voice-btn" title="Buscar por voz">🎤</button>
             </div>
-            <div class="user-menu" id="userMenuBtn">
-                <div class="avatar-small" id="topAvatar">👤</div>
+            <div class="user-top" id="userTopBtn">
+                <div class="user-avatar-small" id="topAvatar">👤</div>
                 <span id="topUserName">Invitado</span>
                 <div class="dropdown hidden" id="userDropdown">
                     <button id="dropdownLogout">Cerrar sesión</button>
@@ -82,128 +84,73 @@
             </div>
         </header>
 
-        <main id="dynamicArea">
+        <div class="content-area">
             <div class="hero-banner">
-                <h1>Bienvenido, <span id="welcomeName">amante de la música</span> 🎵</h1>
-                <p>Descubre nuevas canciones recomendadas por inteligencia artificial según tu historial de likes.</p>
+                <h1>Hola, <span id="heroName">amante de la música</span> 🎵</h1>
+                <p>Descubre nuevas canciones recomendadas por inteligencia artificial según tus gustos y comportamiento.</p>
             </div>
             <div class="section-header">
-                <h2 id="sectionTitle">Lo más escuchado</h2>
-                <span id="sectionSub" class="section-sub"></span>
+                <h2 id="sectionTitle">Canciones destacadas</h2>
+                <span id="sectionBadge" class="badge-ia">🤖 IA activa</span>
             </div>
-            <div id="tracksList" class="tracks-list">
-                <div class="loading-spinner">Cargando canciones...</div>
+            <div id="songsGrid" class="cards-grid">
+                <div class="loading-spinner">Cargando música...</div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <!-- PANEL DERECHO (Ahora suena + cola) -->
-    <aside class="right-panel">
+    <!-- SIDEBAR DERECHA (Ahora reproduciendo) -->
+    <aside class="right-sidebar">
         <div class="now-card">
             <div class="now-cover" id="nowCover">
-                <img src="https://via.placeholder.com/300?text=🎧" alt="cover" id="nowCoverImg">
+                <img src="https://placehold.co/400x400/1a1a2e/6366f1?text=🎧" alt="cover" id="nowCoverImg">
             </div>
             <div class="now-info">
                 <h4 id="nowTitle">Ninguna canción</h4>
                 <p id="nowArtist">—</p>
-                <div class="credits">
-                    <span>🎸 Artista / Género</span>
-                    <strong id="nowGenre">—</strong>
-                </div>
+                <div class="song-detail"><span>🎸 Artista principal</span> <strong id="nowComposer">—</strong></div>
             </div>
         </div>
         <div class="queue-card">
             <h4>A continuación</h4>
-            <div id="queueContainer"><p class="empty-queue">No hay cola</p></div>
+            <div id="queueContent"><p class="empty-queue">Selecciona una canción</p></div>
         </div>
     </aside>
 </div>
 
-<!-- REPRODUCTOR INFERIOR -->
+<!-- ==================== REPRODUCTOR INFERIOR ==================== -->
 <footer class="player-bar hidden" id="playerBar">
     <div class="player-left">
-        <div class="disc-container" id="discContainer">
-            <div class="disc" id="playerDisc">🎵</div>
+        <div class="disc-cover" id="discCover">
+            <div class="disc" id="discRotate">🎵</div>
         </div>
         <div class="track-meta">
-            <span id="playerTitle">Sin canción</span>
+            <span id="playerTitle">Sin reproducción</span>
             <span id="playerArtist">—</span>
         </div>
-        <button id="deleteTrackBtn" class="delete-btn" title="Eliminar canción (solo admin)">🗑️</button>
+        <button id="deleteSongBtn" class="delete-btn" title="Eliminar canción">🗑️</button>
     </div>
     <div class="player-center">
-        <div class="progress-area">
+        <div class="progress-wrap">
             <span id="currentTime">0:00</span>
-            <div class="progress-bar" id="progressBarWrap"><div id="progressFill" class="progress-fill"></div></div>
-            <span id="totalTime">0:00</span>
+            <div class="progress-bar" id="progressBar"><div id="progressFill" class="progress-fill"></div></div>
+            <span id="durationTime">0:00</span>
         </div>
-        <canvas id="visualizerCanvas" class="visualizer" width="400" height="36"></canvas>
+        <canvas id="visualizerCanvas" width="400" height="32" class="viz"></canvas>
         <div class="controls">
             <button id="shuffleBtn" class="ctrl" title="Aleatorio">🔀</button>
             <button id="prevBtn" class="ctrl">⏮️</button>
             <button id="playPauseBtn" class="play-btn">▶️</button>
             <button id="nextBtn" class="ctrl">⏭️</button>
             <button id="repeatBtn" class="ctrl" title="Repetir">🔁</button>
-            <button id="likePlayerBtn" class="like-btn" title="Me gusta">❤️</button>
-            <button id="favPlayerBtn" class="fav-btn" title="Favorito">⭐</button>
-            <button id="addToPlaylistBtn" class="add-btn" title="Añadir a playlist">➕</button>
+            <button id="likePlayerBtn" class="like-action" title="Me gusta">❤️</button>
         </div>
     </div>
     <div class="player-right">
-        <span id="volumeIcon" class="vol-icon">🔊</span>
-        <div class="volume-slider" id="volumeSlider"><div id="volumeFill" class="volume-fill" style="width: 80%"></div></div>
+        <span id="volumeIcon">🔊</span>
+        <div class="vol-slider" id="volSlider"><div id="volFill" class="vol-fill" style="width: 80%"></div></div>
     </div>
 </footer>
-
-<!-- MODALES -->
-<div id="uploadModal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <button class="close-modal" id="closeUpload">✕</button>
-        <h3>⬆️ Subir música (solo admin)</h3>
-        <label class="upload-btn" id="uploadAudioLabel">📁 Seleccionar archivo MP3</label>
-        <input type="file" id="audioFile" accept=".mp3" style="display:none">
-        <label class="upload-btn" id="uploadImageLabel">🖼️ Portada (opcional)</label>
-        <input type="file" id="imageFile" accept="image/*" style="display:none">
-        <div class="form-row">
-            <input type="text" id="uploadArtist" placeholder="Artista *" class="modal-input">
-            <select id="uploadGenre" class="modal-input">
-                <option>Pop</option><option>Electrónica</option><option>Rock</option><option>Latino</option>
-                <option>Anime</option><option>Alternativo</option><option>Trap</option><option>Balada</option>
-            </select>
-        </div>
-        <button id="confirmUploadBtn" class="btn-primary">Subir a la nube</button>
-    </div>
-</div>
-
-<div id="playlistModal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width:300px">
-        <h3>Agregar a playlist</h3>
-        <div id="playlistOptionsList"></div>
-        <button class="close-modal" id="closePlaylistModal">Cancelar</button>
-    </div>
-</div>
-
-<div id="newPlaylistModal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width:300px">
-        <h3>Nueva playlist</h3>
-        <input type="text" id="newPlName" placeholder="Nombre de la playlist" class="modal-input">
-        <div class="flex-btns">
-            <button id="cancelPlBtn" class="btn-secondary">Cancelar</button>
-            <button id="createPlBtn" class="btn-primary">Crear</button>
-        </div>
-    </div>
-</div>
-
-<div id="deleteConfirmModal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width:280px">
-        <h3>¿Eliminar canción?</h3>
-        <p id="deleteSongName"></p>
-        <div class="flex-btns">
-            <button id="cancelDeleteBtn" class="btn-secondary">Cancelar</button>
-            <button id="confirmDeleteBtn" class="btn-danger">Eliminar</button>
-        </div>
-    </div>
-</div>
 
 <script src="script.js"></script>
 </body>
