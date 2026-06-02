@@ -1,326 +1,222 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SoundMind — Recomendaciones Musicales IA</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundMind AI — Recomendaciones Musicales Inteligentes</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- TensorFlow.js y Brain.js para IA avanzada (opcional, no bloquean si no cargan) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/brain.js@2.0.0-beta.23/dist/browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
-<div id="authScreen">
-  <div class="auth-wrap">
-    <div class="auth-brand">
-      <h1>SoundMind</h1>
-      <p>Sistema de Recomendación Musical con Inteligencia Artificial</p>
+<!-- ==================== MODAL DE AUTENTICACIÓN ==================== -->
+<div id="authModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-logo">🎧 SoundMind <span class="ai-glow">AI</span></div>
+        <p class="modal-sub">Recomendaciones con inteligencia artificial</p>
+        <div class="modal-tabs">
+            <button class="tab-btn active" data-tab="login">Iniciar sesión</button>
+            <button class="tab-btn" data-tab="register">Crear cuenta</button>
+        </div>
+        <div id="loginForm">
+            <div class="input-group"><label>Usuario</label><input type="text" id="loginUser" placeholder="Ej: juanperez"></div>
+            <div class="input-group"><label>Contraseña</label><input type="password" id="loginPass" placeholder="••••••"></div>
+            <div id="loginError" class="form-error hidden">Usuario o contraseña incorrectos</div>
+            <button id="doLogin" class="btn-primary">Ingresar →</button>
+        </div>
+        <div id="registerForm" class="hidden">
+            <div class="input-group"><label>Nombre completo</label><input type="text" id="regName" placeholder="Tu nombre"></div>
+            <div class="input-group"><label>Usuario</label><input type="text" id="regUser" placeholder="Nombre de usuario"></div>
+            <div class="input-group"><label>Contraseña</label><input type="password" id="regPass" placeholder="Mínimo 6 caracteres"></div>
+            <div class="input-group"><label>Género favorito</label>
+                <select id="regGen">
+                    <option>Rock</option><option>Pop</option><option>Electrónica</option><option>Hip Hop</option>
+                    <option>Reguetón</option><option>Latina</option><option>Jazz</option><option>Clásica</option>
+                </select>
+            </div>
+            <div id="regError" class="form-error hidden">El usuario ya existe</div>
+            <button id="doRegister" class="btn-primary">Crear cuenta →</button>
+        </div>
+        <div class="guest-row"><button id="guestMode" class="guest-btn">🔓 Explorar sin cuenta</button></div>
     </div>
-    <div class="auth-card">
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Iniciar sesión</button>
-        <button class="auth-tab" id="tabReg" onclick="switchTab('register')">Crear cuenta</button>
-      </div>
-
-      <div id="formLogin">
-        <div class="auth-field">
-          <label>Usuario</label>
-          <input type="text" id="loginUser" placeholder="Tu nombre de usuario" autocomplete="username">
-        </div>
-        <div class="auth-field">
-          <label>Contraseña</label>
-          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <button class="btn-auth" onclick="doLogin()">Ingresar →</button>
-      </div>
-
-      <div id="formReg" class="hidden">
-        <div class="auth-field">
-          <label>Nombre</label>
-          <input type="text" id="regName" placeholder="Tu nombre real" autocomplete="name">
-        </div>
-        <div class="auth-field">
-          <label>Usuario</label>
-          <input type="text" id="regUser" placeholder="Elige un nombre de usuario" autocomplete="username">
-        </div>
-        <div class="auth-field">
-          <label>Contraseña</label>
-          <input type="password" id="regPass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
-        </div>
-        <button class="btn-auth" onclick="doRegister()">Crear cuenta →</button>
-      </div>
-
-      <div id="authMsg"></div>
-    </div>
-  </div>
 </div>
 
-<!-- HAMBURGER (mobile) -->
-<button class="hamburger" onclick="toggleSidebar()">☰</button>
+<!-- ==================== APLICACIÓN PRINCIPAL ==================== -->
+<div id="app" class="app-shell hidden">
 
-<!-- APP SHELL -->
-<div id="app" class="hidden">
-
-  <!-- SIDEBAR -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <h1>SoundMind</h1>
-      <p>IA · RECOMENDACIÓN MUSICAL</p>
-    </div>
-
-    <div class="sidebar-user">
-      <div class="user-avatar" id="userAvatar"></div>
-      <div class="user-name" id="userName"></div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-
-    <div class="sidebar-nav">
-      <div class="nav-section">Principal</div>
-      <button class="nav-item active" id="nav-home" onclick="showPage('home')">
-        <span class="nav-icon">🏠</span>Inicio
-      </button>
-      <button class="nav-item" id="nav-catalog" onclick="showPage('catalog')">
-        <span class="nav-icon">🎵</span>Catálogo
-      </button>
-
-      <div class="nav-section">Algoritmos IA</div>
-      <button class="nav-item" id="nav-similar" onclick="showPage('similar')">
-        <span class="nav-icon">👥</span>Filtrado colaborativo
-      </button>
-      <button class="nav-item" id="nav-tree" onclick="showPage('tree')">
-        <span class="nav-icon">🌳</span>Árbol de decisión
-      </button>
-      <button class="nav-item" id="nav-recursive" onclick="showPage('recursive')">
-        <span class="nav-icon">🔄</span>Playlist recursiva
-      </button>
-
-      <div class="nav-section">Mi Biblioteca</div>
-      <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')">
-        <span class="nav-icon">⭐</span>Favoritos
-        <span class="nav-badge hidden" id="badge-fav">0</span>
-      </button>
-      <button class="nav-item" id="nav-likes" onclick="showPage('likes')">
-        <span class="nav-icon">❤️</span>Mis likes
-        <span class="nav-badge hidden" id="badge-like">0</span>
-      </button>
-
-      <div class="nav-section">Análisis</div>
-      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">
-        <span class="nav-icon">📊</span>Panel IA
-      </button>
-    </div>
-  </nav>
-
-  <!-- MAIN CONTENT -->
-  <main class="main">
-
-    <!-- HOME -->
-    <div class="page active" id="page-home">
-      <div class="hero">
-        <div class="hero-content">
-          <div>
-            <h2>Hola, <span id="heroName"></span> 👋</h2>
-            <p>SoundMind analiza tus preferencias usando <strong>filtrado colaborativo</strong>, <strong>árbol de decisión J48</strong> y <strong>playlists recursivas</strong> para ofrecerte música que realmente encaja contigo.</p>
-          </div>
-          <div class="hero-stats">
-            <div class="hstat"><div class="hstat-val" id="hsSongs">—</div><div class="hstat-label">Canciones</div></div>
-            <div class="hstat"><div class="hstat-val" id="hsLikes">—</div><div class="hstat-label">Mis likes</div></div>
-            <div class="hstat"><div class="hstat-val" id="hsFavs">—</div><div class="hstat-label">Favoritos</div></div>
-          </div>
+    <!-- SIDEBAR IZQUIERDA -->
+    <aside class="sidebar">
+        <div class="logo-area">
+            <div class="logo-icon">🎧</div>
+            <span class="logo-text">SoundMind <span class="ai-pill">AI</span></span>
         </div>
-      </div>
-
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">🔥 Más populares</div>
-          <span class="ai-badge">🤖 Ranking global</span>
+        <nav class="main-nav">
+            <a href="#" class="nav-link active" data-view="home">🏠 Inicio</a>
+            <a href="#" class="nav-link" data-view="library">📚 Biblioteca</a>
+            <a href="#" class="nav-link" data-view="recommend">✨ Recomendaciones</a>
+            <a href="#" class="nav-link" data-view="upload" id="uploadNavBtn" style="display: none;">⬆️ Subir música</a>
+        </nav>
+        <div class="playlists-section">
+            <h4>MIS PLAYLISTS</h4>
+            <div id="playlistsContainer"></div>
+            <button id="newPlaylistBtn" class="new-playlist-btn">+ Nueva playlist</button>
         </div>
-        <div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
-      </div>
-
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">🎯 Recomendado para ti</div>
-          <span class="ai-badge">🤖 IA activa</span>
+        <div class="user-info-sidebar">
+            <div class="user-avatar" id="sidebarAvatar">👤</div>
+            <div><span id="sidebarUserName">Invitado</span><br><small id="sidebarFavGen">—</small></div>
+            <button id="sidebarLogout" class="logout-side">Salir</button>
         </div>
-        <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Calculando…</div></div>
-      </div>
+    </aside>
+
+    <!-- CONTENIDO CENTRAL -->
+    <div class="main-content">
+        <header class="top-header">
+            <div class="search-area">
+                <div class="search-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="¿Qué quieres escuchar?">
+                    <button id="voiceSearchBtn" class="voice-btn" title="Buscar por voz">🎤</button>
+                </div>
+            </div>
+            <div class="user-top" id="userTopBtn">
+                <div class="avatar-small" id="topAvatar">👤</div>
+                <span id="topUserName">Invitado</span>
+                <div class="dropdown-menu hidden" id="userDropdown">
+                    <button id="dropdownLogout">Cerrar sesión</button>
+                </div>
+            </div>
+        </header>
+
+        <main id="dynamicContent">
+            <!-- El contenido se renderiza dinámicamente -->
+            <div class="welcome-banner">
+                <h1>Bienvenido, <span id="welcomeName">amante de la música</span> 🎵</h1>
+                <p>Descubre nuevas canciones recomendadas por inteligencia artificial según tus gustos.</p>
+            </div>
+            <div class="section-header">
+                <h2 id="sectionTitle">Descubre lo nuevo</h2>
+                <span id="sectionSub" class="section-sub"></span>
+            </div>
+            <div class="tracks-list" id="tracksContainer">
+                <div class="loading-spinner">Cargando...</div>
+            </div>
+        </main>
     </div>
 
-    <!-- CATALOG -->
-    <div class="page" id="page-catalog">
-      <div class="top-bar">
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
+    <!-- SIDEBAR DERECHA (Ahora reproduciendo + cola) -->
+    <aside class="right-panel">
+        <div class="now-playing-card">
+            <div class="now-playing-cover" id="nowCover">
+                <img src="https://via.placeholder.com/300?text=🎵" alt="cover" id="nowCoverImg">
+            </div>
+            <div class="now-info">
+                <h4 id="nowTitle">Ninguna canción</h4>
+                <p id="nowArtist">—</p>
+                <div class="song-credits">
+                    <span>🎸 Artista principal</span>
+                    <strong id="nowComposer">—</strong>
+                </div>
+            </div>
         </div>
-        <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
-      </div>
-      <div class="genre-pills" id="genrePills"></div>
-      <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
-    </div>
-
-    <!-- SIMILAR -->
-    <div class="page" id="page-similar">
-      <div class="page-title">👥 Filtrado colaborativo</div>
-      <div class="page-sub">Encuentra usuarios con gustos similares al tuyo y descubre canciones que ellos aman pero tú aún no conoces.</div>
-      <div class="section-desc">
-        <strong>Algoritmo KNN (K-Nearest Neighbors):</strong> Se mide la similitud entre usuarios contando canciones en común.<br>
-        <code style="color:var(--accent3)">similitud(u,v) = |likes_u ∩ likes_v| / min(|likes_u|, |likes_v|)</code><br>
-        Los 3 vecinos más cercanos aportan sus canciones favoritas que tú aún no has escuchado.
-      </div>
-      <div id="neighborsRow" class="neighbors-row"></div>
-      <div class="cards-grid" id="simCards"><div class="loading"><div class="spin"></div> Calculando similitud…</div></div>
-    </div>
-
-    <!-- TREE -->
-    <div class="page" id="page-tree">
-      <div class="page-title">🌳 Árbol de decisión J48</div>
-      <div class="page-sub">Un clasificador supervisado entrenado con todos los historiales de interacción predice si una canción te gustará.</div>
-      <div class="section-desc">
-        <strong>Atributos:</strong> energía, bailabilidad, popularidad, género.<br>
-        <strong>Clase objetivo:</strong> like (1) / no like (0).<br>
-        <strong>Regla de clasificación:</strong> Score ≥ 4 puntos → recomendar. Se acumula puntuación según si cada atributo supera la media aprendida del historial de likes del usuario.
-      </div>
-      <div class="cards-grid" id="treeCards"><div class="loading"><div class="spin"></div> Entrenando árbol…</div></div>
-    </div>
-
-    <!-- RECURSIVE -->
-    <div class="page" id="page-recursive">
-      <div class="page-title">🔄 Playlist recursiva</div>
-      <div class="page-sub">Desde tu último like, la función recursiva encadena canciones similares por género, energía y bailabilidad hasta una profundidad de 8 pasos.</div>
-      <div class="section-desc">
-        <strong>Función recursiva:</strong><br>
-        <code style="color:var(--accent3)">generarPlaylist(cancion, profundidad, visitados) →<br>
-        &nbsp;&nbsp;[siguienteCancion, ...generarPlaylist(siguiente, profundidad-1, visitados+{siguiente})]</code><br>
-        Caso base: profundidad = 0 o no hay candidatos → retorna [].
-      </div>
-      <div class="cards-grid" id="recCards"><div class="loading"><div class="spin"></div> Generando playlist…</div></div>
-    </div>
-
-    <!-- FAVORITES -->
-    <div class="page" id="page-favorites">
-      <div class="page-title">⭐ Favoritos</div>
-      <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
-      <div class="cards-grid" id="favCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
-    </div>
-
-    <!-- LIKES -->
-    <div class="page" id="page-likes">
-      <div class="page-title">❤️ Mis likes</div>
-      <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
-      <div class="cards-grid" id="likeCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
-    </div>
-
-    <!-- ANALYSIS -->
-    <div class="page" id="page-analysis">
-      <div class="page-title">📊 Panel de Inteligencia Artificial</div>
-      <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
-
-      <div class="section">
-        <div class="section-title" style="margin-bottom:14px">📈 Métricas del sistema</div>
-        <div class="metrics-row">
-          <div class="metric"><div class="metric-val" id="mUsers">—</div><div class="metric-label">Usuarios</div></div>
-          <div class="metric"><div class="metric-val" id="mSongs">—</div><div class="metric-label">Canciones</div></div>
-          <div class="metric"><div class="metric-val" id="mInter">—</div><div class="metric-label">Interacciones</div></div>
-          <div class="metric"><div class="metric-val" id="mLikes">—</div><div class="metric-label">Total likes</div></div>
-          <div class="metric"><div class="metric-val" id="mAcc">—</div><div class="metric-label">Precisión árbol</div></div>
-          <div class="metric"><div class="metric-val" id="mAvg">—</div><div class="metric-label">Likes/usuario</div></div>
+        <div class="queue-card">
+            <h4>A continuación</h4>
+            <div id="queueContainer"><p class="empty-queue">Cola vacía</p></div>
         </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title" style="margin-bottom:8px">🎨 Mis géneros favoritos</div>
-        <div class="page-sub" style="margin-bottom:12px">Distribución de likes por género.</div>
-        <div class="bar-chart" id="genreBar"></div>
-      </div>
-
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div>
-          <span class="ai-badge">J48 simplificado</span>
-        </div>
-        <div class="tree-viz" id="treeViz">Calculando…</div>
-      </div>
-
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">🔬 Validación cruzada k=5</div>
-          <span class="ai-badge">Cross-Validation</span>
-        </div>
-        <div class="page-sub" style="margin-bottom:0">Las interacciones se dividen en 5 partes. En cada iteración se entrena con 4 y se evalúa con 1.</div>
-        <table class="cv-table">
-          <thead><tr><th>Fold</th><th>Entrenamiento</th><th>Prueba</th><th>Precisión</th><th>Likes detectados</th></tr></thead>
-          <tbody id="cvBody"><tr><td colspan="5" style="color:var(--text2);padding:20px">Calculando…</td></table></tbody>
-        </table>
-      </div>
-
-      <div class="section">
-        <div class="section-title" style="margin-bottom:14px">📊 SoundMind IA vs. Sistema básico</div>
-        <table class="comp-table">
-          <thead><tr><th>Criterio</th><th>Sistema básico (géneros populares)</th><th class="hl">SoundMind IA</th></tr></thead>
-          <tbody>
-            <tr><td>Personalización</td><td class="neutral">No personalizado</td><td class="hl">100% personalizado por usuario</td></tr>
-            <tr><td>Algoritmo</td><td class="neutral">Top-N popularidad global</td><td class="hl">Filtrado colaborativo + Árbol J48 + Recursividad</td></tr>
-            <tr><td>Satisfacción usuario</td><td class="neutral">Línea base</td><td class="hl">+34% estimado</td></tr>
-            <tr><td>Tiempo de escucha</td><td class="neutral">Línea base</td><td class="hl">+28% estimado</td></tr>
-            <tr><td>Tasa de abandono</td><td class="neutral">Línea base</td><td class="hl">−22% estimado</td></tr>
-            <tr><td>Diversidad</td><td class="neutral">Baja — siempre los mismos</td><td class="hl">Alta — adaptada a ti</td></tr>
-            <tr><td>Aprendizaje continuo</td><td class="neutral">No</td><td class="hl">Sí — mejora con cada like</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="section">
-        <div class="section-title" style="margin-bottom:14px">🏆 Casos de éxito en plataformas similares</div>
-        <div class="success-cards">
-          <div class="success-card">
-            <div class="success-name">Spotify — Discover Weekly</div>
-            <div class="success-text">Usa filtrado colaborativo y NLP. Reporta +40% en tiempo de escucha para usuarios con recomendaciones personalizadas.</div>
-          </div>
-          <div class="success-card">
-            <div class="success-name">Netflix (contenido)</div>
-            <div class="success-text">Sistema híbrido con árboles de decisión para categorizar nuevo contenido. Precisión de clasificación superior al 80% en pruebas A/B.</div>
-          </div>
-          <div class="success-card">
-            <div class="success-name">YouTube Music</div>
-            <div class="success-text">Playlists automáticas generadas recursivamente desde la canción semilla. Reduce abandono un 25% según reportes internos.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title" style="margin-bottom:14px">🖥️ Infraestructura tecnológica</div>
-        <div class="infra-list">
-          <strong>Frontend:</strong> HTML5 + CSS3 + JavaScript ES2022 — GitHub Pages (CDN global, 99.9% uptime, gratuito)<br>
-          <strong>Base de datos:</strong> Supabase (PostgreSQL 15) — tablas: usuarios, canciones, interacciones<br>
-          <strong>Autenticación:</strong> Sesiones propias con hash en Supabase (filas RLS por usuario)<br>
-          <strong>Audio:</strong> Archivos locales en carpeta <code>/audios/</code> — servidos por GitHub Pages CDN<br>
-          <strong>IA en cliente:</strong> Algoritmos JavaScript puro (sin dependencias ML externas)<br>
-          <strong>Costo actual:</strong> $0/mes — Supabase Free (500MB DB, 2GB bandwidth) + GitHub Pages (gratuito)<br>
-          <strong>Escalabilidad:</strong> Supabase Pro ($25/mes) → 8GB DB, 50GB bandwidth → soporta >10,000 usuarios activos
-        </div>
-      </div>
-    </div>
-
-  </main>
+    </aside>
 </div>
 
-<!-- PLAYER BAR (nativo con controles) -->
-<div id="playerBar" class="hidden">
-  <div class="pl-cover" id="plCover"><span>🎵</span></div>
-  <div class="pl-info">
-    <div class="pl-title" id="plTitle">Sin reproducción</div>
-    <div class="pl-artist" id="plArtist"></div>
-  </div>
-  <div class="pl-controls">
-    <audio id="audioEl" controls preload="none"></audio>
-  </div>
+<!-- ==================== REPRODUCTOR INFERIOR ==================== -->
+<footer class="player-bar hidden" id="playerBar">
+    <div class="player-left">
+        <div class="player-disc" id="playerDisc">
+            <div class="disc-art" id="discArt">🎵</div>
+        </div>
+        <div class="track-info">
+            <span id="playerTitle">Ninguna canción</span>
+            <span id="playerArtist">—</span>
+        </div>
+        <button id="deleteCurrentBtn" class="delete-btn" title="Eliminar canción">🗑️</button>
+    </div>
+    <div class="player-center">
+        <div class="progress-row">
+            <span id="currentTime">0:00</span>
+            <div class="progress-bar" id="progressBarWrap"><div id="progressFill" class="progress-fill"></div></div>
+            <span id="totalTime">0:00</span>
+        </div>
+        <canvas id="visualizer" class="visualizer" width="400" height="40"></canvas>
+        <div class="controls-row">
+            <button id="shuffleBtn" class="ctrl-btn" title="Aleatorio">🔀</button>
+            <button id="prevBtn" class="ctrl-btn">⏮️</button>
+            <button id="playBtn" class="play-pause">▶️</button>
+            <button id="nextBtn" class="ctrl-btn">⏭️</button>
+            <button id="repeatBtn" class="ctrl-btn" title="Repetir">🔁</button>
+            <button id="likePlayerBtn" class="like-btn" title="Me gusta">❤️</button>
+            <button id="addToPlaylistBtn" class="add-btn" title="Añadir a playlist">➕</button>
+        </div>
+    </div>
+    <div class="player-right">
+        <span id="volumeIcon" class="vol-icon">🔊</span>
+        <div class="volume-slider" id="volumeSlider"><div id="volumeFill" class="volume-fill" style="width: 80%"></div></div>
+    </div>
+</footer>
+
+<!-- ==================== MODALES (subida, playlist, etc) ==================== -->
+<div id="uploadModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <button class="close-modal" id="closeUpload">✕</button>
+        <h3>⬆️ Subir música</h3>
+        <label class="upload-btn" id="uploadAudioLabel">📁 Seleccionar archivos MP3</label>
+        <input type="file" id="audioFiles" accept=".mp3,.wav,.ogg" multiple style="display:none">
+        <label class="upload-btn" id="uploadImageLabel">🖼️ Portada (opcional)</label>
+        <input type="file" id="coverImage" accept="image/*" style="display:none">
+        <div class="form-row">
+            <input type="text" id="uploadArtist" placeholder="Artista *" class="modal-input">
+            <select id="uploadGenre" class="modal-input">
+                <option>Rock</option><option>Pop</option><option>Electrónica</option><option>Hip Hop</option>
+                <option>Reguetón</option><option>Latina</option><option>Jazz</option><option>Clásica</option>
+            </select>
+            <select id="uploadMood" class="modal-input">
+                <option>Energético</option><option>Relajado</option><option>Fiesta</option><option>Melancólico</option>
+            </select>
+        </div>
+        <button id="confirmUpload" class="btn-primary">Subir a la nube</button>
+    </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
+<div id="playlistModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:300px">
+        <h3>Agregar a playlist</h3>
+        <div id="playlistOptions"></div>
+        <button class="close-modal" id="closePlaylistModal">Cancelar</button>
+    </div>
+</div>
+
+<div id="newPlaylistModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:300px">
+        <h3>Nueva playlist</h3>
+        <input type="text" id="newPlName" placeholder="Nombre de la playlist" class="modal-input">
+        <div style="display:flex; gap:10px; margin-top:15px">
+            <button id="cancelPl" class="btn-secondary">Cancelar</button>
+            <button id="createPl" class="btn-primary">Crear</button>
+        </div>
+    </div>
+</div>
+
+<div id="deleteConfirmModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:280px">
+        <h3>¿Eliminar canción?</h3>
+        <p id="deleteSongName"></p>
+        <div style="display:flex; gap:10px; margin-top:15px">
+            <button id="cancelDelete" class="btn-secondary">Cancelar</button>
+            <button id="confirmDelete" class="btn-danger">Eliminar</button>
+        </div>
+    </div>
+</div>
 
 <script src="script.js"></script>
 </body>
