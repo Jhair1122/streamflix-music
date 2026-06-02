@@ -1,12 +1,12 @@
 // ────────────────────────────────────────────────
-// CONFIG SUPABASE
+// CONFIG SUPABASE (igual)
 // ────────────────────────────────────────────────
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
 const db = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // ────────────────────────────────────────────────
-// STATE
+// STATE (igual)
 // ────────────────────────────────────────────────
 let currentUser  = null;
 let allSongs     = [];
@@ -16,13 +16,13 @@ let nowPlayingId = null;
 let activeGenre  = null;
 let searchQuery  = '';
 
-// Estado del reproductor
 let audioObj = null;
 let isPlaying = false;
 let audioErrorCount = 0;
+let isLoading = false;  // NUEVO: evita múltiples llamadas a playSong mientras se carga
 
 // ────────────────────────────────────────────────
-// UTILS
+// UTILS (igual)
 // ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
@@ -37,7 +37,7 @@ function toast(msg, color=''){
   setTimeout(()=>t.classList.remove('show'),2400);
 }
 
-// Genre emoji map
+// Genre emoji map (igual)
 const GENRE_EMOJI = {
   'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸',
   'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻',
@@ -45,7 +45,7 @@ const GENRE_EMOJI = {
 };
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 
-// Gradientes por género
+// Gradientes (igual)
 const GENRE_COLORS = {
   'Pop':['#ec4899','#f472b6'],
   'Electrónica':['#6366f1','#a78bfa'],
@@ -59,15 +59,13 @@ const GENRE_COLORS = {
 };
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
-// ────────────────────────────────────────────────
-// PERSISTENCIA DE SESIÓN (sin parpadeo)
-// ────────────────────────────────────────────────
+// Persistencia (igual)
 function saveUserToLocalStorage(user){ localStorage.setItem('soundmind_user', JSON.stringify(user)); }
 function clearUserLocalStorage(){ localStorage.removeItem('soundmind_user'); }
 function getUserFromLocalStorage(){ const raw = localStorage.getItem('soundmind_user'); return raw ? JSON.parse(raw) : null; }
 
 // ────────────────────────────────────────────────
-// AUTH
+// AUTH (igual)
 // ────────────────────────────────────────────────
 function switchTab(tab){
   $('tabLogin').classList.toggle('active',tab==='login');
@@ -110,32 +108,31 @@ async function doLogout(){
   clearUserLocalStorage();
   resetPlayer();
   currentUser=null; myInter=[]; allInter=[]; nowPlayingId=null;
-  $('app').classList.add('hidden');
+  // Mostrar pantalla de login y ocultar app
+  $('authScreen').style.display = 'flex';
+  $('app').style.display = 'none';
   $('playerBar').classList.add('hidden');
-  $('authScreen').classList.remove('hidden');
   $('loginUser').value=''; $('loginPass').value=''; $('regName').value=''; $('regUser').value=''; $('regPass').value='';
   txt('authMsg','');
 }
 
 // ────────────────────────────────────────────────
-// REPRODUCTOR: LIMPIEZA Y MANEJO ROBUSTO (CORREGIDO)
+// REPRODUCTOR: CORREGIDO (sin errores al cambiar de canción)
 // ────────────────────────────────────────────────
 function resetPlayer() {
   if(audioObj){
     audioObj.pause();
     audioObj.src = '';
-    // Eliminar event listeners (clonando y reemplazando)
+    // Remover todos los event listeners (no podemos removerlos individualmente sin referencia, así que clonamos)
     const old = audioObj;
     audioObj = null;
-    old.removeEventListener('canplaythrough', null);
-    old.removeEventListener('timeupdate', null);
-    old.removeEventListener('loadedmetadata', null);
-    old.removeEventListener('ended', null);
-    old.removeEventListener('error', null);
+    // Reemplazar el elemento por uno nuevo para eliminar todos los listeners de forma segura
+    if(old.parentNode) old.parentNode.replaceChild(old.cloneNode(), old);
   }
   isPlaying = false;
   audioErrorCount = 0;
   nowPlayingId = null;
+  isLoading = false;
   $('playPauseBtn').innerHTML = '▶️';
   $('waveAnim').style.display = 'none';
   $('loadingSpinner').style.display = 'none';
@@ -155,6 +152,10 @@ function formatTime(sec){
 
 function playSong(e, songId){
   if(e) e.stopPropagation();
+  if(isLoading) {
+    toast('Espera a que cargue la canción actual');
+    return;
+  }
   const song = allSongs.find(s=>s.id===songId);
   if(!song) return;
   if(!song.url_preview){
@@ -162,11 +163,12 @@ function playSong(e, songId){
     return;
   }
 
-  // Limpiar reproductor anterior completamente
+  // Limpiar reproductor anterior
   resetPlayer();
+  isLoading = true;
   nowPlayingId = songId;
 
-  // Actualizar UI del reproductor
+  // UI
   txt('plTitle', song.titulo);
   txt('plArtist', song.artista);
   const coverDiv = $('plCover');
@@ -181,32 +183,33 @@ function playSong(e, songId){
   audioObj = audio;
   audioErrorCount = 0;
 
-  // Eventos
-  audio.addEventListener('canplaythrough', () => {
+  // Función para manejar cuando el audio está listo
+  const onCanPlay = () => {
     $('loadingSpinner').style.display = 'none';
     $('waveAnim').style.display = 'flex';
     audio.play().catch(err => {
-      console.warn('Error en play():', err);
+      console.warn('play() error:', err);
       toast('No se pudo reproducir el audio');
       resetPlayer();
     });
     isPlaying = true;
+    isLoading = false;
     toast(`▶ Reproduciendo: ${song.titulo}`);
-  });
+  };
 
-  audio.addEventListener('timeupdate', () => {
+  const onTimeUpdate = () => {
     if(audio.duration){
       const percent = (audio.currentTime / audio.duration) * 100;
       $('progressFill').style.width = percent + '%';
       $('currentTime').innerText = formatTime(audio.currentTime);
     }
-  });
+  };
 
-  audio.addEventListener('loadedmetadata', () => {
+  const onLoadedMetadata = () => {
     $('duration').innerText = formatTime(audio.duration);
-  });
+  };
 
-  audio.addEventListener('ended', () => {
+  const onEnded = () => {
     const otherSongs = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
     if(otherSongs.length){
       const randomIdx = Math.floor(Math.random() * otherSongs.length);
@@ -214,9 +217,9 @@ function playSong(e, songId){
     } else {
       resetPlayer();
     }
-  });
+  };
 
-  audio.addEventListener('error', (err) => {
+  const onError = (err) => {
     console.error('Audio error:', err);
     $('loadingSpinner').style.display = 'none';
     toast('Error al cargar el audio.');
@@ -232,13 +235,18 @@ function playSong(e, songId){
     } else {
       resetPlayer();
     }
-  });
+  };
 
-  // Forzar recarga de la UI de tarjetas para mostrar el badge "En reproducción"
+  audio.addEventListener('canplaythrough', onCanPlay);
+  audio.addEventListener('timeupdate', onTimeUpdate);
+  audio.addEventListener('loadedmetadata', onLoadedMetadata);
+  audio.addEventListener('ended', onEnded);
+  audio.addEventListener('error', onError);
+
+  // Guardar referencias para poder eliminar después (opcional, resetPlayer las reemplazará)
   renderAll();
 }
 
-// Controles del reproductor
 function togglePlayPause(){
   if(!audioObj) return;
   if(isPlaying){
@@ -253,7 +261,12 @@ function togglePlayPause(){
     isPlaying = true;
   }
 }
+
 function nextTrack(){
+  if(isLoading) {
+    toast('Espera que termine de cargar');
+    return;
+  }
   if(!allSongs.length) return;
   let nextSong = null;
   if(nowPlayingId){
@@ -268,8 +281,9 @@ function nextTrack(){
 // BOOT (carga datos y renderiza)
 // ────────────────────────────────────────────────
 async function bootApp(){
-  $('authScreen').classList.add('hidden');
-  $('app').classList.remove('hidden');
+  // Asegurar visibilidad sin parpadeo
+  $('authScreen').style.display = 'none';
+  $('app').style.display = 'flex';
   $('playerBar').classList.remove('hidden');
 
   const initials = (currentUser.nombre||currentUser.username).slice(0,2).toUpperCase();
@@ -292,7 +306,7 @@ async function bootApp(){
 }
 
 // ────────────────────────────────────────────────
-// RENDER ALL
+// RENDER ALL (igual)
 // ────────────────────────────────────────────────
 function renderAll(){
   updateHeroStats();
@@ -322,9 +336,7 @@ function updateBadges(){
   if(favs>0) { bf.textContent=favs;  bf.classList.remove('hidden') } else bf.classList.add('hidden');
 }
 
-// ────────────────────────────────────────────────
-// SONG CARD HTML
-// ────────────────────────────────────────────────
+// SONG CARD (igual)
 function songCard(s){
   const inter   = myInter.find(i=>i.cancion_id===s.id);
   const liked   = inter&&inter.es_like;
@@ -365,14 +377,14 @@ function renderCards(songs, containerId, emptyMsg='No hay canciones aquí aún.'
   el.innerHTML=songs.map(songCard).join('');
 }
 
-// HOME
+// HOME (igual)
 function renderHomePopular(){ renderCards(allSongs.slice(0,12),'homePopCards') }
 function renderHomeRec(){
   const rec = aiCollaborative().slice(0,8);
   renderCards(rec,'homeRecCards','Da likes a canciones para recibir recomendaciones personalizadas.');
 }
 
-// CATALOG
+// CATALOG (igual)
 function buildGenrePills(){
   const genres=[...new Set(allSongs.map(s=>s.genero))].sort();
   const el=$('genrePills'); if(!el) return;
@@ -398,7 +410,7 @@ function renderCatalog(){
   renderCards(songs,'catalogCards');
 }
 
-// AI 1: COLLABORATIVE FILTERING
+// AI 1: COLLABORATIVE FILTERING (igual)
 function aiCollaborative(){
   const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
   if(myLiked.size===0) return [];
@@ -457,7 +469,7 @@ function renderSimilar(){
   renderCards(rec,'simCards','Da likes a más canciones para que el algoritmo encuentre usuarios con gustos similares.');
 }
 
-// AI 2: DECISION TREE J48
+// AI 2: DECISION TREE J48 (igual)
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
@@ -510,7 +522,7 @@ function renderTree(){
   renderCards(rec,'treeCards','El árbol no encontró nuevas canciones para recomendarte. Da likes a más canciones para mejorar el modelo.');
 }
 
-// AI 3: RECURSIVE PLAYLIST
+// AI 3: RECURSIVE PLAYLIST (igual)
 function recursivePlaylist(seedId,depth,visited=new Set()){
   if(depth===0||!seedId) return [];
   const seed=allSongs.find(s=>s.id===seedId);
@@ -537,7 +549,7 @@ function renderRecursive(){
   renderCards(playlist,'recCards','Da likes a canciones para generar tu playlist recursiva personalizada.');
 }
 
-// FAVORITES & LIKES
+// FAVORITES & LIKES (igual)
 function renderFavorites(){
   const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
   renderCards(allSongs.filter(s=>ids.has(s.id)),'favCards','Aún no tienes favoritos. Haz clic en ☆ en cualquier canción.');
@@ -547,7 +559,7 @@ function renderLikes(){
   renderCards(allSongs.filter(s=>ids.has(s.id)),'likeCards','Aún no tienes likes. Haz clic en 🤍 en cualquier canción.');
 }
 
-// INTERACTIONS
+// INTERACTIONS (igual)
 async function toggleLike(e,songId){
   e.stopPropagation();
   const existing=myInter.find(i=>i.cancion_id===songId);
@@ -584,7 +596,7 @@ async function refreshAllInter(){
   allInter=data||[];
 }
 
-// ANALYSIS
+// ANALYSIS (igual)
 function renderAnalysis(){
   const model=buildModel();
   const userIds=new Set(allInter.map(i=>i.usuario_id));
@@ -651,7 +663,7 @@ function renderTreeViz(model){
 
 function renderCV(model){
   if(!model||model.datos.length<5){
-    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada.  </td></tr>');
+    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada.   </td></tr>');
     return;
   }
   const k=5,datos=model.datos;
@@ -665,14 +677,14 @@ function renderCV(model){
     const det=test.filter(d=>d.like).length;
     totalAcc+=acc;
     const cls=acc>=75?'good':acc>=60?'mid':'';
-    rows.push(`<tr><td>Fold ${i+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${cls}">${acc}%</td><td>${det}/${test.length}</td>`);
+    rows.push(`<tr><td>Fold ${i+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${cls}">${acc}%</td><td>${det}/${test.length}</td></tr>`);
   }
   const avg=Math.round(totalAcc/k);
-  rows.push(`<tr><td colspan="3"><strong>Precisión promedio</strong></td><td class="good">${avg}%</td><td>—</td>`);
+  rows.push(`<tr><td colspan="3"><strong>Precisión promedio</strong></td><td class="good">${avg}%</td><td>—</td></tr>`);
   html('cvBody',rows.join(''));
 }
 
-// NAVIGATION
+// NAVIGATION (igual)
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -685,35 +697,25 @@ function showPage(name){
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
 // ────────────────────────────────────────────────
-// INIT: SIN PARPADEO - ocultar login antes de pintar
+// INIT: SIN PARPADEO (corregido)
 // ────────────────────────────────────────────────
-(function() {
-  const saved = getUserFromLocalStorage();
-  if(saved){
-    const authDiv = document.getElementById('authScreen');
-    const appDiv = document.getElementById('app');
-    if(authDiv) authDiv.style.display = 'none';
-    if(appDiv) appDiv.style.display = 'flex';
-    if(authDiv) authDiv.classList.add('hidden');
-    if(appDiv) appDiv.classList.remove('hidden');
-    currentUser = saved;
-    window.addEventListener('DOMContentLoaded', async () => {
-      const {data} = await db.from('canciones').select('*').order('popularidad',{ascending:false});
-      allSongs = data || [];
-      await bootApp();
-    });
+// El estilo CSS ya tiene #app { display: none; } y #authScreen { display: flex; }
+// Ahora en DOMContentLoaded decidimos si mostrar app o auth
+document.addEventListener('DOMContentLoaded', async () => {
+  // Precargar canciones para agilizar
+  const {data} = await db.from('canciones').select('*').order('popularidad',{ascending:false});
+  allSongs = data || [];
+
+  const savedUser = getUserFromLocalStorage();
+  if(savedUser){
+    currentUser = savedUser;
+    await bootApp();
   } else {
-    const authDiv = document.getElementById('authScreen');
-    const appDiv = document.getElementById('app');
-    if(authDiv) authDiv.style.display = 'flex';
-    if(appDiv) appDiv.style.display = 'none';
-    window.addEventListener('DOMContentLoaded', () => {
-      db.from('canciones').select('*').order('popularidad',{ascending:false}).then(res=>{
-        allSongs = res.data || [];
-      });
-    });
+    // Asegurar que se vea authScreen y app oculta
+    $('authScreen').style.display = 'flex';
+    $('app').style.display = 'none';
   }
-})();
+});
 
 // Asignar eventos del reproductor después de que el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
