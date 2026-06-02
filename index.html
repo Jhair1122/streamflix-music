@@ -8,7 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* ========== ESTILOS ORIGINALES (sin cambios) ========== */
+/* ═══════════════════════════════════════════════
+   RESET & TOKENS
+═══════════════════════════════════════════════ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#06060a;
@@ -47,11 +49,19 @@ input,select{font-family:var(--font-body)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:10px}
 .hidden{display:none!important}
+
+/* ═══════════════════════════════════════════════
+   NOISE OVERLAY & GRID
+═══════════════════════════════════════════════ */
 body::before{
   content:'';position:fixed;inset:0;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   pointer-events:none;z-index:0;opacity:0.5
 }
+
+/* ═══════════════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════════════ */
 #authScreen{
   position:fixed;inset:0;z-index:9000;
   display:flex;align-items:center;justify-content:center;
@@ -112,7 +122,13 @@ body::before{
 .btn-auth:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(124,58,237,0.45)}
 .btn-auth:active{transform:translateY(0)}
 #authMsg{min-height:20px;text-align:center;font-size:13px;color:var(--red);margin-top:14px}
+
+/* ═══════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════ */
 #app{display:flex;min-height:100vh;position:relative}
+
+/* SIDEBAR */
 .sidebar{
   width:var(--nav-w);flex-shrink:0;
   position:fixed;left:0;top:0;bottom:var(--bar-h);
@@ -178,6 +194,8 @@ body::before{
   color:#fff;font-size:10px;font-weight:700;
   padding:2px 7px;border-radius:20px;
 }
+
+/* MAIN */
 .main{
   margin-left:var(--nav-w);flex:1;
   min-height:100vh;padding:32px 36px;
@@ -185,6 +203,10 @@ body::before{
 }
 .page{display:none}
 .page.active{display:block}
+
+/* ═══════════════════════════════════════════════
+   SEARCH HEADER
+═══════════════════════════════════════════════ */
 .top-bar{
   display:flex;align-items:center;gap:16px;
   margin-bottom:32px;flex-wrap:wrap;
@@ -209,6 +231,10 @@ body::before{
   letter-spacing:-.5px;margin-bottom:6px;
 }
 .page-sub{font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.6}
+
+/* ═══════════════════════════════════════════════
+   HERO BANNER
+═══════════════════════════════════════════════ */
 .hero{
   background:linear-gradient(135deg,rgba(124,58,237,0.18) 0%,rgba(79,70,229,0.1) 50%,rgba(167,139,250,0.06) 100%);
   border:1px solid var(--border2);border-radius:24px;
@@ -229,6 +255,10 @@ body::before{
 .hstat{text-align:center}
 .hstat-val{font-family:var(--font-head);font-size:28px;font-weight:800;color:var(--accent3)}
 .hstat-label{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
+
+/* ═══════════════════════════════════════════════
+   SECTION BLOCK
+═══════════════════════════════════════════════ */
 .section{margin-bottom:32px}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
 .section-title{
@@ -248,6 +278,10 @@ body::before{
   margin-bottom:16px;
 }
 .section-desc strong{color:var(--text)}
+
+/* ═══════════════════════════════════════════════
+   GENRE PILLS
+═══════════════════════════════════════════════ */
 .genre-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
 .gpill{
   padding:6px 16px;border-radius:50px;border:1px solid var(--border);
@@ -258,6 +292,10 @@ body::before{
   background:var(--accentglow);border-color:var(--border2);
   color:var(--accent3);font-weight:600;
 }
+
+/* ═══════════════════════════════════════════════
+   SONG CARDS GRID
+═══════════════════════════════════════════════ */
 .cards-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
@@ -277,6 +315,7 @@ body::before{
 .song-card.liked{border-color:rgba(52,211,153,0.3)}
 .song-card.faved{box-shadow:0 0 0 2px rgba(251,191,36,0.3)}
 .song-card.playing{border-color:var(--accent)}
+
 .card-cover{
   width:100%;padding-top:100%;position:relative;overflow:hidden;
   background:linear-gradient(135deg,var(--bg3),var(--bg4));
@@ -299,6 +338,7 @@ body::before{
   background:#fff;animation:pulse 1s infinite;
 }
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
 .card-body{padding:12px}
 .card-title{
   font-size:13px;font-weight:700;
@@ -334,12 +374,17 @@ body::before{
 .cta.liked-btn{background:rgba(52,211,153,0.12);color:var(--green);border-color:rgba(52,211,153,0.3)}
 .cta.faved-btn{background:rgba(251,191,36,0.12);color:var(--gold);border-color:rgba(251,191,36,0.3)}
 .cta.play-btn:hover{background:var(--accentglow);color:var(--accent3);border-color:var(--border2)}
+
 .empty-state{
   text-align:center;padding:60px 20px;color:var(--text2);
   grid-column:1/-1;
 }
 .empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
 .empty-state p{font-size:14px;line-height:1.7}
+
+/* ═══════════════════════════════════════════════
+   SIMILAR USERS INFO
+═══════════════════════════════════════════════ */
 .neighbors-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
 .neighbor-card{
   background:var(--bg1);border:1px solid var(--border2);
@@ -348,12 +393,20 @@ body::before{
 .neighbor-num{font-size:11px;color:var(--accent3);font-weight:700;margin-bottom:4px;letter-spacing:.5px}
 .neighbor-val{font-size:20px;font-weight:800;font-family:var(--font-head);color:var(--text)}
 .neighbor-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ═══════════════════════════════════════════════
+   TREE VIZ
+═══════════════════════════════════════════════ */
 .tree-viz{
   background:var(--bg);border:1px solid var(--border);
   border-radius:var(--radius2);padding:20px 24px;
   font-family:'Courier New',monospace;font-size:12px;
   color:#a0e4b0;line-height:2;overflow-x:auto;white-space:pre;
 }
+
+/* ═══════════════════════════════════════════════
+   ANALYSIS
+═══════════════════════════════════════════════ */
 .metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
 .metric{
   background:var(--bg1);border:1px solid var(--border);
@@ -361,11 +414,13 @@ body::before{
 }
 .metric-val{font-family:var(--font-head);font-size:30px;font-weight:800;color:var(--accent3)}
 .metric-label{font-size:11px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+
 .bar-chart{display:flex;align-items:flex-end;gap:10px;height:130px;padding:0 4px}
 .bar-col{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
 .bar-fill{width:100%;border-radius:6px 6px 0 0;min-height:4px;transition:.5s}
 .bar-lbl{font-size:10px;color:var(--text2);margin-top:6px;text-align:center;line-height:1.3;word-break:break-all}
 .bar-num{font-size:11px;color:var(--accent3);font-weight:700;margin-top:2px}
+
 .cv-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
 .cv-table th{
   text-align:left;color:var(--text2);padding:10px 14px;
@@ -376,6 +431,7 @@ body::before{
 .cv-table tr:last-child td{color:var(--accent3);font-weight:700;font-size:14px}
 .cv-table td.good{color:var(--green)}
 .cv-table td.mid{color:var(--gold)}
+
 .comp-table{width:100%;border-collapse:collapse}
 .comp-table th{
   background:var(--bg2);padding:12px 16px;text-align:left;
@@ -385,6 +441,7 @@ body::before{
 .comp-table td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:13px;color:var(--text2)}
 .comp-table td.hl{color:var(--accent3);font-weight:600}
 .comp-table td.neutral{color:var(--text2)}
+
 .success-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
 .success-card{
   background:var(--bg1);border:1px solid var(--border);
@@ -392,8 +449,13 @@ body::before{
 }
 .success-name{font-weight:700;color:var(--accent3);margin-bottom:8px;font-family:var(--font-head)}
 .success-text{font-size:12px;color:var(--text2);line-height:1.7}
+
 .infra-list{font-size:13px;color:var(--text2);line-height:2.2}
 .infra-list strong{color:var(--text)}
+
+/* ═══════════════════════════════════════════════
+   PLAYER BAR
+═══════════════════════════════════════════════ */
 #playerBar{
   position:fixed;bottom:0;left:0;right:0;height:var(--bar-h);
   background:rgba(8,8,14,0.97);backdrop-filter:blur(24px);
@@ -414,6 +476,10 @@ body::before{
 .pl-controls{flex:1;min-width:0}
 .pl-controls audio{width:100%;accent-color:var(--accent);height:36px}
 .pl-empty{color:var(--text3);font-size:13px}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
 #toast{
   position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);
   background:var(--bg2);border:1px solid var(--border2);
@@ -424,6 +490,10 @@ body::before{
   box-shadow:0 8px 32px rgba(0,0,0,0.5);
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ═══════════════════════════════════════════════
+   LOADING
+═══════════════════════════════════════════════ */
 .loading{
   display:flex;align-items:center;justify-content:center;
   padding:60px;color:var(--text2);font-size:14px;gap:10px;
@@ -435,6 +505,10 @@ body::before{
   animation:spin .7s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
 @media(max-width:900px){
   :root{--nav-w:0px}
   .sidebar{transform:translateX(-100%);width:260px;transition:.3s}
@@ -449,190 +523,305 @@ body::before{
   background:var(--bg1);border:1px solid var(--border);
   border-radius:var(--radius3);padding:10px;color:var(--text);font-size:18px;
 }
-/* ========== ESTILOS NUEVOS (búsqueda por voz, modales, etc.) ========== */
-.voice-search-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: var(--text2);
-  transition: all 0.2s;
-  z-index: 2;
-}
-.voice-search-btn:hover {
-  color: var(--accent);
-  transform: translateY(-50%) scale(1.1);
-}
-.voice-search-btn.listening {
-  color: #ff2d55;
-  animation: voicePulse 1s ease-in-out infinite;
-}
-@keyframes voicePulse {
-  0% { text-shadow: 0 0 0 rgba(255,45,85,0.5); }
-  50% { text-shadow: 0 0 12px rgba(255,45,85,0.8); }
-  100% { text-shadow: 0 0 0 rgba(255,45,85,0); }
-}
-/* Modal de subida */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.9);
-  backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-.modal-overlay.hidden { display: none; }
-.upload-modal {
-  background: var(--bg1);
-  border: 1px solid var(--border2);
-  border-radius: 24px;
-  padding: 28px;
-  width: 90%;
-  max-width: 480px;
-  position: relative;
-}
-.upload-modal h3 {
-  margin-bottom: 8px;
-  font-size: 22px;
-}
-.upload-btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  background: var(--bg2);
-  border: 2px dashed var(--border2);
-  border-radius: 12px;
-  text-align: center;
-  cursor: pointer;
-  margin-bottom: 16px;
-  transition: 0.2s;
-}
-.upload-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.upload-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.upload-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.upload-field label {
-  font-size: 11px;
-  color: var(--text2);
-}
-.upload-field input, .upload-field select {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: white;
-}
-.close-modal {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  color: var(--text2);
-  font-size: 20px;
-  cursor: pointer;
-}
-.btn-submit {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, var(--accent2), #6d28d9);
-  border: none;
-  border-radius: 40px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
 </style>
 </head>
 <body>
 
-<!-- AUTH SCREEN (sin cambios) -->
+<!-- AUTH SCREEN -->
 <div id="authScreen">
   <div class="auth-wrap">
-    <div class="auth-brand"><h1>SoundMind</h1><p>Sistema de Recomendación Musical con Inteligencia Artificial</p></div>
+    <div class="auth-brand">
+      <h1>SoundMind</h1>
+      <p>Sistema de Recomendación Musical con Inteligencia Artificial</p>
+    </div>
     <div class="auth-card">
-      <div class="auth-tabs"><button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Iniciar sesión</button><button class="auth-tab" id="tabReg" onclick="switchTab('register')">Crear cuenta</button></div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Iniciar sesión</button>
+        <button class="auth-tab" id="tabReg" onclick="switchTab('register')">Crear cuenta</button>
+      </div>
+
       <div id="formLogin">
-        <div class="auth-field"><label>Usuario</label><input type="text" id="loginUser" placeholder="Tu nombre de usuario"></div>
-        <div class="auth-field"><label>Contraseña</label><input type="password" id="loginPass" placeholder="••••••••"></div>
+        <div class="auth-field">
+          <label>Usuario</label>
+          <input type="text" id="loginUser" placeholder="Tu nombre de usuario" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label>Contraseña</label>
+          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+        </div>
         <button class="btn-auth" onclick="doLogin()">Ingresar →</button>
       </div>
+
       <div id="formReg" class="hidden">
-        <div class="auth-field"><label>Nombre</label><input type="text" id="regName" placeholder="Tu nombre real"></div>
-        <div class="auth-field"><label>Usuario</label><input type="text" id="regUser" placeholder="Elige un nombre de usuario"></div>
-        <div class="auth-field"><label>Contraseña</label><input type="password" id="regPass" placeholder="Mínimo 6 caracteres"></div>
+        <div class="auth-field">
+          <label>Nombre</label>
+          <input type="text" id="regName" placeholder="Tu nombre real" autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <label>Usuario</label>
+          <input type="text" id="regUser" placeholder="Elige un nombre de usuario" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label>Contraseña</label>
+          <input type="password" id="regPass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        </div>
         <button class="btn-auth" onclick="doRegister()">Crear cuenta →</button>
       </div>
+
       <div id="authMsg"></div>
     </div>
   </div>
 </div>
 
-<!-- HAMBURGER (mobile) -->
+<!-- HAMBURGER -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
 <!-- APP SHELL -->
 <div id="app" class="hidden">
+
   <nav class="sidebar" id="sidebar">
-    <div class="sidebar-brand"><h1>SoundMind</h1><p>IA · RECOMENDACIÓN MUSICAL</p></div>
-    <div class="sidebar-user"><div class="user-avatar" id="userAvatar"></div><div class="user-name" id="userName"></div><button class="btn-logout" onclick="doLogout()">Salir</button></div>
+    <div class="sidebar-brand">
+      <h1>SoundMind</h1>
+      <p>IA · RECOMENDACIÓN MUSICAL</p>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="userAvatar"></div>
+      <div class="user-name" id="userName"></div>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+
     <div class="sidebar-nav">
       <div class="nav-section">Principal</div>
-      <button class="nav-item active" id="nav-home" onclick="showPage('home')"><span class="nav-icon">🏠</span>Inicio</button>
-      <button class="nav-item" id="nav-catalog" onclick="showPage('catalog')"><span class="nav-icon">🎵</span>Catálogo</button>
+      <button class="nav-item active" id="nav-home" onclick="showPage('home')">
+        <span class="nav-icon">🏠</span>Inicio
+      </button>
+      <button class="nav-item" id="nav-catalog" onclick="showPage('catalog')">
+        <span class="nav-icon">🎵</span>Catálogo
+      </button>
+
       <div class="nav-section">Algoritmos IA</div>
-      <button class="nav-item" id="nav-similar" onclick="showPage('similar')"><span class="nav-icon">👥</span>Filtrado colaborativo</button>
-      <button class="nav-item" id="nav-tree" onclick="showPage('tree')"><span class="nav-icon">🌳</span>Árbol de decisión</button>
-      <button class="nav-item" id="nav-recursive" onclick="showPage('recursive')"><span class="nav-icon">🔄</span>Playlist recursiva</button>
+      <button class="nav-item" id="nav-similar" onclick="showPage('similar')">
+        <span class="nav-icon">👥</span>Filtrado colaborativo
+      </button>
+      <button class="nav-item" id="nav-tree" onclick="showPage('tree')">
+        <span class="nav-icon">🌳</span>Árbol de decisión
+      </button>
+      <button class="nav-item" id="nav-recursive" onclick="showPage('recursive')">
+        <span class="nav-icon">🔄</span>Playlist recursiva
+      </button>
+
       <div class="nav-section">Mi Biblioteca</div>
-      <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')"><span class="nav-icon">⭐</span>Favoritos<span class="nav-badge hidden" id="badge-fav">0</span></button>
-      <button class="nav-item" id="nav-likes" onclick="showPage('likes')"><span class="nav-icon">❤️</span>Mis likes<span class="nav-badge hidden" id="badge-like">0</span></button>
+      <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')">
+        <span class="nav-icon">⭐</span>Favoritos
+        <span class="nav-badge hidden" id="badge-fav">0</span>
+      </button>
+      <button class="nav-item" id="nav-likes" onclick="showPage('likes')">
+        <span class="nav-icon">❤️</span>Mis likes
+        <span class="nav-badge hidden" id="badge-like">0</span>
+      </button>
+
       <div class="nav-section">Análisis</div>
-      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')"><span class="nav-icon">📊</span>Panel IA</button>
+      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">
+        <span class="nav-icon">📊</span>Panel IA
+      </button>
     </div>
   </nav>
+
   <main class="main">
+
     <!-- HOME -->
     <div class="page active" id="page-home">
-      <div class="hero"><div class="hero-content"><div><h2>Hola, <span id="heroName"></span> 👋</h2><p>SoundMind analiza tus preferencias usando <strong>filtrado colaborativo</strong>, <strong>árbol de decisión J48</strong> y <strong>playlists recursivas</strong> para ofrecerte música que realmente encaja contigo.</p></div><div class="hero-stats"><div class="hstat"><div class="hstat-val" id="hsSongs">—</div><div class="hstat-label">Canciones</div></div><div class="hstat"><div class="hstat-val" id="hsLikes">—</div><div class="hstat-label">Mis likes</div></div><div class="hstat"><div class="hstat-val" id="hsFavs">—</div><div class="hstat-label">Favoritos</div></div></div></div></div>
-      <div class="section"><div class="section-head"><div class="section-title">🔥 Más populares</div><span class="ai-badge">🤖 Ranking global</span></div><div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div></div>
-      <div class="section"><div class="section-head"><div class="section-title">🎯 Recomendado para ti</div><span class="ai-badge">🤖 IA activa</span></div><div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Calculando…</div></div></div>
+      <div class="hero">
+        <div class="hero-content">
+          <div>
+            <h2>Hola, <span id="heroName"></span> 👋</h2>
+            <p>SoundMind analiza tus preferencias usando <strong>filtrado colaborativo</strong>, <strong>árbol de decisión J48</strong> y <strong>playlists recursivas</strong> para ofrecerte música que realmente encaja contigo.</p>
+          </div>
+          <div class="hero-stats">
+            <div class="hstat"><div class="hstat-val" id="hsSongs">—</div><div class="hstat-label">Canciones</div></div>
+            <div class="hstat"><div class="hstat-val" id="hsLikes">—</div><div class="hstat-label">Mis likes</div></div>
+            <div class="hstat"><div class="hstat-val" id="hsFavs">—</div><div class="hstat-label">Favoritos</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🔥 Más populares</div>
+          <span class="ai-badge">🤖 Ranking global</span>
+        </div>
+        <div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🎯 Recomendado para ti</div>
+          <span class="ai-badge">🤖 IA activa</span>
+        </div>
+        <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Calculando…</div></div>
+      </div>
     </div>
+
     <!-- CATALOG -->
     <div class="page" id="page-catalog">
       <div class="top-bar">
         <div class="search-box">
           <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
-          <button class="voice-search-btn" id="voiceSearchBtn" title="Buscar por voz">🎤</button>
         </div>
         <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
       </div>
       <div class="genre-pills" id="genrePills"></div>
       <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
-    <!-- SIMILAR, TREE, RECURSIVE, FAVORITES, LIKES, ANALYSIS (sin cambios, idénticos al original) -->
-    <!-- ... (el resto de las páginas se mantienen igual) ... -->
+
+    <!-- SIMILAR -->
+    <div class="page" id="page-similar">
+      <div class="page-title">👥 Filtrado colaborativo</div>
+      <div class="page-sub">Encuentra usuarios con gustos similares al tuyo y descubre canciones que ellos aman pero tú aún no conoces.</div>
+      <div class="section-desc">
+        <strong>Algoritmo KNN (K-Nearest Neighbors):</strong> Se mide la similitud entre usuarios contando canciones en común.<br>
+        <code style="color:var(--accent3)">similitud(u,v) = |likes_u ∩ likes_v| / min(|likes_u|, |likes_v|)</code><br>
+        Los 3 vecinos más cercanos aportan sus canciones favoritas que tú aún no has escuchado.
+      </div>
+      <div id="neighborsRow" class="neighbors-row"></div>
+      <div class="cards-grid" id="simCards"><div class="loading"><div class="spin"></div> Calculando similitud…</div></div>
+    </div>
+
+    <!-- TREE -->
+    <div class="page" id="page-tree">
+      <div class="page-title">🌳 Árbol de decisión J48</div>
+      <div class="page-sub">Un clasificador supervisado entrenado con todos los historiales de interacción predice si una canción te gustará.</div>
+      <div class="section-desc">
+        <strong>Atributos:</strong> energía, bailabilidad, popularidad, género.<br>
+        <strong>Clase objetivo:</strong> like (1) / no like (0).<br>
+        <strong>Regla de clasificación:</strong> Score ≥ 4 puntos → recomendar. Se acumula puntuación según si cada atributo supera la media aprendida del historial de likes del usuario.
+      </div>
+      <div class="cards-grid" id="treeCards"><div class="loading"><div class="spin"></div> Entrenando árbol…</div></div>
+    </div>
+
+    <!-- RECURSIVE -->
+    <div class="page" id="page-recursive">
+      <div class="page-title">🔄 Playlist recursiva</div>
+      <div class="page-sub">Desde tu último like, la función recursiva encadena canciones similares por género, energía y bailabilidad hasta una profundidad de 8 pasos.</div>
+      <div class="section-desc">
+        <strong>Función recursiva:</strong><br>
+        <code style="color:var(--accent3)">generarPlaylist(cancion, profundidad, visitados) →<br>
+        &nbsp;&nbsp;[siguienteCancion, ...generarPlaylist(siguiente, profundidad-1, visitados+{siguiente})]</code><br>
+        Caso base: profundidad = 0 o no hay candidatos → retorna [].
+      </div>
+      <div class="cards-grid" id="recCards"><div class="loading"><div class="spin"></div> Generando playlist…</div></div>
+    </div>
+
+    <!-- FAVORITES -->
+    <div class="page" id="page-favorites">
+      <div class="page-title">⭐ Favoritos</div>
+      <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
+      <div class="cards-grid" id="favCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+    </div>
+
+    <!-- LIKES -->
+    <div class="page" id="page-likes">
+      <div class="page-title">❤️ Mis likes</div>
+      <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
+      <div class="cards-grid" id="likeCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+    </div>
+
+    <!-- ANALYSIS -->
+    <div class="page" id="page-analysis">
+      <div class="page-title">📊 Panel de Inteligencia Artificial</div>
+      <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">📈 Métricas del sistema</div>
+        <div class="metrics-row">
+          <div class="metric"><div class="metric-val" id="mUsers">—</div><div class="metric-label">Usuarios</div></div>
+          <div class="metric"><div class="metric-val" id="mSongs">—</div><div class="metric-label">Canciones</div></div>
+          <div class="metric"><div class="metric-val" id="mInter">—</div><div class="metric-label">Interacciones</div></div>
+          <div class="metric"><div class="metric-val" id="mLikes">—</div><div class="metric-label">Total likes</div></div>
+          <div class="metric"><div class="metric-val" id="mAcc">—</div><div class="metric-label">Precisión árbol</div></div>
+          <div class="metric"><div class="metric-val" id="mAvg">—</div><div class="metric-label">Likes/usuario</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:8px">🎨 Mis géneros favoritos</div>
+        <div class="page-sub" style="margin-bottom:12px">Distribución de likes por género.</div>
+        <div class="bar-chart" id="genreBar"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div>
+          <span class="ai-badge">J48 simplificado</span>
+        </div>
+        <div class="tree-viz" id="treeViz">Calculando…</div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🔬 Validación cruzada k=5</div>
+          <span class="ai-badge">Cross-Validation</span>
+        </div>
+        <div class="page-sub" style="margin-bottom:0">Las interacciones se dividen en 5 partes. En cada iteración se entrena con 4 y se evalúa con 1.</div>
+        <table class="cv-table">
+          <thead><tr><th>Fold</th><th>Entrenamiento</th><th>Prueba</th><th>Precisión</th><th>Likes detectados</th></tr></thead>
+          <tbody id="cvBody"><tr><td colspan="5" style="color:var(--text2);padding:20px">Calculando…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">📊 SoundMind IA vs. Sistema básico</div>
+        <table class="comp-table">
+          <thead><tr><th>Criterio</th><th>Sistema básico (géneros populares)</th><th class="hl">SoundMind IA</th></tr></thead>
+          <tbody>
+            <tr><td>Personalización</td><td class="neutral">No personalizado</td><td class="hl">100% personalizado por usuario</td></tr>
+            <tr><td>Algoritmo</td><td class="neutral">Top-N popularidad global</td><td class="hl">Filtrado colaborativo + Árbol J48 + Recursividad</td></tr>
+            <tr><td>Satisfacción usuario</td><td class="neutral">Línea base</td><td class="hl">+34% estimado</td></tr>
+            <tr><td>Tiempo de escucha</td><td class="neutral">Línea base</td><td class="hl">+28% estimado</td></tr>
+            <tr><td>Tasa de abandono</td><td class="neutral">Línea base</td><td class="hl">−22% estimado</td></tr>
+            <tr><td>Diversidad</td><td class="neutral">Baja — siempre los mismos</td><td class="hl">Alta — adaptada a ti</td></tr>
+            <tr><td>Aprendizaje continuo</td><td class="neutral">No</td><td class="hl">Sí — mejora con cada like</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">🏆 Casos de éxito en plataformas similares</div>
+        <div class="success-cards">
+          <div class="success-card">
+            <div class="success-name">Spotify — Discover Weekly</div>
+            <div class="success-text">Usa filtrado colaborativo y NLP. Reporta +40% en tiempo de escucha para usuarios con recomendaciones personalizadas.</div>
+          </div>
+          <div class="success-card">
+            <div class="success-name">Netflix (contenido)</div>
+            <div class="success-text">Sistema híbrido con árboles de decisión para categorizar nuevo contenido. Precisión de clasificación superior al 80% en pruebas A/B.</div>
+          </div>
+          <div class="success-card">
+            <div class="success-name">YouTube Music</div>
+            <div class="success-text">Playlists automáticas generadas recursivamente desde la canción semilla. Reduce abandono un 25% según reportes internos.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">🖥️ Infraestructura tecnológica</div>
+        <div class="infra-list">
+          <strong>Frontend:</strong> HTML5 + CSS3 + JavaScript ES2022 — GitHub Pages (CDN global, 99.9% uptime, gratuito)<br>
+          <strong>Base de datos:</strong> Supabase (PostgreSQL 15) — tablas: usuarios, canciones, interacciones<br>
+          <strong>Autenticación:</strong> Sesiones propias con hash en Supabase (filas RLS por usuario)<br>
+          <strong>Audio:</strong> Archivos locales en carpeta <code>/audios/</code> — servidos por GitHub Pages CDN<br>
+          <strong>IA en cliente:</strong> Algoritmos JavaScript puro (sin dependencias ML externas)<br>
+          <strong>Costo actual:</strong> $0/mes — Supabase Free (500MB DB, 2GB bandwidth) + GitHub Pages (gratuito)<br>
+          <strong>Escalabilidad:</strong> Supabase Pro ($25/mes) → 8GB DB, 50GB bandwidth → soporta >10,000 usuarios activos
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
-<!-- PLAYER BAR (sin cambios) -->
+<!-- PLAYER BAR -->
 <div id="playerBar" class="hidden">
   <div class="pl-cover" id="plCover"><span>🎵</span></div>
   <div class="pl-info">
@@ -647,50 +836,24 @@ body::before{
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- MODAL DE SUBIDA DE MÚSICA (solo admin) -->
-<div id="uploadModal" class="modal-overlay hidden">
-  <div class="upload-modal">
-    <button class="close-modal" id="closeUploadModal">✕</button>
-    <h3>⬆️ Subir música</h3>
-    <p style="font-size:13px; color:var(--text2); margin-bottom:16px;">Sube archivos MP3 a la nube (solo administrador)</p>
-    <label class="upload-btn" id="uploadAudioLabel">📁 Seleccionar archivos MP3</label>
-    <input type="file" id="audioFiles" accept=".mp3,.wav,.ogg" multiple style="display:none">
-    <label class="upload-btn" id="uploadImageLabel">🖼️ Portada (opcional)</label>
-    <input type="file" id="coverImage" accept="image/*" style="display:none">
-    <div class="upload-grid">
-      <div class="upload-field">
-        <label>Artista *</label>
-        <input type="text" id="uploadArtist" placeholder="Ej: Artista">
-      </div>
-      <div class="upload-field">
-        <label>Género</label>
-        <select id="uploadGenre">
-          <option>Rock</option><option>Pop</option><option>Electrónica</option><option>Latino</option><option>Anime</option><option>Trap</option><option>Alternativo</option>
-        </select>
-      </div>
-    </div>
-    <button id="confirmUploadBtn" class="btn-submit">Subir a la nube</button>
-  </div>
-</div>
-
 <script>
-// ========== CÓDIGO ORIGINAL (sin modificar) ==========
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
 const db = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-let currentUser = null;
-let allSongs = [];
-let myInter = [];
-let allInter = [];
+let currentUser  = null;
+let allSongs     = [];
+let myInter      = [];
+let allInter     = [];
 let nowPlayingId = null;
-let activeGenre = null;
-let searchQuery = '';
+let activeGenre  = null;
+let searchQuery  = '';
 
 const $ = id => document.getElementById(id);
-function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function txt(id,v){ const e=$(id); if(e) e.textContent=v; }
-function html(id,v){ const e=$(id); if(e) e.innerHTML=v; }
+function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+function txt(id,v){ const e=$(id); if(e) e.textContent=v }
+function html(id,v){ const e=$(id); if(e) e.innerHTML=v }
+
 function toast(msg, color=''){
   const t=$('toast');
   t.textContent=msg;
@@ -698,10 +861,26 @@ function toast(msg, color=''){
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2400);
 }
-const GENRE_EMOJI = { 'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸','Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻','default':'🎵' };
-function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default; }
-const GENRE_COLORS = { 'Pop':['#ec4899','#f472b6'], 'Electrónica':['#6366f1','#a78bfa'], 'Anime':['#f59e0b','#fbbf24'], 'Rock':['#ef4444','#f87171'], 'Latino':['#10b981','#34d399'], 'Alternativo':['#0ea5e9','#38bdf8'], 'Trap':['#8b5cf6','#a78bfa'], 'Balada':['#f97316','#fb923c'], 'default':['#6b7280','#9ca3af'] };
-function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})`; }
+
+const GENRE_EMOJI = {
+  'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸',
+  'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻',
+  'default':'🎵'
+};
+function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
+
+const GENRE_COLORS = {
+  'Pop':['#ec4899','#f472b6'],
+  'Electrónica':['#6366f1','#a78bfa'],
+  'Anime':['#f59e0b','#fbbf24'],
+  'Rock':['#ef4444','#f87171'],
+  'Latino':['#10b981','#34d399'],
+  'Alternativo':['#0ea5e9','#38bdf8'],
+  'Trap':['#8b5cf6','#a78bfa'],
+  'Balada':['#f97316','#fb923c'],
+  'default':['#6b7280','#9ca3af']
+};
+function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
 function switchTab(tab){
   $('tabLogin').classList.toggle('active',tab==='login');
@@ -710,35 +889,35 @@ function switchTab(tab){
   $('formReg').classList.toggle('hidden',tab!=='register');
   txt('authMsg','');
 }
+
 async function doLogin(){
   const username = $('loginUser').value.trim();
   const password = $('loginPass').value.trim();
-  if(!username||!password){ txt('authMsg','Completa todos los campos'); return; }
+  if(!username||!password){ txt('authMsg','Completa todos los campos'); return }
   txt('authMsg','Verificando…');
   const {data,error} = await db.from('usuarios').select('*').eq('username',username).eq('password',password).maybeSingle();
-  if(!data){ txt('authMsg', error ? 'Error de conexión' : 'Usuario o contraseña incorrectos'); return; }
+  if(!data){ txt('authMsg', error ? 'Error de conexión' : 'Usuario o contraseña incorrectos'); return }
   currentUser=data;
-  localStorage.setItem('soundmind_user', JSON.stringify(currentUser));
   await bootApp();
 }
+
 async function doRegister(){
   const nombre   = $('regName').value.trim();
   const username = $('regUser').value.trim();
   const password = $('regPass').value.trim();
-  if(!nombre||!username||!password){ txt('authMsg','Completa todos los campos'); return; }
-  if(username.length<3){ txt('authMsg','El usuario debe tener al menos 3 caracteres'); return; }
-  if(password.length<6){ txt('authMsg','La contraseña debe tener al menos 6 caracteres'); return; }
+  if(!nombre||!username||!password){ txt('authMsg','Completa todos los campos'); return }
+  if(username.length<3){ txt('authMsg','El usuario debe tener al menos 3 caracteres'); return }
+  if(password.length<6){ txt('authMsg','La contraseña debe tener al menos 6 caracteres'); return }
   txt('authMsg','Creando cuenta…');
   const {data:ex} = await db.from('usuarios').select('id').eq('username',username).maybeSingle();
-  if(ex){ txt('authMsg','Ese usuario ya existe, elige otro'); return; }
+  if(ex){ txt('authMsg','Ese usuario ya existe, elige otro'); return }
   const {data,error} = await db.from('usuarios').insert({username,password,nombre}).select().single();
-  if(!data){ txt('authMsg','Error: '+(error?.message||'desconocido')); return; }
+  if(!data){ txt('authMsg','Error: '+(error?.message||'desconocido')); return }
   currentUser=data;
-  localStorage.setItem('soundmind_user', JSON.stringify(currentUser));
   await bootApp();
 }
+
 async function doLogout(){
-  localStorage.removeItem('soundmind_user');
   currentUser=null; myInter=[]; allInter=[]; nowPlayingId=null;
   $('app').classList.add('hidden');
   $('authScreen').classList.remove('hidden');
@@ -746,6 +925,7 @@ async function doLogout(){
   $('loginUser').value=''; $('loginPass').value=''; $('regName').value=''; $('regUser').value=''; $('regPass').value='';
   txt('authMsg','');
 }
+
 async function bootApp(){
   $('authScreen').classList.add('hidden');
   $('app').classList.remove('hidden');
@@ -766,6 +946,7 @@ async function bootApp(){
   renderAll();
   showPage('home');
 }
+
 function renderAll(){
   updateHeroStats();
   updateBadges();
@@ -779,18 +960,21 @@ function renderAll(){
   renderLikes();
   renderAnalysis();
 }
+
 function updateHeroStats(){
   txt('hsSongs', allSongs.length);
   txt('hsLikes', myInter.filter(i=>i.es_like).length);
   txt('hsFavs',  myInter.filter(i=>i.es_favorito).length);
 }
+
 function updateBadges(){
   const likes = myInter.filter(i=>i.es_like).length;
   const favs  = myInter.filter(i=>i.es_favorito).length;
   const bl=$('badge-like'), bf=$('badge-fav');
-  if(likes>0){ bl.textContent=likes; bl.classList.remove('hidden'); } else bl.classList.add('hidden');
-  if(favs>0) { bf.textContent=favs;  bf.classList.remove('hidden'); } else bf.classList.add('hidden');
+  if(likes>0){ bl.textContent=likes; bl.classList.remove('hidden') } else bl.classList.add('hidden');
+  if(favs>0) { bf.textContent=favs;  bf.classList.remove('hidden') } else bf.classList.add('hidden');
 }
+
 function songCard(s){
   const inter   = myInter.find(i=>i.cancion_id===s.id);
   const liked   = inter&&inter.es_like;
@@ -799,12 +983,19 @@ function songCard(s){
   const em      = genreEmoji(s.genero);
   const grad    = genreGradient(s.genero);
   return `<div class="song-card ${liked?'liked':''} ${faved?'faved':''} ${playing?'playing':''}" data-id="${s.id}">
-    <div class="card-cover"><div class="card-cover-inner" style="background:${grad}">${em}</div>${playing?`<div class="now-playing-badge">En reproducción</div>`:''}</div>
+    <div class="card-cover">
+      <div class="card-cover-inner" style="background:${grad}">${em}</div>
+      ${playing?`<div class="now-playing-badge">En reproducción</div>`:''}
+    </div>
     <div class="card-body">
       <div class="card-title" title="${esc(s.titulo)}">${esc(s.titulo)}</div>
       <div class="card-artist" title="${esc(s.artista)}">${esc(s.artista)}</div>
       <div class="card-genre">${esc(s.genero)}</div>
-      <div class="card-attrs"><span class="card-attr">⚡${(s.energia*100).toFixed(0)}%</span><span class="card-attr">💃${(s.bailabilidad*100).toFixed(0)}%</span><span class="card-attr">🔥${s.popularidad}</span></div>
+      <div class="card-attrs">
+        <span class="card-attr">⚡${(s.energia*100).toFixed(0)}%</span>
+        <span class="card-attr">💃${(s.bailabilidad*100).toFixed(0)}%</span>
+        <span class="card-attr">🔥${s.popularidad}</span>
+      </div>
       <div class="card-actions">
         <button class="cta ${liked?'liked-btn':''}" onclick="toggleLike(event,${s.id})">${liked?'❤️':'🤍'}</button>
         <button class="cta ${faved?'faved-btn':''}" onclick="toggleFav(event,${s.id})">${faved?'⭐':'☆'}</button>
@@ -813,17 +1004,27 @@ function songCard(s){
     </div>
   </div>`;
 }
+
 function renderCards(songs, containerId, emptyMsg='No hay canciones aquí aún.'){
   const el=$(containerId); if(!el) return;
-  if(!songs||!songs.length){ el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎵</div><p>${emptyMsg}</p></div>`; return; }
+  if(!songs||!songs.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎵</div><p>${emptyMsg}</p></div>`;
+    return;
+  }
   el.innerHTML=songs.map(songCard).join('');
 }
-function renderHomePopular(){ renderCards(allSongs.slice(0,10),'homePopCards'); }
-function renderHomeRec(){ const rec = aiCollaborative().slice(0,8); renderCards(rec,'homeRecCards','Da likes a canciones para recibir recomendaciones.'); }
+
+function renderHomePopular(){ renderCards(allSongs.slice(0,10),'homePopCards') }
+function renderHomeRec(){
+  const rec = aiCollaborative().slice(0,8);
+  renderCards(rec,'homeRecCards','Da likes a canciones para recibir recomendaciones personalizadas.');
+}
+
 function buildGenrePills(){
   const genres=[...new Set(allSongs.map(s=>s.genero))].sort();
   const el=$('genrePills'); if(!el) return;
-  el.innerHTML=`<button class="gpill active" onclick="filterGenre(this,null)">Todos</button>`+genres.map(g=>`<button class="gpill" onclick="filterGenre(this,'${esc(g)}')">${esc(g)}</button>`).join('');
+  el.innerHTML=`<button class="gpill active" onclick="filterGenre(this,null)">Todos</button>`
+    +genres.map(g=>`<button class="gpill" onclick="filterGenre(this,'${esc(g)}')">${esc(g)}</button>`).join('');
 }
 function filterGenre(btn,genre){
   document.querySelectorAll('.gpill').forEach(b=>b.classList.remove('active'));
@@ -836,10 +1037,14 @@ function onSearch(){
   renderCatalog();
 }
 function renderCatalog(){
-  let songs=allSongs.filter(s=>(!activeGenre||s.genero===activeGenre) && (!searchQuery||s.titulo.toLowerCase().includes(searchQuery)||s.artista.toLowerCase().includes(searchQuery)));
+  let songs=allSongs.filter(s=>
+    (!activeGenre||s.genero===activeGenre)&&
+    (!searchQuery||(s.titulo.toLowerCase().includes(searchQuery)||s.artista.toLowerCase().includes(searchQuery)))
+  );
   txt('catalogCount',songs.length+' canciones');
   renderCards(songs,'catalogCards');
 }
+
 function aiCollaborative(){
   const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
   if(myLiked.size===0) return [];
@@ -862,6 +1067,7 @@ function aiCollaborative(){
   for(const v of sims.slice(0,3)) for(const id of v.likedSet) if(!myLiked.has(id)) candidates.add(id);
   return allSongs.filter(s=>candidates.has(s.id));
 }
+
 function renderSimilar(){
   const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
   const others={};
@@ -881,18 +1087,31 @@ function renderSimilar(){
   sims.sort((a,b)=>b.sim-a.sim);
   const nr=$('neighborsRow');
   if(nr){
-    if(sims.length>0) nr.innerHTML=sims.slice(0,3).map((v,i)=>`<div class="neighbor-card"><div class="neighbor-num">Vecino ${i+1}</div><div class="neighbor-val">${(v.sim*100).toFixed(0)}%</div><div class="neighbor-sub">similitud · ${v.comunes} canciones en común</div></div>`).join('');
-    else nr.innerHTML='<p style="color:var(--text2);font-size:13px">Aún no hay usuarios suficientes. Da likes para activar el algoritmo.</p>';
+    if(sims.length>0){
+      nr.innerHTML=sims.slice(0,3).map((v,i)=>`
+        <div class="neighbor-card">
+          <div class="neighbor-num">Vecino ${i+1}</div>
+          <div class="neighbor-val">${(v.sim*100).toFixed(0)}%</div>
+          <div class="neighbor-sub">similitud · ${v.comunes} canciones en común</div>
+        </div>`).join('');
+    } else {
+      nr.innerHTML='<p style="color:var(--text2);font-size:13px">Aún no hay usuarios suficientes para comparar. Da likes para activar el algoritmo.</p>';
+    }
   }
   const rec=aiCollaborative().slice(0,8);
-  renderCards(rec,'simCards','Da likes a más canciones para que el algoritmo encuentre usuarios similares.');
+  renderCards(rec,'simCards','Da likes a más canciones para que el algoritmo encuentre usuarios con gustos similares.');
 }
+
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
     const song=allSongs.find(s=>s.id===inter.cancion_id);
     if(!song) continue;
-    datos.push({ energia:song.energia, bailabilidad:song.bailabilidad, popularidad:song.popularidad, genero:song.genero, like:(inter.es_like||inter.es_favorito)?1:0 });
+    datos.push({
+      energia:song.energia,bailabilidad:song.bailabilidad,
+      popularidad:song.popularidad,genero:song.genero,
+      like:(inter.es_like||inter.es_favorito)?1:0
+    });
   }
   if(datos.length<3) return null;
   const byGenre={};
@@ -909,6 +1128,7 @@ function buildModel(){
   const accuracy=datos.length>0?Math.round((Math.max(likes.length,datos.length-likes.length)/datos.length)*100):70;
   return{datos,byGenre,avgEn,avgBai,avgPop,accuracy};
 }
+
 function predictTree(song,model){
   if(!model) return false;
   const gd=model.byGenre[song.genero];
@@ -920,36 +1140,53 @@ function predictTree(song,model){
   if(song.popularidad>=model.avgPop) score+=1;
   return score>=4;
 }
+
 function renderTree(){
   const model=buildModel();
-  if(!model){ html('treeCards','<div class="empty-state"><div class="empty-icon">🌳</div><p>Necesitas más interacciones para entrenar el árbol.<br>Registra más usuarios y da likes.</p></div>'); return; }
+  if(!model){
+    html('treeCards','<div class="empty-state"><div class="empty-icon">🌳</div><p>Necesitas más interacciones en el sistema para entrenar el árbol.<br>Registra más usuarios y da likes.</p></div>');
+    return;
+  }
   const myIds=new Set(myInter.map(i=>i.cancion_id));
   const rec=allSongs.filter(s=>!myIds.has(s.id)&&predictTree(s,model)).slice(0,8);
-  renderCards(rec,'treeCards','El árbol no encontró nuevas canciones. Da likes para mejorar el modelo.');
+  renderCards(rec,'treeCards','El árbol no encontró nuevas canciones para recomendarte. Da likes a más canciones para mejorar el modelo.');
 }
+
 function recursivePlaylist(seedId,depth,visited=new Set()){
   if(depth===0||!seedId) return [];
   const seed=allSongs.find(s=>s.id===seedId);
   if(!seed||visited.has(seedId)) return [];
   visited.add(seedId);
-  const next=allSongs.filter(s=>!visited.has(s.id)).map(s=>({ s, score:(s.genero===seed.genero?3:0)+(1-Math.abs(s.energia-seed.energia))*2+(1-Math.abs(s.bailabilidad-seed.bailabilidad))*2+(1-Math.abs(s.popularidad-seed.popularidad)/100) })).sort((a,b)=>b.score-a.score)[0];
+  const next=allSongs
+    .filter(s=>!visited.has(s.id))
+    .map(s=>({
+      s,
+      score:(s.genero===seed.genero?3:0)
+        +(1-Math.abs(s.energia-seed.energia))*2
+        +(1-Math.abs(s.bailabilidad-seed.bailabilidad))*2
+        +(1-Math.abs(s.popularidad-seed.popularidad)/100)
+    }))
+    .sort((a,b)=>b.score-a.score)[0];
   if(!next) return [];
   return [next.s,...recursivePlaylist(next.s.id,depth-1,visited)];
 }
+
 function renderRecursive(){
   const myLiked=myInter.filter(i=>i.es_like||i.es_favorito).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
   const seedId=myLiked.length>0?myLiked[0].cancion_id:(allSongs[0]?.id);
   const playlist=recursivePlaylist(seedId,8);
-  renderCards(playlist,'recCards','Da likes a canciones para generar tu playlist recursiva.');
+  renderCards(playlist,'recCards','Da likes a canciones para generar tu playlist recursiva personalizada.');
 }
+
 function renderFavorites(){
   const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
-  renderCards(allSongs.filter(s=>ids.has(s.id)),'favCards','Aún no tienes favoritos. Haz clic en ☆.');
+  renderCards(allSongs.filter(s=>ids.has(s.id)),'favCards','Aún no tienes favoritos. Haz clic en ☆ en cualquier canción.');
 }
 function renderLikes(){
   const ids=new Set(myInter.filter(i=>i.es_like).map(i=>i.cancion_id));
-  renderCards(allSongs.filter(s=>ids.has(s.id)),'likeCards','Aún no tienes likes. Haz clic en 🤍.');
+  renderCards(allSongs.filter(s=>ids.has(s.id)),'likeCards','Aún no tienes likes. Haz clic en 🤍 en cualquier canción.');
 }
+
 async function toggleLike(e,songId){
   e.stopPropagation();
   const existing=myInter.find(i=>i.cancion_id===songId);
@@ -960,11 +1197,12 @@ async function toggleLike(e,songId){
     toast(nv?'❤️ Like añadido':'Like eliminado');
   } else {
     const{data}=await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:true,es_favorito:false}).select().single();
-    if(data){ myInter.push(data); toast('❤️ Like añadido'); }
+    if(data){ myInter.push(data); toast('❤️ Like añadido') }
   }
   await refreshAllInter();
   renderAll();
 }
+
 async function toggleFav(e,songId){
   e.stopPropagation();
   const existing=myInter.find(i=>i.cancion_id===songId);
@@ -975,11 +1213,16 @@ async function toggleFav(e,songId){
     toast(nv?'⭐ Favorito añadido':'Favorito eliminado');
   } else {
     const{data}=await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:false,es_favorito:true}).select().single();
-    if(data){ myInter.push(data); toast('⭐ Favorito añadido'); }
+    if(data){ myInter.push(data); toast('⭐ Favorito añadido') }
   }
   renderAll();
 }
-async function refreshAllInter(){ const{data}=await db.from('interacciones').select('*'); allInter=data||[]; }
+
+async function refreshAllInter(){
+  const{data}=await db.from('interacciones').select('*');
+  allInter=data||[];
+}
+
 function playSong(e,songId){
   if(e) e.stopPropagation();
   const song=allSongs.find(s=>s.id===songId);
@@ -1001,6 +1244,7 @@ function playSong(e,songId){
   }
   renderCatalog();
 }
+
 function renderAnalysis(){
   const model=buildModel();
   const userIds=new Set(allInter.map(i=>i.usuario_id));
@@ -1015,6 +1259,7 @@ function renderAnalysis(){
   if(model) renderTreeViz(model);
   renderCV(model);
 }
+
 function renderGenreBar(){
   const myLiked=myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id);
   const counts={};
@@ -1024,17 +1269,27 @@ function renderGenreBar(){
   }
   const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const el=$('genreBar'); if(!el) return;
-  if(!sorted.length){ el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:20px">Da likes para ver tus géneros favoritos.</div>'; return; }
+  if(!sorted.length){ el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:20px">Da likes para ver tus géneros favoritos.</div>'; return }
   const maxV=sorted[0][1];
   const colors=['#a78bfa','#818cf8','#34d399','#fbbf24','#f87171','#38bdf8','#fb923c','#a3e635'];
-  el.innerHTML=sorted.slice(0,8).map(([g,c],i)=>`<div class="bar-col"><div class="bar-fill" style="height:${Math.round((c/maxV)*110)+12}px;background:${colors[i%colors.length]}"></div><div class="bar-lbl">${esc(g)}</div><div class="bar-num">${c}</div></div>`).join('');
+  el.innerHTML=sorted.slice(0,8).map(([g,c],i)=>`
+    <div class="bar-col">
+      <div class="bar-fill" style="height:${Math.round((c/maxV)*110)+12}px;background:${colors[i%colors.length]}"></div>
+      <div class="bar-lbl">${esc(g)}</div>
+      <div class="bar-num">${c}</div>
+    </div>`).join('');
 }
+
 function renderTreeViz(model){
   const L=[];
-  L.push('ÁRBOL DE DECISIÓN J48 — SoundMind AI');
-  L.push('═══════════════════════════════════════');
-  L.push(`Instancias : ${model.datos.length} | Likes: ${model.datos.filter(d=>d.like).length} | Precisión: ${model.accuracy}%`);
-  L.push('NODO RAÍZ: Género');
+  L.push('ÁRBOL DE DECISIÓN J48 — SoundMind AI Music Recommender');
+  L.push('═══════════════════════════════════════════════════════════');
+  L.push(`Instancias de entrenamiento : ${model.datos.length} interacciones`);
+  L.push(`Likes registrados           : ${model.datos.filter(d=>d.like).length}`);
+  L.push(`Precisión del clasificador  : ${model.accuracy}%`);
+  L.push('');
+  L.push('NODO RAÍZ: Género de la canción');
+  L.push('│');
   const sorted=Object.entries(model.byGenre).sort((a,b)=>(b[1].likes/b[1].total)-(a[1].likes/a[1].total));
   sorted.forEach(([g,data],i)=>{
     const rate=Math.round((data.likes/data.total)*100);
@@ -1043,16 +1298,22 @@ function renderTreeViz(model){
     L.push(`${pfx} ${g.padEnd(16)} likes:${rate}%  ${sym}`);
     if(rate>40){
       const pad=i===sorted.length-1?' ':'│';
-      L.push(`${pad}   ├─ Energía >= ${model.avgEn.toFixed(2)} → +1`);
-      L.push(`${pad}   ├─ Bailabilidad >= ${model.avgBai.toFixed(2)} → +1`);
-      L.push(`${pad}   └─ Popularidad >= ${Math.round(model.avgPop)} → +1`);
+      L.push(`${pad}   ├─ Energía >= ${model.avgEn.toFixed(2)}        → +1 punto`);
+      L.push(`${pad}   ├─ Bailabilidad >= ${model.avgBai.toFixed(2)}   → +1 punto`);
+      L.push(`${pad}   └─ Popularidad >= ${Math.round(model.avgPop)}       → +1 punto`);
     }
   });
-  L.push(`\nREGLA : Score ≥ 4 → Predecir LIKE`);
+  L.push('');
+  L.push(`REGLA FINAL : Score >= 4 → Predecir LIKE (recomendar)`);
+  L.push(`PARÁMETROS  : energía=${model.avgEn.toFixed(3)} | bailabilidad=${model.avgBai.toFixed(3)} | popularidad=${Math.round(model.avgPop)}`);
   html('treeViz',L.join('\n'));
 }
+
 function renderCV(model){
-  if(!model||model.datos.length<5){ html('cvBody','</td><td colspan="5">Necesitas al menos 5 interacciones.</td></tr>'); return; }
+  if(!model||model.datos.length<5){
+    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada.</td></tr>');
+    return;
+  }
   const k=5,datos=model.datos;
   const foldSize=Math.floor(datos.length/k);
   let totalAcc=0; const rows=[];
@@ -1064,12 +1325,13 @@ function renderCV(model){
     const det=test.filter(d=>d.like).length;
     totalAcc+=acc;
     const cls=acc>=75?'good':acc>=60?'mid':'';
-    rows.push(`<tr><td>Fold ${i+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${cls}">${acc}%</td><td>${det}/${test.length}</td><tr>`);
+    rows.push(`<tr><td>Fold ${i+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${cls}">${acc}%</td><td>${det}/${test.length}</td></tr>`);
   }
   const avg=Math.round(totalAcc/k);
   rows.push(`<tr><td colspan="3"><strong>Precisión promedio</strong></td><td class="good">${avg}%</td><td>—</td></tr>`);
   html('cvBody',rows.join(''));
 }
+
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1078,176 +1340,19 @@ function showPage(name){
   if(nv) nv.classList.add('active');
   if(window.innerWidth<=900) $('sidebar').classList.remove('open');
 }
-function toggleSidebar(){ $('sidebar').classList.toggle('open'); }
+
+function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
 window.onload=async()=>{
   const{data}=await db.from('canciones').select('*').order('popularidad',{ascending:false});
   allSongs=data||[];
-  const saved = localStorage.getItem('soundmind_user');
-  if(saved){
-    try{
-      currentUser = JSON.parse(saved);
-      await bootApp();
-    }catch(e){}
-  }else{
-    $('authScreen').classList.remove('hidden');
-  }
 };
-document.addEventListener('keydown',e=>{ if(e.key==='Enter'){ if(!$('formLogin').classList.contains('hidden')) doLogin(); else doRegister(); } });
 
-// ========== NUEVAS FUNCIONALIDADES (búsqueda por voz, subida de música, etc.) ==========
-
-// --- BÚSQUEDA POR VOZ ---
-function initVoiceSearch() {
-  const voiceBtn = document.getElementById('voiceSearchBtn');
-  if (!voiceBtn) return;
-  const searchInput = document.getElementById('searchInput');
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    voiceBtn.style.display = 'none';
-    return;
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(!$('formLogin').classList.contains('hidden')) doLogin();
+    else doRegister();
   }
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.lang = 'es-ES';
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  
-  let listening = false;
-  voiceBtn.addEventListener('click', () => {
-    if (listening) {
-      recognition.stop();
-      return;
-    }
-    recognition.start();
-    voiceBtn.classList.add('listening');
-    listening = true;
-    toast('🎤 Escuchando...');
-  });
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    if (searchInput) {
-      searchInput.value = transcript;
-      // Disparar la búsqueda
-      if (typeof onSearch === 'function') onSearch();
-      else searchInput.dispatchEvent(new Event('input'));
-    }
-    toast(`🎤 "${transcript}"`);
-  };
-  recognition.onerror = (event) => {
-    console.warn('Voice error:', event.error);
-    toast('⚠️ No se pudo reconocer la voz');
-  };
-  recognition.onend = () => {
-    voiceBtn.classList.remove('listening');
-    listening = false;
-  };
-}
-
-// --- SUBIDA DE MÚSICA (SOLO ADMIN) ---
-function initUploadModal() {
-  const modal = document.getElementById('uploadModal');
-  const closeBtn = document.getElementById('closeUploadModal');
-  const uploadAudioLabel = document.getElementById('uploadAudioLabel');
-  const audioFiles = document.getElementById('audioFiles');
-  const uploadImageLabel = document.getElementById('uploadImageLabel');
-  const coverImage = document.getElementById('coverImage');
-  const confirmBtn = document.getElementById('confirmUploadBtn');
-
-  if (!modal) return;
-
-  // Solo mostrar el botón de subir en el menú si es admin
-  function checkAdminAndShowButton() {
-    const isAdmin = currentUser && (currentUser.username === 'admin' || currentUser.role === 'admin');
-    let uploadNavBtn = document.getElementById('nav-upload');
-    if (!uploadNavBtn) {
-      const navMenu = document.querySelector('.sidebar-nav');
-      if (navMenu && isAdmin) {
-        const newBtn = document.createElement('button');
-        newBtn.className = 'nav-item';
-        newBtn.id = 'nav-upload';
-        newBtn.innerHTML = '<span class="nav-icon">⬆️</span>Subir música';
-        newBtn.onclick = () => modal.classList.remove('hidden');
-        navMenu.appendChild(newBtn);
-      }
-    } else {
-      uploadNavBtn.style.display = isAdmin ? 'flex' : 'none';
-    }
-  }
-
-  // Llamar después de cada login
-  const originalBootApp = bootApp;
-  window.bootApp = async function() {
-    await originalBootApp();
-    checkAdminAndShowButton();
-  };
-
-  closeBtn.onclick = () => modal.classList.add('hidden');
-  uploadAudioLabel.onclick = () => audioFiles.click();
-  uploadImageLabel.onclick = () => coverImage.click();
-
-  async function uploadSong(file, artista, genero, coverFile = null) {
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-z0-9.]/gi, '_')}`;
-    const audioPath = `canciones/${fileName}`;
-    const { error: uploadError } = await db.storage.from('canciones').upload(audioPath, file);
-    if (uploadError) throw new Error(uploadError.message);
-    const { data: urlData } = db.storage.from('canciones').getPublicUrl(audioPath);
-    let coverUrl = null;
-    if (coverFile) {
-      const coverName = `covers/${Date.now()}_cover.jpg`;
-      await db.storage.from('canciones').upload(coverName, coverFile);
-      coverUrl = db.storage.from('canciones').getPublicUrl(coverName).data.publicUrl;
-    }
-    const titulo = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
-    const { error: insertError } = await db.from('canciones').insert({
-      titulo, artista, genero, url_preview: urlData.publicUrl, url_imagen: coverUrl,
-      energia: 0.7, bailabilidad: 0.7, popularidad: 80
-    });
-    if (insertError) throw new Error(insertError.message);
-    return true;
-  }
-
-  confirmBtn.onclick = async () => {
-    if (!currentUser || (currentUser.username !== 'admin' && currentUser.role !== 'admin')) {
-      toast('⚠️ Solo el administrador puede subir música.', true);
-      return;
-    }
-    const files = audioFiles.files;
-    const artista = document.getElementById('uploadArtist').value.trim();
-    const genero = document.getElementById('uploadGenre').value;
-    const coverFile = coverImage.files[0];
-    if (!files.length || !artista) {
-      toast('Selecciona al menos un audio y escribe el artista', true);
-      return;
-    }
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Subiendo...';
-    let success = 0;
-    for (let f of files) {
-      try {
-        await uploadSong(f, artista, genero, coverFile);
-        success++;
-      } catch (err) {
-        console.error(err);
-        toast(`Error subiendo ${f.name}: ${err.message}`, true);
-      }
-    }
-    confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Subir a la nube';
-    if (success > 0) {
-      toast(`✅ ${success} canción(es) subida(s). Recargando...`);
-      await loadCatalog();
-      renderCatalog();
-      modal.classList.add('hidden');
-    } else {
-      toast('❌ No se pudo subir ninguna canción', true);
-    }
-  };
-}
-
-// Inicializar todo
-document.addEventListener('DOMContentLoaded', () => {
-  initVoiceSearch();
-  initUploadModal();
 });
 </script>
 </body>
