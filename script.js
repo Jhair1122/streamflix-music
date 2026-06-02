@@ -1,12 +1,12 @@
 // ────────────────────────────────────────────────
-// CONFIG SUPABASE (igual)
+// CONFIG SUPABASE
 // ────────────────────────────────────────────────
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
 const db = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // ────────────────────────────────────────────────
-// STATE (igual)
+// STATE
 // ────────────────────────────────────────────────
 let currentUser  = null;
 let allSongs     = [];
@@ -16,13 +16,8 @@ let nowPlayingId = null;
 let activeGenre  = null;
 let searchQuery  = '';
 
-let audioObj = null;
-let isPlaying = false;
-let audioErrorCount = 0;
-let isLoading = false;  // NUEVO: evita múltiples llamadas a playSong mientras se carga
-
 // ────────────────────────────────────────────────
-// UTILS (igual)
+// UTILS
 // ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
@@ -37,7 +32,7 @@ function toast(msg, color=''){
   setTimeout(()=>t.classList.remove('show'),2400);
 }
 
-// Genre emoji map (igual)
+// Genre emoji map
 const GENRE_EMOJI = {
   'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸',
   'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻',
@@ -45,7 +40,7 @@ const GENRE_EMOJI = {
 };
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 
-// Gradientes (igual)
+// Generate gradient cover by genre
 const GENRE_COLORS = {
   'Pop':['#ec4899','#f472b6'],
   'Electrónica':['#6366f1','#a78bfa'],
@@ -59,13 +54,22 @@ const GENRE_COLORS = {
 };
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
-// Persistencia (igual)
-function saveUserToLocalStorage(user){ localStorage.setItem('soundmind_user', JSON.stringify(user)); }
-function clearUserLocalStorage(){ localStorage.removeItem('soundmind_user'); }
-function getUserFromLocalStorage(){ const raw = localStorage.getItem('soundmind_user'); return raw ? JSON.parse(raw) : null; }
+// ────────────────────────────────────────────────
+// PERSISTENCIA DE SESIÓN (localStorage)
+// ────────────────────────────────────────────────
+function saveUserToLocalStorage(user){
+  localStorage.setItem('soundmind_user', JSON.stringify(user));
+}
+function clearUserLocalStorage(){
+  localStorage.removeItem('soundmind_user');
+}
+function getUserFromLocalStorage(){
+  const raw = localStorage.getItem('soundmind_user');
+  return raw ? JSON.parse(raw) : null;
+}
 
 // ────────────────────────────────────────────────
-// AUTH (igual)
+// AUTH
 // ────────────────────────────────────────────────
 function switchTab(tab){
   $('tabLogin').classList.toggle('active',tab==='login');
@@ -82,7 +86,7 @@ async function doLogin(){
   txt('authMsg','Verificando…');
   const {data,error} = await db.from('usuarios').select('*').eq('username',username).eq('password',password).maybeSingle();
   if(!data){ txt('authMsg', error ? 'Error de conexión' : 'Usuario o contraseña incorrectos'); return }
-  currentUser=data;
+  currentUser = data;
   saveUserToLocalStorage(currentUser);
   await bootApp();
 }
@@ -99,198 +103,42 @@ async function doRegister(){
   if(ex){ txt('authMsg','Ese usuario ya existe, elige otro'); return }
   const {data,error} = await db.from('usuarios').insert({username,password,nombre}).select().single();
   if(!data){ txt('authMsg','Error: '+(error?.message||'desconocido')); return }
-  currentUser=data;
+  currentUser = data;
   saveUserToLocalStorage(currentUser);
   await bootApp();
 }
 
 async function doLogout(){
   clearUserLocalStorage();
-  resetPlayer();
-  currentUser=null; myInter=[]; allInter=[]; nowPlayingId=null;
-  // Mostrar pantalla de login y ocultar app
-  $('authScreen').style.display = 'flex';
-  $('app').style.display = 'none';
+  // Detener audio si estaba sonando
+  const audioEl = $('audioEl');
+  if(audioEl){
+    audioEl.pause();
+    audioEl.src = '';
+  }
+  currentUser = null; myInter = []; allInter = []; nowPlayingId = null;
+  $('app').classList.add('hidden');
+  $('authScreen').classList.remove('hidden');
   $('playerBar').classList.add('hidden');
-  $('loginUser').value=''; $('loginPass').value=''; $('regName').value=''; $('regUser').value=''; $('regPass').value='';
+  $('loginUser').value = ''; $('loginPass').value = ''; $('regName').value = ''; $('regUser').value = ''; $('regPass').value = '';
   txt('authMsg','');
 }
 
 // ────────────────────────────────────────────────
-// REPRODUCTOR: CORREGIDO (sin errores al cambiar de canción)
-// ────────────────────────────────────────────────
-function resetPlayer() {
-  if(audioObj){
-    audioObj.pause();
-    audioObj.src = '';
-    // Remover todos los event listeners (no podemos removerlos individualmente sin referencia, así que clonamos)
-    const old = audioObj;
-    audioObj = null;
-    // Reemplazar el elemento por uno nuevo para eliminar todos los listeners de forma segura
-    if(old.parentNode) old.parentNode.replaceChild(old.cloneNode(), old);
-  }
-  isPlaying = false;
-  audioErrorCount = 0;
-  nowPlayingId = null;
-  isLoading = false;
-  $('playPauseBtn').innerHTML = '▶️';
-  $('waveAnim').style.display = 'none';
-  $('loadingSpinner').style.display = 'none';
-  $('progressFill').style.width = '0%';
-  $('currentTime').innerText = '0:00';
-  $('duration').innerText = '0:00';
-  txt('plTitle', 'Sin reproducción');
-  txt('plArtist', '');
-}
-
-function formatTime(sec){
-  if(isNaN(sec)) return '0:00';
-  const m = Math.floor(sec/60);
-  const s = Math.floor(sec%60);
-  return `${m}:${s<10?'0'+s:s}`;
-}
-
-function playSong(e, songId){
-  if(e) e.stopPropagation();
-  if(isLoading) {
-    toast('Espera a que cargue la canción actual');
-    return;
-  }
-  const song = allSongs.find(s=>s.id===songId);
-  if(!song) return;
-  if(!song.url_preview){
-    toast('⚠️ No hay archivo de audio para esta canción');
-    return;
-  }
-
-  // Limpiar reproductor anterior
-  resetPlayer();
-  isLoading = true;
-  nowPlayingId = songId;
-
-  // UI
-  txt('plTitle', song.titulo);
-  txt('plArtist', song.artista);
-  const coverDiv = $('plCover');
-  coverDiv.innerHTML = `<span style="font-size:28px">${genreEmoji(song.genero)}</span>`;
-  coverDiv.style.background = genreGradient(song.genero);
-  $('loadingSpinner').style.display = 'inline-block';
-  $('waveAnim').style.display = 'none';
-  $('playPauseBtn').innerHTML = '⏸️';
-
-  // Crear nuevo audio
-  const audio = new Audio(song.url_preview);
-  audioObj = audio;
-  audioErrorCount = 0;
-
-  // Función para manejar cuando el audio está listo
-  const onCanPlay = () => {
-    $('loadingSpinner').style.display = 'none';
-    $('waveAnim').style.display = 'flex';
-    audio.play().catch(err => {
-      console.warn('play() error:', err);
-      toast('No se pudo reproducir el audio');
-      resetPlayer();
-    });
-    isPlaying = true;
-    isLoading = false;
-    toast(`▶ Reproduciendo: ${song.titulo}`);
-  };
-
-  const onTimeUpdate = () => {
-    if(audio.duration){
-      const percent = (audio.currentTime / audio.duration) * 100;
-      $('progressFill').style.width = percent + '%';
-      $('currentTime').innerText = formatTime(audio.currentTime);
-    }
-  };
-
-  const onLoadedMetadata = () => {
-    $('duration').innerText = formatTime(audio.duration);
-  };
-
-  const onEnded = () => {
-    const otherSongs = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
-    if(otherSongs.length){
-      const randomIdx = Math.floor(Math.random() * otherSongs.length);
-      playSong(null, otherSongs[randomIdx].id);
-    } else {
-      resetPlayer();
-    }
-  };
-
-  const onError = (err) => {
-    console.error('Audio error:', err);
-    $('loadingSpinner').style.display = 'none';
-    toast('Error al cargar el audio.');
-    if(audioErrorCount < 2){
-      audioErrorCount++;
-      const otherSongs = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
-      if(otherSongs.length){
-        const randomIdx = Math.floor(Math.random() * otherSongs.length);
-        playSong(null, otherSongs[randomIdx].id);
-      } else {
-        resetPlayer();
-      }
-    } else {
-      resetPlayer();
-    }
-  };
-
-  audio.addEventListener('canplaythrough', onCanPlay);
-  audio.addEventListener('timeupdate', onTimeUpdate);
-  audio.addEventListener('loadedmetadata', onLoadedMetadata);
-  audio.addEventListener('ended', onEnded);
-  audio.addEventListener('error', onError);
-
-  // Guardar referencias para poder eliminar después (opcional, resetPlayer las reemplazará)
-  renderAll();
-}
-
-function togglePlayPause(){
-  if(!audioObj) return;
-  if(isPlaying){
-    audioObj.pause();
-    $('playPauseBtn').innerHTML = '▶️';
-    $('waveAnim').style.display = 'none';
-    isPlaying = false;
-  } else {
-    audioObj.play().catch(e=>toast('Error al reanudar'));
-    $('playPauseBtn').innerHTML = '⏸️';
-    $('waveAnim').style.display = 'flex';
-    isPlaying = true;
-  }
-}
-
-function nextTrack(){
-  if(isLoading) {
-    toast('Espera que termine de cargar');
-    return;
-  }
-  if(!allSongs.length) return;
-  let nextSong = null;
-  if(nowPlayingId){
-    const other = allSongs.filter(s => s.id !== nowPlayingId && s.url_preview);
-    if(other.length) nextSong = other[Math.floor(Math.random() * other.length)];
-  }
-  if(!nextSong) nextSong = allSongs.find(s => s.url_preview);
-  if(nextSong) playSong(null, nextSong.id);
-}
-
-// ────────────────────────────────────────────────
-// BOOT (carga datos y renderiza)
+// BOOT
 // ────────────────────────────────────────────────
 async function bootApp(){
-  // Asegurar visibilidad sin parpadeo
-  $('authScreen').style.display = 'none';
-  $('app').style.display = 'flex';
+  $('authScreen').classList.add('hidden');
+  $('app').classList.remove('hidden');
   $('playerBar').classList.remove('hidden');
 
+  // User info
   const initials = (currentUser.nombre||currentUser.username).slice(0,2).toUpperCase();
   txt('userAvatar', initials);
   txt('userName', currentUser.nombre||currentUser.username);
   txt('heroName', currentUser.nombre||currentUser.username);
 
+  // Load data
   const [songsRes, myRes, allRes] = await Promise.all([
     db.from('canciones').select('*').order('popularidad',{ascending:false}),
     db.from('interacciones').select('*').eq('usuario_id',currentUser.id),
@@ -306,7 +154,7 @@ async function bootApp(){
 }
 
 // ────────────────────────────────────────────────
-// RENDER ALL (igual)
+// RENDER ALL
 // ────────────────────────────────────────────────
 function renderAll(){
   updateHeroStats();
@@ -336,7 +184,9 @@ function updateBadges(){
   if(favs>0) { bf.textContent=favs;  bf.classList.remove('hidden') } else bf.classList.add('hidden');
 }
 
-// SONG CARD (igual)
+// ────────────────────────────────────────────────
+// SONG CARD HTML
+// ────────────────────────────────────────────────
 function songCard(s){
   const inter   = myInter.find(i=>i.cancion_id===s.id);
   const liked   = inter&&inter.es_like;
@@ -377,14 +227,18 @@ function renderCards(songs, containerId, emptyMsg='No hay canciones aquí aún.'
   el.innerHTML=songs.map(songCard).join('');
 }
 
-// HOME (igual)
-function renderHomePopular(){ renderCards(allSongs.slice(0,12),'homePopCards') }
+// ────────────────────────────────────────────────
+// HOME
+// ────────────────────────────────────────────────
+function renderHomePopular(){ renderCards(allSongs.slice(0,10),'homePopCards') }
 function renderHomeRec(){
   const rec = aiCollaborative().slice(0,8);
   renderCards(rec,'homeRecCards','Da likes a canciones para recibir recomendaciones personalizadas.');
 }
 
-// CATALOG (igual)
+// ────────────────────────────────────────────────
+// CATALOG
+// ────────────────────────────────────────────────
 function buildGenrePills(){
   const genres=[...new Set(allSongs.map(s=>s.genero))].sort();
   const el=$('genrePills'); if(!el) return;
@@ -410,7 +264,9 @@ function renderCatalog(){
   renderCards(songs,'catalogCards');
 }
 
-// AI 1: COLLABORATIVE FILTERING (igual)
+// ────────────────────────────────────────────────
+// AI 1: COLLABORATIVE FILTERING
+// ────────────────────────────────────────────────
 function aiCollaborative(){
   const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
   if(myLiked.size===0) return [];
@@ -469,7 +325,9 @@ function renderSimilar(){
   renderCards(rec,'simCards','Da likes a más canciones para que el algoritmo encuentre usuarios con gustos similares.');
 }
 
-// AI 2: DECISION TREE J48 (igual)
+// ────────────────────────────────────────────────
+// AI 2: DECISION TREE J48
+// ────────────────────────────────────────────────
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
@@ -522,7 +380,9 @@ function renderTree(){
   renderCards(rec,'treeCards','El árbol no encontró nuevas canciones para recomendarte. Da likes a más canciones para mejorar el modelo.');
 }
 
-// AI 3: RECURSIVE PLAYLIST (igual)
+// ────────────────────────────────────────────────
+// AI 3: RECURSIVE PLAYLIST
+// ────────────────────────────────────────────────
 function recursivePlaylist(seedId,depth,visited=new Set()){
   if(depth===0||!seedId) return [];
   const seed=allSongs.find(s=>s.id===seedId);
@@ -549,7 +409,9 @@ function renderRecursive(){
   renderCards(playlist,'recCards','Da likes a canciones para generar tu playlist recursiva personalizada.');
 }
 
-// FAVORITES & LIKES (igual)
+// ────────────────────────────────────────────────
+// FAVORITES & LIKES
+// ────────────────────────────────────────────────
 function renderFavorites(){
   const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
   renderCards(allSongs.filter(s=>ids.has(s.id)),'favCards','Aún no tienes favoritos. Haz clic en ☆ en cualquier canción.');
@@ -559,7 +421,9 @@ function renderLikes(){
   renderCards(allSongs.filter(s=>ids.has(s.id)),'likeCards','Aún no tienes likes. Haz clic en 🤍 en cualquier canción.');
 }
 
-// INTERACTIONS (igual)
+// ────────────────────────────────────────────────
+// INTERACTIONS
+// ────────────────────────────────────────────────
 async function toggleLike(e,songId){
   e.stopPropagation();
   const existing=myInter.find(i=>i.cancion_id===songId);
@@ -596,7 +460,36 @@ async function refreshAllInter(){
   allInter=data||[];
 }
 
-// ANALYSIS (igual)
+// ────────────────────────────────────────────────
+// PLAYER (nativo con manejo de errores suave)
+// ────────────────────────────────────────────────
+function playSong(e, songId){
+  if(e) e.stopPropagation();
+  const song = allSongs.find(s=>s.id===songId);
+  if(!song) return;
+  nowPlayingId = songId;
+  txt('plTitle', song.titulo);
+  txt('plArtist', song.artista);
+  const cover = $('plCover');
+  cover.innerHTML = `<span style="font-size:24px">${genreEmoji(song.genero)}</span>`;
+  cover.style.background = genreGradient(song.genero);
+  const audio = $('audioEl');
+  if(song.url_preview){
+    audio.src = song.url_preview;
+    audio.play().catch(() => {
+      // No mostrar toast para no molestar, solo silencio
+    });
+    toast(`▶ Reproduciendo: ${song.titulo}`);
+  } else {
+    audio.removeAttribute('src');
+    toast('⚠️ No hay archivo de audio para esta canción');
+  }
+  renderAll(); // actualiza el badge "En reproducción"
+}
+
+// ────────────────────────────────────────────────
+// ANALYSIS
+// ────────────────────────────────────────────────
 function renderAnalysis(){
   const model=buildModel();
   const userIds=new Set(allInter.map(i=>i.usuario_id));
@@ -663,7 +556,7 @@ function renderTreeViz(model){
 
 function renderCV(model){
   if(!model||model.datos.length<5){
-    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada.   </td></tr>');
+    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada.</td></tr>');
     return;
   }
   const k=5,datos=model.datos;
@@ -677,14 +570,16 @@ function renderCV(model){
     const det=test.filter(d=>d.like).length;
     totalAcc+=acc;
     const cls=acc>=75?'good':acc>=60?'mid':'';
-    rows.push(`<tr><td>Fold ${i+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${cls}">${acc}%</td><td>${det}/${test.length}</td></tr>`);
+    rows.push(`<tr><td>Fold ${i+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${cls}">${acc}%</td><td>${det}/${test.length}</td>`);
   }
   const avg=Math.round(totalAcc/k);
-  rows.push(`<tr><td colspan="3"><strong>Precisión promedio</strong></td><td class="good">${avg}%</td><td>—</td></tr>`);
+  rows.push(`<tr><td colspan="3"><strong>Precisión promedio</strong></td><td class="good">${avg}%</td><td>—</td>`);
   html('cvBody',rows.join(''));
 }
 
-// NAVIGATION (igual)
+// ────────────────────────────────────────────────
+// NAVIGATION
+// ────────────────────────────────────────────────
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -697,12 +592,10 @@ function showPage(name){
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
 // ────────────────────────────────────────────────
-// INIT: SIN PARPADEO (corregido)
+// INIT: persistencia de sesión (sin parpadeo)
 // ────────────────────────────────────────────────
-// El estilo CSS ya tiene #app { display: none; } y #authScreen { display: flex; }
-// Ahora en DOMContentLoaded decidimos si mostrar app o auth
-document.addEventListener('DOMContentLoaded', async () => {
-  // Precargar canciones para agilizar
+window.onload = async () => {
+  // Precargar canciones
   const {data} = await db.from('canciones').select('*').order('popularidad',{ascending:false});
   allSongs = data || [];
 
@@ -711,29 +604,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentUser = savedUser;
     await bootApp();
   } else {
-    // Asegurar que se vea authScreen y app oculta
-    $('authScreen').style.display = 'flex';
-    $('app').style.display = 'none';
+    // Mostrar pantalla de login
+    $('authScreen').classList.remove('hidden');
+    $('app').classList.add('hidden');
+    $('playerBar').classList.add('hidden');
   }
-});
+};
 
-// Asignar eventos del reproductor después de que el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  const playPause = $('playPauseBtn');
-  const nextBtn = $('nextTrackBtn');
-  const progBar = $('progressBar');
-  if(playPause) playPause.addEventListener('click', togglePlayPause);
-  if(nextBtn) nextBtn.addEventListener('click', nextTrack);
-  if(progBar) progBar.addEventListener('click', (e) => {
-    if(!audioObj) return;
-    const rect = progBar.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percent = x / rect.width;
-    audioObj.currentTime = percent * audioObj.duration;
-  });
-});
-
-// Enter key en auth
+// Enter key on auth inputs
 document.addEventListener('keydown', e => {
   if(e.key === 'Enter'){
     if(!currentUser && $('formLogin') && !$('formLogin').classList.contains('hidden')) doLogin();
