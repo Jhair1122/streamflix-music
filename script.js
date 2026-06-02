@@ -1,620 +1,548 @@
-// ────────────────────────────────────────────────
-// CONFIG SUPABASE
-// ────────────────────────────────────────────────
-const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
-const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+// ========================= CONFIGURACIÓN SUPABASE =========================
+const SUPABASE_URL = "https://jhlktvdylbiieeuwykgj.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ────────────────────────────────────────────────
-// STATE
-// ────────────────────────────────────────────────
-let currentUser  = null;
-let allSongs     = [];
-let myInter      = [];
-let allInter     = [];
-let nowPlayingId = null;
-let activeGenre  = null;
-let searchQuery  = '';
+// ========================= ESTADO GLOBAL =========================
+let currentUser = null;
+let allSongs = [];
+let currentSong = null;
+let currentPlaylist = [];
+let currentIndex = 0;
+let audioPlayer = new Audio();
+let shuffle = false;
+let repeat = false;
 
-// ────────────────────────────────────────────────
-// UTILS
-// ────────────────────────────────────────────────
+// Interacciones locales
+let userLikes = [];     // IDs de canciones que le gustan
+let userPlaylists = []; // { nombre, canciones: [] }
+
+// Elementos DOM
 const $ = id => document.getElementById(id);
-function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
-function txt(id,v){ const e=$(id); if(e) e.textContent=v }
-function html(id,v){ const e=$(id); if(e) e.innerHTML=v }
 
-function toast(msg, color=''){
-  const t=$('toast');
-  t.textContent=msg;
-  t.style.borderColor = color || 'rgba(167,139,250,0.25)';
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2400);
+// ========================= UTILERÍAS =========================
+function toast(msg, isError = false) {
+    let t = $("toastMsg");
+    if (!t) {
+        t = document.createElement("div");
+        t.id = "toastMsg";
+        t.style.cssText = "position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:#1a1a2e; border:1px solid #6366f1; color:white; padding:10px 20px; border-radius:30px; z-index:9999; font-size:13px;";
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.backgroundColor = isError ? "#dc2626" : "#1a1a2e";
+    t.style.opacity = "1";
+    setTimeout(() => t.style.opacity = "0", 2500);
 }
 
-// Genre emoji map
-const GENRE_EMOJI = {
-  'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸',
-  'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻',
-  'default':'🎵'
-};
-function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
-
-// Generate gradient cover by genre
-const GENRE_COLORS = {
-  'Pop':['#ec4899','#f472b6'],
-  'Electrónica':['#6366f1','#a78bfa'],
-  'Anime':['#f59e0b','#fbbf24'],
-  'Rock':['#ef4444','#f87171'],
-  'Latino':['#10b981','#34d399'],
-  'Alternativo':['#0ea5e9','#38bdf8'],
-  'Trap':['#8b5cf6','#a78bfa'],
-  'Balada':['#f97316','#fb923c'],
-  'default':['#6b7280','#9ca3af']
-};
-function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
-
-// ────────────────────────────────────────────────
-// PERSISTENCIA DE SESIÓN (localStorage)
-// ────────────────────────────────────────────────
-function saveUserToLocalStorage(user){
-  localStorage.setItem('soundmind_user', JSON.stringify(user));
-}
-function clearUserLocalStorage(){
-  localStorage.removeItem('soundmind_user');
-}
-function getUserFromLocalStorage(){
-  const raw = localStorage.getItem('soundmind_user');
-  return raw ? JSON.parse(raw) : null;
+function formatTime(sec) {
+    if (isNaN(sec)) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s < 10 ? "0" + s : s}`;
 }
 
-// ────────────────────────────────────────────────
-// AUTH
-// ────────────────────────────────────────────────
-function switchTab(tab){
-  $('tabLogin').classList.toggle('active',tab==='login');
-  $('tabReg').classList.toggle('active',tab==='register');
-  $('formLogin').classList.toggle('hidden',tab!=='login');
-  $('formReg').classList.toggle('hidden',tab!=='register');
-  txt('authMsg','');
+// ========================= PERSISTENCIA DE SESIÓN =========================
+function saveSession() {
+    if (currentUser) localStorage.setItem("soundmind_user", JSON.stringify(currentUser));
+}
+function loadSession() {
+    const raw = localStorage.getItem("soundmind_user");
+    if (raw) {
+        try {
+            const user = JSON.parse(raw);
+            currentUser = user;
+            userLikes = user.likes || [];
+            userPlaylists = user.playlists || [];
+            return true;
+        } catch(e) {}
+    }
+    return false;
+}
+function clearSession() {
+    localStorage.removeItem("soundmind_user");
+    currentUser = null;
+    userLikes = [];
+    userPlaylists = [];
 }
 
-async function doLogin(){
-  const username = $('loginUser').value.trim();
-  const password = $('loginPass').value.trim();
-  if(!username||!password){ txt('authMsg','Completa todos los campos'); return }
-  txt('authMsg','Verificando…');
-  const {data,error} = await db.from('usuarios').select('*').eq('username',username).eq('password',password).maybeSingle();
-  if(!data){ txt('authMsg', error ? 'Error de conexión' : 'Usuario o contraseña incorrectos'); return }
-  currentUser = data;
-  saveUserToLocalStorage(currentUser);
-  await bootApp();
+// ========================= AUTENTICACIÓN =========================
+async function login(username, password) {
+    const { data, error } = await supabase
+        .from("usuarios")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
+        .maybeSingle();
+    if (!data) return false;
+    currentUser = data;
+    userLikes = currentUser.likes || [];
+    userPlaylists = currentUser.playlists || [];
+    saveSession();
+    return true;
+}
+async function register(username, password, nombre, generoFav) {
+    const { data: existing } = await supabase
+        .from("usuarios")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+    if (existing) return false;
+    const newUser = {
+        username,
+        password,
+        nombre,
+        generoFav,
+        likes: [],
+        playlists: [],
+        scores: { [generoFav]: 5 }
+    };
+    const { data, error } = await supabase.from("usuarios").insert(newUser).select().single();
+    if (!data) return false;
+    currentUser = data;
+    userLikes = [];
+    userPlaylists = [];
+    saveSession();
+    return true;
 }
 
-async function doRegister(){
-  const nombre   = $('regName').value.trim();
-  const username = $('regUser').value.trim();
-  const password = $('regPass').value.trim();
-  if(!nombre||!username||!password){ txt('authMsg','Completa todos los campos'); return }
-  if(username.length<3){ txt('authMsg','El usuario debe tener al menos 3 caracteres'); return }
-  if(password.length<6){ txt('authMsg','La contraseña debe tener al menos 6 caracteres'); return }
-  txt('authMsg','Creando cuenta…');
-  const {data:ex} = await db.from('usuarios').select('id').eq('username',username).maybeSingle();
-  if(ex){ txt('authMsg','Ese usuario ya existe, elige otro'); return }
-  const {data,error} = await db.from('usuarios').insert({username,password,nombre}).select().single();
-  if(!data){ txt('authMsg','Error: '+(error?.message||'desconocido')); return }
-  currentUser = data;
-  saveUserToLocalStorage(currentUser);
-  await bootApp();
+// ========================= CARGAR CATÁLOGO =========================
+async function loadCatalog() {
+    const { data } = await supabase.from("canciones").select("*").order("id");
+    allSongs = data || [];
+    return allSongs;
 }
 
-async function doLogout(){
-  clearUserLocalStorage();
-  // Detener audio si estaba sonando
-  const audioEl = $('audioEl');
-  if(audioEl){
-    audioEl.pause();
-    audioEl.src = '';
-  }
-  currentUser = null; myInter = []; allInter = []; nowPlayingId = null;
-  $('app').classList.add('hidden');
-  $('authScreen').classList.remove('hidden');
-  $('playerBar').classList.add('hidden');
-  $('loginUser').value = ''; $('loginPass').value = ''; $('regName').value = ''; $('regUser').value = ''; $('regPass').value = '';
-  txt('authMsg','');
+// ========================= REPRODUCTOR (estable, sin errores) =========================
+function playSong(song, index) {
+    if (!song) return;
+    currentSong = song;
+    currentIndex = index;
+    $("playerTitle").innerText = song.titulo;
+    $("playerArtist").innerText = song.artista;
+    $("nowTitle").innerText = song.titulo;
+    $("nowArtist").innerText = song.artista;
+    $("nowComposer").innerText = `${song.artista} · ${song.genero}`;
+    const coverUrl = song.url_imagen || `https://ui-avatars.com/api/?background=6366f1&color=fff&name=${encodeURIComponent(song.artista)}`;
+    $("nowCoverImg").src = coverUrl;
+    $("discArt").innerHTML = `<img src="${coverUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+
+    if (audioPlayer.src !== song.url_audio) {
+        audioPlayer.src = song.url_audio;
+        audioPlayer.load();
+    }
+    audioPlayer.play().catch(e => toast("No se pudo reproducir: " + e.message, true));
+    $("playBtn").innerHTML = "⏸️";
+    document.querySelectorAll(".track-row").forEach(row => row.classList.remove("playing"));
+    const activeRow = document.querySelector(`.track-row[data-id='${song.id}']`);
+    if (activeRow) activeRow.classList.add("playing");
+    $("playerDisc").classList.add("spinning");
+
+    // Registrar escucha para IA
+    registrarInteraccion(song, "play");
+}
+function nextSong() {
+    if (!allSongs.length) return;
+    let nextIdx = currentIndex + 1;
+    if (shuffle) {
+        let newIdx;
+        do { newIdx = Math.floor(Math.random() * allSongs.length); } while (newIdx === currentIndex && allSongs.length > 1);
+        nextIdx = newIdx;
+    }
+    if (nextIdx >= allSongs.length) {
+        if (repeat) nextIdx = currentIndex;
+        else return;
+    }
+    playSong(allSongs[nextIdx], nextIdx);
+}
+function prevSong() {
+    let prevIdx = currentIndex - 1;
+    if (prevIdx < 0) prevIdx = allSongs.length - 1;
+    playSong(allSongs[prevIdx], prevIdx);
 }
 
-// ────────────────────────────────────────────────
-// BOOT
-// ────────────────────────────────────────────────
-async function bootApp(){
-  $('authScreen').classList.add('hidden');
-  $('app').classList.remove('hidden');
-  $('playerBar').classList.remove('hidden');
-
-  // User info
-  const initials = (currentUser.nombre||currentUser.username).slice(0,2).toUpperCase();
-  txt('userAvatar', initials);
-  txt('userName', currentUser.nombre||currentUser.username);
-  txt('heroName', currentUser.nombre||currentUser.username);
-
-  // Load data
-  const [songsRes, myRes, allRes] = await Promise.all([
-    db.from('canciones').select('*').order('popularidad',{ascending:false}),
-    db.from('interacciones').select('*').eq('usuario_id',currentUser.id),
-    db.from('interacciones').select('*')
-  ]);
-  allSongs = songsRes.data || [];
-  myInter  = myRes.data  || [];
-  allInter = allRes.data || [];
-
-  buildGenrePills();
-  renderAll();
-  showPage('home');
+// ========================= INTERACCIONES (likes, playlists) =========================
+async function registrarInteraccion(cancion, tipo) {
+    if (!currentUser || currentUser.username === "Invitado") return;
+    if (tipo === "like") {
+        if (!userLikes.includes(cancion.id)) {
+            userLikes.push(cancion.id);
+            toast("❤️ Añadido a Me gusta");
+        } else {
+            userLikes = userLikes.filter(id => id !== cancion.id);
+            toast("💔 Like eliminado");
+        }
+        // Actualizar en Supabase
+        await supabase.from("usuarios").update({ likes: userLikes }).eq("id", currentUser.id);
+        currentUser.likes = userLikes;
+        saveSession();
+        renderCurrentView(); // refrescar lista
+    } else if (tipo === "play") {
+        // Actualizar scores de IA
+        let scores = currentUser.scores || {};
+        scores[cancion.genero] = (scores[cancion.genero] || 0) + 1;
+        await supabase.from("usuarios").update({ scores }).eq("id", currentUser.id);
+        currentUser.scores = scores;
+        saveSession();
+    }
+}
+// Playlists
+function createPlaylist(name) {
+    userPlaylists.push({ nombre: name, canciones: [] });
+    savePlaylists();
+}
+function addToPlaylist(playlistIndex, songId) {
+    userPlaylists[playlistIndex].canciones.push(songId);
+    savePlaylists();
+    toast(`Añadida a ${userPlaylists[playlistIndex].nombre}`);
+}
+function savePlaylists() {
+    supabase.from("usuarios").update({ playlists: userPlaylists }).eq("id", currentUser.id);
+    currentUser.playlists = userPlaylists;
+    saveSession();
+    renderPlaylistsSidebar();
 }
 
-// ────────────────────────────────────────────────
-// RENDER ALL
-// ────────────────────────────────────────────────
-function renderAll(){
-  updateHeroStats();
-  updateBadges();
-  renderHomePopular();
-  renderHomeRec();
-  renderCatalog();
-  renderSimilar();
-  renderTree();
-  renderRecursive();
-  renderFavorites();
-  renderLikes();
-  renderAnalysis();
+// ========================= RENDERIZADO PRINCIPAL =========================
+function renderSongs(songs, title = "Canciones") {
+    const container = $("tracksContainer");
+    if (!songs.length) {
+        container.innerHTML = "<div class='empty-state'>No hay canciones para mostrar</div>";
+        return;
+    }
+    container.innerHTML = songs.map((song, idx) => `
+        <div class="track-row ${currentSong && currentSong.id === song.id ? 'playing' : ''}" data-id="${song.id}">
+            <div class="col-num">${idx+1}</div>
+            <div class="col-title">
+                <div class="col-cover" style="background: linear-gradient(135deg, #6366f1, #a855f7);"></div>
+                <div class="col-text">
+                    <div class="song-name">${escapeHtml(song.titulo)}</div>
+                    <div class="artist-name">${escapeHtml(song.artista)}</div>
+                </div>
+            </div>
+            <div class="col-genre">${song.genero}</div>
+            <div class="col-duration">3:30</div>
+            <div class="col-actions">
+                <span class="action-like ${userLikes.includes(song.id) ? 'liked' : ''}" data-id="${song.id}">${userLikes.includes(song.id) ? '❤️' : '♡'}</span>
+                <span class="action-add" data-id="${song.id}">➕</span>
+            </div>
+        </div>
+    `).join("");
+    // Eventos dinámicos
+    document.querySelectorAll(".action-like").forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.dataset.id);
+            const song = allSongs.find(s => s.id === id);
+            if (song) registrarInteraccion(song, "like");
+        };
+    });
+    document.querySelectorAll(".action-add").forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.dataset.id);
+            openPlaylistModal(id);
+        };
+    });
+    document.querySelectorAll(".track-row").forEach(row => {
+        row.onclick = () => {
+            const id = parseInt(row.dataset.id);
+            const song = allSongs.find(s => s.id === id);
+            const idx = allSongs.findIndex(s => s.id === id);
+            if (song) playSong(song, idx);
+        };
+    });
+}
+function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m])); }
+
+// ========================= IA – SISTEMA DE RECOMENDACIÓN =========================
+function obtenerTopGeneros(n = 2) {
+    if (!currentUser || !currentUser.scores) return [];
+    const scores = currentUser.scores;
+    return Object.entries(scores).sort((a,b) => b[1] - a[1]).slice(0,n).map(([g]) => g);
+}
+function calcularMoodPreferido() {
+    if (!currentUser || !currentUser.scores) return null;
+    // Simulación basada en género con más puntos
+    const top = obtenerTopGeneros(1);
+    if (top[0] === "Rock" || top[0] === "Electrónica") return "Energético";
+    if (top[0] === "Jazz" || top[0] === "Clásica") return "Relajado";
+    if (top[0] === "Reguetón" || top[0] === "Latina") return "Fiesta";
+    return "Melancólico";
+}
+function recomendarCanciones() {
+    if (!allSongs.length) return [];
+    const topGeneros = obtenerTopGeneros(2);
+    const mood = calcularMoodPreferido();
+    const likedIds = new Set(userLikes);
+    // Puntuación
+    const scored = allSongs.map(song => {
+        let score = 0;
+        if (topGeneros.includes(song.genero)) score += 10;
+        if (song.mood === mood) score += 5;
+        if (likedIds.has(song.id)) score += 3;
+        if (currentUser && currentUser.scores && currentUser.scores[song.genero]) {
+            score += currentUser.scores[song.genero] * 0.5;
+        }
+        return { ...song, _score: score };
+    });
+    scored.sort((a,b) => b._score - a._score);
+    return scored.slice(0, 20);
 }
 
-function updateHeroStats(){
-  txt('hsSongs', allSongs.length);
-  txt('hsLikes', myInter.filter(i=>i.es_like).length);
-  txt('hsFavs',  myInter.filter(i=>i.es_favorito).length);
+// ========================= SUBIR MÚSICA (solo admin) =========================
+async function uploadSong(file, artista, genero, mood, coverFile = null) {
+    const fileName = `${Date.now()}_${file.name.replace(/[^a-z0-9.]/gi, "_")}`;
+    const audioPath = `canciones/${fileName}`;
+    const { error: uploadError } = await supabase.storage.from("canciones").upload(audioPath, file);
+    if (uploadError) { toast("Error subiendo audio", true); return false; }
+    const { data: urlData } = supabase.storage.from("canciones").getPublicUrl(audioPath);
+    let coverUrl = null;
+    if (coverFile) {
+        const coverName = `covers/${Date.now()}_cover.jpg`;
+        await supabase.storage.from("canciones").upload(coverName, coverFile);
+        coverUrl = supabase.storage.from("canciones").getPublicUrl(coverName).data.publicUrl;
+    }
+    const titulo = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+    const { error: insertError } = await supabase.from("canciones").insert({
+        titulo, artista, genero, mood, url_audio: urlData.publicUrl, url_imagen: coverUrl
+    });
+    if (insertError) { toast("Error guardando en BD", true); return false; }
+    return true;
 }
 
-function updateBadges(){
-  const likes = myInter.filter(i=>i.es_like).length;
-  const favs  = myInter.filter(i=>i.es_favorito).length;
-  const bl=$('badge-like'), bf=$('badge-fav');
-  if(likes>0){ bl.textContent=likes; bl.classList.remove('hidden') } else bl.classList.add('hidden');
-  if(favs>0) { bf.textContent=favs;  bf.classList.remove('hidden') } else bf.classList.add('hidden');
+// ========================= INICIALIZAR VISTAS =========================
+let currentView = "home";
+function renderCurrentView() {
+    if (currentView === "home") {
+        $("sectionTitle").innerText = "Descubre lo nuevo";
+        $("sectionSub").innerText = "";
+        renderSongs(allSongs);
+    } else if (currentView === "library") {
+        $("sectionTitle").innerText = "Tu biblioteca";
+        $("sectionSub").innerText = "Todas las canciones";
+        renderSongs(allSongs);
+    } else if (currentView === "recommend") {
+        $("sectionTitle").innerText = "Recomendado para ti";
+        $("sectionSub").innerText = "Basado en tu actividad";
+        const recs = recomendarCanciones();
+        renderSongs(recs);
+    }
+}
+function renderPlaylistsSidebar() {
+    const container = $("playlistsContainer");
+    if (!container) return;
+    container.innerHTML = userPlaylists.map((pl, idx) => `
+        <div class="playlist-item" data-idx="${idx}">
+            <span>📀 ${pl.nombre}</span>
+            <span class="pl-count">${pl.canciones.length}</span>
+        </div>
+    `).join("");
+    document.querySelectorAll(".playlist-item").forEach(el => {
+        el.onclick = () => {
+            const idx = parseInt(el.dataset.idx);
+            const pl = userPlaylists[idx];
+            const songs = allSongs.filter(s => pl.canciones.includes(s.id));
+            $("sectionTitle").innerText = pl.nombre;
+            renderSongs(songs);
+            currentView = "playlist";
+        };
+    });
+}
+function updateUIAfterLogin() {
+    const isLogged = currentUser && currentUser.username !== "Invitado";
+    $("sidebarUserName").innerText = currentUser ? (currentUser.nombre || currentUser.username) : "Invitado";
+    $("topUserName").innerText = currentUser ? (currentUser.nombre || currentUser.username) : "Invitado";
+    $("welcomeName").innerText = currentUser ? (currentUser.nombre || "amante de la música") : "Invitado";
+    $("sidebarFavGen").innerText = currentUser && currentUser.generoFav ? `Fav: ${currentUser.generoFav}` : "—";
+    const uploadNav = $("uploadNavBtn");
+    if (uploadNav) uploadNav.style.display = (currentUser && currentUser.username === "admin") ? "block" : "none";
+    renderPlaylistsSidebar();
+    renderCurrentView();
 }
 
-// ────────────────────────────────────────────────
-// SONG CARD HTML
-// ────────────────────────────────────────────────
-function songCard(s){
-  const inter   = myInter.find(i=>i.cancion_id===s.id);
-  const liked   = inter&&inter.es_like;
-  const faved   = inter&&inter.es_favorito;
-  const playing = nowPlayingId===s.id;
-  const em      = genreEmoji(s.genero);
-  const grad    = genreGradient(s.genero);
-
-  return `<div class="song-card ${liked?'liked':''} ${faved?'faved':''} ${playing?'playing':''}" data-id="${s.id}">
-    <div class="card-cover">
-      <div class="card-cover-inner" style="background:${grad}">${em}</div>
-      ${playing?`<div class="now-playing-badge">En reproducción</div>`:''}
-    </div>
-    <div class="card-body">
-      <div class="card-title" title="${esc(s.titulo)}">${esc(s.titulo)}</div>
-      <div class="card-artist" title="${esc(s.artista)}">${esc(s.artista)}</div>
-      <div class="card-genre">${esc(s.genero)}</div>
-      <div class="card-attrs">
-        <span class="card-attr">⚡${(s.energia*100).toFixed(0)}%</span>
-        <span class="card-attr">💃${(s.bailabilidad*100).toFixed(0)}%</span>
-        <span class="card-attr">🔥${s.popularidad}</span>
-      </div>
-      <div class="card-actions">
-        <button class="cta ${liked?'liked-btn':''}" onclick="toggleLike(event,${s.id})">${liked?'❤️':'🤍'}</button>
-        <button class="cta ${faved?'faved-btn':''}" onclick="toggleFav(event,${s.id})">${faved?'⭐':'☆'}</button>
-        <button class="cta play-btn" onclick="playSong(event,${s.id})">▶ Play</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-function renderCards(songs, containerId, emptyMsg='No hay canciones aquí aún.'){
-  const el=$(containerId); if(!el) return;
-  if(!songs||!songs.length){
-    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎵</div><p>${emptyMsg}</p></div>`;
-    return;
-  }
-  el.innerHTML=songs.map(songCard).join('');
-}
-
-// ────────────────────────────────────────────────
-// HOME
-// ────────────────────────────────────────────────
-function renderHomePopular(){ renderCards(allSongs.slice(0,10),'homePopCards') }
-function renderHomeRec(){
-  const rec = aiCollaborative().slice(0,8);
-  renderCards(rec,'homeRecCards','Da likes a canciones para recibir recomendaciones personalizadas.');
-}
-
-// ────────────────────────────────────────────────
-// CATALOG
-// ────────────────────────────────────────────────
-function buildGenrePills(){
-  const genres=[...new Set(allSongs.map(s=>s.genero))].sort();
-  const el=$('genrePills'); if(!el) return;
-  el.innerHTML=`<button class="gpill active" onclick="filterGenre(this,null)">Todos</button>`
-    +genres.map(g=>`<button class="gpill" onclick="filterGenre(this,'${esc(g)}')">${esc(g)}</button>`).join('');
-}
-function filterGenre(btn,genre){
-  document.querySelectorAll('.gpill').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  activeGenre=genre;
-  renderCatalog();
-}
-function onSearch(){
-  searchQuery=$('searchInput').value.toLowerCase();
-  renderCatalog();
-}
-function renderCatalog(){
-  let songs=allSongs.filter(s=>
-    (!activeGenre||s.genero===activeGenre)&&
-    (!searchQuery||(s.titulo.toLowerCase().includes(searchQuery)||s.artista.toLowerCase().includes(searchQuery)))
-  );
-  txt('catalogCount',songs.length+' canciones');
-  renderCards(songs,'catalogCards');
-}
-
-// ────────────────────────────────────────────────
-// AI 1: COLLABORATIVE FILTERING
-// ────────────────────────────────────────────────
-function aiCollaborative(){
-  const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
-  if(myLiked.size===0) return [];
-  const others={};
-  for(const inter of allInter){
-    if(inter.usuario_id===currentUser.id) continue;
-    if(!(inter.es_like||inter.es_favorito)) continue;
-    if(!others[inter.usuario_id]) others[inter.usuario_id]=new Set();
-    others[inter.usuario_id].add(inter.cancion_id);
-  }
-  const sims=[];
-  for(const[uid,likedSet] of Object.entries(others)){
-    let comunes=0;
-    for(const id of myLiked) if(likedSet.has(id)) comunes++;
-    const sim=comunes/Math.min(myLiked.size,likedSet.size);
-    if(sim>0) sims.push({uid,sim,likedSet,comunes});
-  }
-  sims.sort((a,b)=>b.sim-a.sim);
-  const candidates=new Set();
-  for(const v of sims.slice(0,3)) for(const id of v.likedSet) if(!myLiked.has(id)) candidates.add(id);
-  return allSongs.filter(s=>candidates.has(s.id));
-}
-
-function renderSimilar(){
-  const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
-  const others={};
-  for(const inter of allInter){
-    if(inter.usuario_id===currentUser.id) continue;
-    if(!(inter.es_like||inter.es_favorito)) continue;
-    if(!others[inter.usuario_id]) others[inter.usuario_id]=new Set();
-    others[inter.usuario_id].add(inter.cancion_id);
-  }
-  const sims=[];
-  for(const[uid,likedSet] of Object.entries(others)){
-    let comunes=0;
-    for(const id of myLiked) if(likedSet.has(id)) comunes++;
-    const sim=comunes/Math.max(1,Math.min(myLiked.size,likedSet.size));
-    if(sim>0) sims.push({uid,sim,comunes,total:likedSet.size});
-  }
-  sims.sort((a,b)=>b.sim-a.sim);
-
-  const nr=$('neighborsRow');
-  if(nr){
-    if(sims.length>0){
-      nr.innerHTML=sims.slice(0,3).map((v,i)=>`
-        <div class="neighbor-card">
-          <div class="neighbor-num">Vecino ${i+1}</div>
-          <div class="neighbor-val">${(v.sim*100).toFixed(0)}%</div>
-          <div class="neighbor-sub">similitud · ${v.comunes} canciones en común</div>
-        </div>`).join('');
+// ========================= EVENTOS Y ARRANQUE =========================
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadCatalog();
+    if (loadSession()) {
+        $("authModal").classList.add("hidden");
+        $("app").classList.remove("hidden");
+        $("playerBar").classList.remove("hidden");
+        updateUIAfterLogin();
     } else {
-      nr.innerHTML='<p style="color:var(--text2);font-size:13px">Aún no hay usuarios suficientes para comparar. Da likes para activar el algoritmo.</p>';
+        $("authModal").classList.remove("hidden");
+        $("app").classList.add("hidden");
+        $("playerBar").classList.add("hidden");
     }
-  }
-  const rec=aiCollaborative().slice(0,8);
-  renderCards(rec,'simCards','Da likes a más canciones para que el algoritmo encuentre usuarios con gustos similares.');
-}
 
-// ────────────────────────────────────────────────
-// AI 2: DECISION TREE J48
-// ────────────────────────────────────────────────
-function buildModel(){
-  const datos=[];
-  for(const inter of allInter){
-    const song=allSongs.find(s=>s.id===inter.cancion_id);
-    if(!song) continue;
-    datos.push({
-      energia:song.energia,bailabilidad:song.bailabilidad,
-      popularidad:song.popularidad,genero:song.genero,
-      like:(inter.es_like||inter.es_favorito)?1:0
+    // Autenticación
+    $("doLogin").onclick = async () => {
+        const user = $("loginUser").value;
+        const pass = $("loginPass").value;
+        if (!user || !pass) { toast("Completa todos los campos", true); return; }
+        const ok = await login(user, pass);
+        if (ok) {
+            $("authModal").classList.add("hidden");
+            $("app").classList.remove("hidden");
+            $("playerBar").classList.remove("hidden");
+            updateUIAfterLogin();
+        } else toast("Usuario o contraseña incorrectos", true);
+    };
+    $("doRegister").onclick = async () => {
+        const nombre = $("regName").value;
+        const user = $("regUser").value;
+        const pass = $("regPass").value;
+        const gen = $("regGen").value;
+        if (!nombre || !user || !pass) { toast("Completa todos los campos", true); return; }
+        const ok = await register(user, pass, nombre, gen);
+        if (ok) {
+            $("authModal").classList.add("hidden");
+            $("app").classList.remove("hidden");
+            $("playerBar").classList.remove("hidden");
+            updateUIAfterLogin();
+        } else toast("El usuario ya existe", true);
+    };
+    $("guestMode").onclick = () => {
+        currentUser = { username: "Invitado", nombre: "Invitado", likes: [], playlists: [], scores: {} };
+        userLikes = [];
+        userPlaylists = [];
+        $("authModal").classList.add("hidden");
+        $("app").classList.remove("hidden");
+        $("playerBar").classList.remove("hidden");
+        updateUIAfterLogin();
+    };
+    $("sidebarLogout").onclick = () => {
+        clearSession();
+        location.reload();
+    };
+    $("dropdownLogout").onclick = () => {
+        clearSession();
+        location.reload();
+    };
+    // Navegación
+    document.querySelectorAll(".nav-link").forEach(link => {
+        link.onclick = (e) => {
+            e.preventDefault();
+            document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
+            link.classList.add("active");
+            const view = link.dataset.view;
+            if (view === "home") currentView = "home";
+            else if (view === "library") currentView = "library";
+            else if (view === "recommend") currentView = "recommend";
+            else if (view === "upload") { $("uploadModal").classList.remove("hidden"); return; }
+            renderCurrentView();
+        };
     });
-  }
-  if(datos.length<3) return null;
-  const byGenre={};
-  for(const d of datos){
-    if(!byGenre[d.genero]) byGenre[d.genero]={likes:0,total:0};
-    byGenre[d.genero].total++;
-    if(d.like) byGenre[d.genero].likes++;
-  }
-  const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;
-  const likes=datos.filter(d=>d.like);
-  const avgEn=avg(datos.map(d=>d.energia));
-  const avgBai=avg(datos.map(d=>d.bailabilidad));
-  const avgPop=avg(datos.map(d=>d.popularidad));
-  const likeEn=avg(likes.map(d=>d.energia));
-  const likeBai=avg(likes.map(d=>d.bailabilidad));
-  const accuracy=datos.length>0?Math.round((Math.max(likes.length,datos.length-likes.length)/datos.length)*100):70;
-  return{datos,byGenre,avgEn,avgBai,avgPop,likeEn,likeBai,accuracy};
-}
-
-function predictTree(song,model){
-  if(!model) return false;
-  const gd=model.byGenre[song.genero];
-  const genreRate=gd?gd.likes/gd.total:0.5;
-  let score=0;
-  if(genreRate>0.55) score+=3; else if(genreRate>0.4) score+=1;
-  if(song.energia>=model.avgEn-0.05) score+=1;
-  if(song.bailabilidad>=model.avgBai-0.05) score+=1;
-  if(song.popularidad>=model.avgPop) score+=1;
-  return score>=4;
-}
-
-function renderTree(){
-  const model=buildModel();
-  if(!model){
-    html('treeCards','<div class="empty-state"><div class="empty-icon">🌳</div><p>Necesitas más interacciones en el sistema para entrenar el árbol.<br>Registra más usuarios y da likes.</p></div>');
-    return;
-  }
-  const myIds=new Set(myInter.map(i=>i.cancion_id));
-  const rec=allSongs.filter(s=>!myIds.has(s.id)&&predictTree(s,model)).slice(0,8);
-  renderCards(rec,'treeCards','El árbol no encontró nuevas canciones para recomendarte. Da likes a más canciones para mejorar el modelo.');
-}
-
-// ────────────────────────────────────────────────
-// AI 3: RECURSIVE PLAYLIST
-// ────────────────────────────────────────────────
-function recursivePlaylist(seedId,depth,visited=new Set()){
-  if(depth===0||!seedId) return [];
-  const seed=allSongs.find(s=>s.id===seedId);
-  if(!seed||visited.has(seedId)) return [];
-  visited.add(seedId);
-  const next=allSongs
-    .filter(s=>!visited.has(s.id))
-    .map(s=>({
-      s,
-      score:(s.genero===seed.genero?3:0)
-        +(1-Math.abs(s.energia-seed.energia))*2
-        +(1-Math.abs(s.bailabilidad-seed.bailabilidad))*2
-        +(1-Math.abs(s.popularidad-seed.popularidad)/100)
-    }))
-    .sort((a,b)=>b.score-a.score)[0];
-  if(!next) return [];
-  return [next.s,...recursivePlaylist(next.s.id,depth-1,visited)];
-}
-
-function renderRecursive(){
-  const myLiked=myInter.filter(i=>i.es_like||i.es_favorito).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
-  const seedId=myLiked.length>0?myLiked[0].cancion_id:(allSongs[0]?.id);
-  const playlist=recursivePlaylist(seedId,8);
-  renderCards(playlist,'recCards','Da likes a canciones para generar tu playlist recursiva personalizada.');
-}
-
-// ────────────────────────────────────────────────
-// FAVORITES & LIKES
-// ────────────────────────────────────────────────
-function renderFavorites(){
-  const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
-  renderCards(allSongs.filter(s=>ids.has(s.id)),'favCards','Aún no tienes favoritos. Haz clic en ☆ en cualquier canción.');
-}
-function renderLikes(){
-  const ids=new Set(myInter.filter(i=>i.es_like).map(i=>i.cancion_id));
-  renderCards(allSongs.filter(s=>ids.has(s.id)),'likeCards','Aún no tienes likes. Haz clic en 🤍 en cualquier canción.');
-}
-
-// ────────────────────────────────────────────────
-// INTERACTIONS
-// ────────────────────────────────────────────────
-async function toggleLike(e,songId){
-  e.stopPropagation();
-  const existing=myInter.find(i=>i.cancion_id===songId);
-  if(existing){
-    const nv=!existing.es_like;
-    await db.from('interacciones').update({es_like:nv}).eq('id',existing.id);
-    existing.es_like=nv;
-    toast(nv?'❤️ Like añadido':'Like eliminado');
-  } else {
-    const{data}=await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:true,es_favorito:false}).select().single();
-    if(data){ myInter.push(data); toast('❤️ Like añadido') }
-  }
-  await refreshAllInter();
-  renderAll();
-}
-
-async function toggleFav(e,songId){
-  e.stopPropagation();
-  const existing=myInter.find(i=>i.cancion_id===songId);
-  if(existing){
-    const nv=!existing.es_favorito;
-    await db.from('interacciones').update({es_favorito:nv}).eq('id',existing.id);
-    existing.es_favorito=nv;
-    toast(nv?'⭐ Favorito añadido':'Favorito eliminado');
-  } else {
-    const{data}=await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:false,es_favorito:true}).select().single();
-    if(data){ myInter.push(data); toast('⭐ Favorito añadido') }
-  }
-  renderAll();
-}
-
-async function refreshAllInter(){
-  const{data}=await db.from('interacciones').select('*');
-  allInter=data||[];
-}
-
-// ────────────────────────────────────────────────
-// PLAYER (nativo con manejo de errores suave)
-// ────────────────────────────────────────────────
-function playSong(e, songId){
-  if(e) e.stopPropagation();
-  const song = allSongs.find(s=>s.id===songId);
-  if(!song) return;
-  nowPlayingId = songId;
-  txt('plTitle', song.titulo);
-  txt('plArtist', song.artista);
-  const cover = $('plCover');
-  cover.innerHTML = `<span style="font-size:24px">${genreEmoji(song.genero)}</span>`;
-  cover.style.background = genreGradient(song.genero);
-  const audio = $('audioEl');
-  if(song.url_preview){
-    audio.src = song.url_preview;
-    audio.play().catch(() => {
-      // No mostrar toast para no molestar, solo silencio
-    });
-    toast(`▶ Reproduciendo: ${song.titulo}`);
-  } else {
-    audio.removeAttribute('src');
-    toast('⚠️ No hay archivo de audio para esta canción');
-  }
-  renderAll(); // actualiza el badge "En reproducción"
-}
-
-// ────────────────────────────────────────────────
-// ANALYSIS
-// ────────────────────────────────────────────────
-function renderAnalysis(){
-  const model=buildModel();
-  const userIds=new Set(allInter.map(i=>i.usuario_id));
-  const totalLikes=allInter.filter(i=>i.es_like).length;
-  txt('mUsers',userIds.size);
-  txt('mSongs',allSongs.length);
-  txt('mInter',allInter.length);
-  txt('mLikes',totalLikes);
-  txt('mAcc',model?model.accuracy+'%':'—');
-  txt('mAvg',userIds.size>0?Math.round(totalLikes/userIds.size):'—');
-  renderGenreBar();
-  if(model) renderTreeViz(model);
-  renderCV(model);
-}
-
-function renderGenreBar(){
-  const myLiked=myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id);
-  const counts={};
-  for(const id of myLiked){
-    const s=allSongs.find(s=>s.id===id);
-    if(s) counts[s.genero]=(counts[s.genero]||0)+1;
-  }
-  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  const el=$('genreBar'); if(!el) return;
-  if(!sorted.length){ el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:20px">Da likes para ver tus géneros favoritos.</div>'; return }
-  const maxV=sorted[0][1];
-  const colors=['#a78bfa','#818cf8','#34d399','#fbbf24','#f87171','#38bdf8','#fb923c','#a3e635'];
-  el.innerHTML=sorted.slice(0,8).map(([g,c],i)=>`
-    <div class="bar-col">
-      <div class="bar-fill" style="height:${Math.round((c/maxV)*110)+12}px;background:${colors[i%colors.length]}"></div>
-      <div class="bar-lbl">${esc(g)}</div>
-      <div class="bar-num">${c}</div>
-    </div>`).join('');
-}
-
-function renderTreeViz(model){
-  const L=[];
-  L.push('ÁRBOL DE DECISIÓN J48 — SoundMind AI Music Recommender');
-  L.push('═══════════════════════════════════════════════════════════');
-  L.push(`Instancias de entrenamiento : ${model.datos.length} interacciones`);
-  L.push(`Likes registrados           : ${model.datos.filter(d=>d.like).length}`);
-  L.push(`Precisión del clasificador  : ${model.accuracy}%`);
-  L.push('');
-  L.push('NODO RAÍZ: Género de la canción');
-  L.push('│');
-  const sorted=Object.entries(model.byGenre).sort((a,b)=>(b[1].likes/b[1].total)-(a[1].likes/a[1].total));
-  sorted.forEach(([g,data],i)=>{
-    const rate=Math.round((data.likes/data.total)*100);
-    const sym=rate>60?'→ RECOMENDAR ✓':rate>40?'→ EVALUAR ∿':'→ OMITIR ✗';
-    const pfx=i===sorted.length-1?'└─':'├─';
-    L.push(`${pfx} ${g.padEnd(16)} likes:${rate}%  ${sym}`);
-    if(rate>40){
-      const pad=i===sorted.length-1?' ':'│';
-      L.push(`${pad}   ├─ Energía >= ${model.avgEn.toFixed(2)}        → +1 punto`);
-      L.push(`${pad}   ├─ Bailabilidad >= ${model.avgBai.toFixed(2)}   → +1 punto`);
-      L.push(`${pad}   └─ Popularidad >= ${Math.round(model.avgPop)}       → +1 punto`);
+    // Reproductor
+    audioPlayer.ontimeupdate = () => {
+        const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+        $("progressFill").style.width = percent + "%";
+        $("currentTime").innerText = formatTime(audioPlayer.currentTime);
+        $("totalTime").innerText = formatTime(audioPlayer.duration);
+    };
+    audioPlayer.onended = () => {
+        $("playerDisc").classList.remove("spinning");
+        if (repeat) {
+            audioPlayer.currentTime = 0;
+            audioPlayer.play();
+            $("playerDisc").classList.add("spinning");
+        } else nextSong();
+    };
+    $("playBtn").onclick = () => {
+        if (!currentSong) return;
+        if (audioPlayer.paused) {
+            audioPlayer.play();
+            $("playBtn").innerHTML = "⏸️";
+            $("playerDisc").classList.add("spinning");
+        } else {
+            audioPlayer.pause();
+            $("playBtn").innerHTML = "▶️";
+            $("playerDisc").classList.remove("spinning");
+        }
+    };
+    $("nextBtn").onclick = () => nextSong();
+    $("prevBtn").onclick = () => prevSong();
+    $("shuffleBtn").onclick = () => { shuffle = !shuffle; toast(shuffle ? "Aleatorio activado" : "Aleatorio desactivado"); };
+    $("repeatBtn").onclick = () => { repeat = !repeat; toast(repeat ? "Repetir activado" : "Repetir desactivado"); };
+    $("likePlayerBtn").onclick = () => {
+        if (currentSong) registrarInteraccion(currentSong, "like");
+    };
+    // Volumen
+    const volSlider = $("volumeSlider");
+    volSlider.onclick = (e) => {
+        const rect = volSlider.getBoundingClientRect();
+        const pct = (e.clientX - rect.left) / rect.width;
+        audioPlayer.volume = Math.min(1, Math.max(0, pct));
+        $("volumeFill").style.width = (audioPlayer.volume * 100) + "%";
+        $("volumeIcon").innerText = audioPlayer.volume === 0 ? "🔇" : audioPlayer.volume < 0.5 ? "🔉" : "🔊";
+    };
+    // Progreso clickeable
+    $("progressBarWrap").onclick = (e) => {
+        const rect = $("progressBarWrap").getBoundingClientRect();
+        const pct = (e.clientX - rect.left) / rect.width;
+        if (audioPlayer.duration) audioPlayer.currentTime = pct * audioPlayer.duration;
+    };
+    // Subida de música
+    $("uploadAudioLabel").onclick = () => $("audioFiles").click();
+    $("uploadImageLabel").onclick = () => $("coverImage").click();
+    $("confirmUpload").onclick = async () => {
+        const files = $("audioFiles").files;
+        const artista = $("uploadArtist").value.trim();
+        const genero = $("uploadGenre").value;
+        const mood = $("uploadMood").value;
+        const cover = $("coverImage").files[0];
+        if (!files.length || !artista) { toast("Selecciona audio y artista", true); return; }
+        for (let f of files) {
+            await uploadSong(f, artista, genero, mood, cover);
+        }
+        await loadCatalog();
+        renderCurrentView();
+        $("uploadModal").classList.add("hidden");
+        toast("Música subida correctamente");
+    };
+    $("closeUpload").onclick = () => $("uploadModal").classList.add("hidden");
+    // Nueva playlist
+    $("newPlaylistBtn").onclick = () => $("newPlaylistModal").classList.remove("hidden");
+    $("createPl").onclick = () => {
+        const name = $("newPlName").value.trim();
+        if (name) { createPlaylist(name); $("newPlaylistModal").classList.add("hidden"); }
+        else toast("Escribe un nombre", true);
+    };
+    $("cancelPl").onclick = () => $("newPlaylistModal").classList.add("hidden");
+    // Visualizador básico
+    const canvas = $("visualizer");
+    const ctx = canvas.getContext("2d");
+    function drawVisualizer() {
+        if (!canvas) return;
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        if (!audioPlayer.paused && audioPlayer.duration) {
+            const freq = 32;
+            for (let i = 0; i < freq; i++) {
+                const val = Math.sin(Date.now() * 0.005 + i * 0.3) * 0.6 + 0.4;
+                const barH = val * h;
+                ctx.fillStyle = `hsl(${240 + i * 2}, 70%, 60%)`;
+                ctx.fillRect(i * (w / freq), h - barH, (w / freq) - 1, barH);
+            }
+        }
+        requestAnimationFrame(drawVisualizer);
     }
-  });
-  L.push('');
-  L.push(`REGLA FINAL : Score >= 4 → Predecir LIKE (recomendar)`);
-  L.push(`PARÁMETROS  : energía=${model.avgEn.toFixed(3)} | bailabilidad=${model.avgBai.toFixed(3)} | popularidad=${Math.round(model.avgPop)}`);
-  html('treeViz',L.join('\n'));
-}
-
-function renderCV(model){
-  if(!model||model.datos.length<5){
-    html('cvBody','<tr><td colspan="5" style="color:var(--text2);padding:16px">Necesitas al menos 5 interacciones para calcular validación cruzada.</td></tr>');
-    return;
-  }
-  const k=5,datos=model.datos;
-  const foldSize=Math.floor(datos.length/k);
-  let totalAcc=0; const rows=[];
-  for(let i=0;i<k;i++){
-    const test=datos.slice(i*foldSize,(i+1)*foldSize);
-    const train=[...datos.slice(0,i*foldSize),...datos.slice((i+1)*foldSize)];
-    const tl=train.filter(d=>d.like).length;
-    const acc=train.length>0?Math.round((Math.max(tl,train.length-tl)/train.length)*100):70;
-    const det=test.filter(d=>d.like).length;
-    totalAcc+=acc;
-    const cls=acc>=75?'good':acc>=60?'mid':'';
-    rows.push(`<tr><td>Fold ${i+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${cls}">${acc}%</td><td>${det}/${test.length}</td>`);
-  }
-  const avg=Math.round(totalAcc/k);
-  rows.push(`<tr><td colspan="3"><strong>Precisión promedio</strong></td><td class="good">${avg}%</td><td>—</td>`);
-  html('cvBody',rows.join(''));
-}
-
-// ────────────────────────────────────────────────
-// NAVIGATION
-// ────────────────────────────────────────────────
-function showPage(name){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pg=$('page-'+name); const nv=$('nav-'+name);
-  if(pg) pg.classList.add('active');
-  if(nv) nv.classList.add('active');
-  if(window.innerWidth<=900) $('sidebar').classList.remove('open');
-}
-
-function toggleSidebar(){ $('sidebar').classList.toggle('open') }
-
-// ────────────────────────────────────────────────
-// INIT: persistencia de sesión (sin parpadeo)
-// ────────────────────────────────────────────────
-window.onload = async () => {
-  // Precargar canciones
-  const {data} = await db.from('canciones').select('*').order('popularidad',{ascending:false});
-  allSongs = data || [];
-
-  const savedUser = getUserFromLocalStorage();
-  if(savedUser){
-    currentUser = savedUser;
-    await bootApp();
-  } else {
-    // Mostrar pantalla de login
-    $('authScreen').classList.remove('hidden');
-    $('app').classList.add('hidden');
-    $('playerBar').classList.add('hidden');
-  }
-};
-
-// Enter key on auth inputs
-document.addEventListener('keydown', e => {
-  if(e.key === 'Enter'){
-    if(!currentUser && $('formLogin') && !$('formLogin').classList.contains('hidden')) doLogin();
-    else if(!currentUser && $('formReg') && !$('formReg').classList.contains('hidden')) doRegister();
-  }
+    drawVisualizer();
 });
+function openPlaylistModal(songId) {
+    if (!currentUser || currentUser.username === "Invitado") { toast("Inicia sesión para usar playlists", true); return; }
+    const container = $("playlistOptions");
+    container.innerHTML = userPlaylists.map((pl, idx) => `<button class="playlist-opt" data-idx="${idx}">📀 ${pl.nombre}</button>`).join("");
+    document.querySelectorAll(".playlist-opt").forEach(btn => {
+        btn.onclick = () => {
+            const idx = parseInt(btn.dataset.idx);
+            addToPlaylist(idx, songId);
+            $("playlistModal").classList.add("hidden");
+        };
+    });
+    $("playlistModal").classList.remove("hidden");
+}
+$("closePlaylistModal").onclick = () => $("playlistModal").classList.add("hidden");
+window.openPlaylistModal = openPlaylistModal;
