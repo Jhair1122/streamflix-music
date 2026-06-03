@@ -11,9 +11,6 @@
 </head>
 <body>
 
-<!-- PARTÍCULAS DE FONDO -->
-<canvas id="particlesCanvas"></canvas>
-
 <!-- HAMBURGER -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
@@ -180,9 +177,9 @@
       </div>
     </div>
 
-    <!-- ANALYSIS -->
+    <!-- ANALYSIS (igual) -->
     <div class="page" id="page-analysis">
-      <!-- ... igual que antes ... -->
+      <!-- ... todo el panel IA existente ... -->
     </div>
 
   </main>
@@ -191,7 +188,6 @@
 <!-- PLAYER BAR (con sleep timer) -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
-    <canvas id="visualizerCircle" width="58" height="58"></canvas>
     <div class="pl-disc" id="plDisc">
       <div class="pl-disc-cover" id="plDiscCover">🎵</div>
       <div class="pl-disc-center"></div>
@@ -244,13 +240,12 @@
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- EXPANDED PLAYER OVERLAY -->
+<!-- EXPANDED PLAYER OVERLAY (con sleep timer también) -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
     <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
     <div class="expanded-disc">
-      <canvas id="expVisualizerCircle" width="140" height="140"></canvas>
       <div class="pl-disc expanded-disc-img" id="expDisc">
         <div class="pl-disc-cover" id="expDiscCover">🎵</div>
         <div class="pl-disc-center"></div>
