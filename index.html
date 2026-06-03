@@ -14,9 +14,7 @@
 <!-- HAMBURGER -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
-<!-- ════════════════════════════════════════
-     APP SHELL
-════════════════════════════════════════ -->
+<!-- APP SHELL -->
 <div id="app" class="hidden">
   <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
@@ -57,7 +55,7 @@
   <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- ══════════ HOME ══════════ -->
+    <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
@@ -73,7 +71,6 @@
         </div>
       </div>
 
-      <!-- Buscador y filtros -->
       <div class="top-bar">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
@@ -84,7 +81,7 @@
       </div>
       <div class="genre-pills" id="genrePills"></div>
 
-      <!-- Recomendaciones personalizadas (prioridad likes > favoritos) -->
+      <!-- Recomendaciones personalizadas -->
       <div class="section rec-highlight">
         <div class="section-head">
           <div class="section-title">
@@ -98,7 +95,7 @@
         </div>
       </div>
 
-      <!-- Más populares (interacciones reales) -->
+      <!-- Más populares -->
       <div class="section">
         <div class="section-head">
           <div class="section-title">🔥 Más populares</div>
@@ -120,7 +117,7 @@
       </div>
     </div>
 
-    <!-- ══════════ FAVORITES ══════════ -->
+    <!-- FAVORITES -->
     <div class="page" id="page-favorites">
       <div class="page-title">⭐ Favoritos</div>
       <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
@@ -129,7 +126,7 @@
       </div>
     </div>
 
-    <!-- ══════════ LIKES ══════════ -->
+    <!-- LIKES -->
     <div class="page" id="page-likes">
       <div class="page-title">❤️ Mis likes</div>
       <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
@@ -138,9 +135,8 @@
       </div>
     </div>
 
-    <!-- ══════════ ANALYSIS ══════════ -->
+    <!-- ANALYSIS -->
     <div class="page" id="page-analysis">
-      <!-- (mantenido sin cambios) -->
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
 
@@ -237,9 +233,7 @@
   </main>
 </div>
 
-<!-- ════════════════════════════════════════
-     PLAYER BAR (normal)
-════════════════════════════════════════ -->
+<!-- PLAYER BAR -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
     <div class="pl-disc" id="plDisc">
@@ -274,16 +268,14 @@
   <div class="pl-volume">
     <span class="pl-vol-icon" id="volIcon">🔊</span>
     <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8"
-      oninput="setVolume(this.value, true)">
+      oninput="setVolume(this.value)">
     <span class="vol-percent" id="volPercent">80%</span>
   </div>
 
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- ════════════════════════════════════════
-     EXPANDED PLAYER OVERLAY
-════════════════════════════════════════ -->
+<!-- EXPANDED PLAYER OVERLAY -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
@@ -313,7 +305,7 @@
     <div class="expanded-volume">
       <span class="pl-vol-icon">🔊</span>
       <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8"
-        oninput="setVolume(this.value, true)">
+        oninput="setVolume(this.value)">
       <span class="vol-percent" id="expVolPercent">80%</span>
     </div>
   </div>
