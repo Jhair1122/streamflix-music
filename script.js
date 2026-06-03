@@ -1,11 +1,7 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v5 final corregido + voz mejorada)
-   - Búsqueda por voz: decir "buscar" para ejecutar búsqueda.
-   - Saltos de 15s en reproductor normal y expandido.
-   - Prioridad likes (peso 1) sobre favoritos (0.5).
-   - Tarjeta completa cliqueable para reproducir.
-   - Reproductor expandido con volumen en %.
-   - Panel IA completo con validación cruzada.
+   SoundMind — script.js (v5 final + voz con fuzzy matching)
+   - Búsqueda por voz: palabra clave "buscar" + corrección automática.
+   - Saltos de 15s, contexto de reproducción, IA, panel completo.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -122,7 +118,7 @@ async function doLogout(){
   window.location.href = 'login.html';
 }
 
-/* ═══════════════════ VOICE SEARCH (con palabra clave "buscar") ══════════════════ */
+/* ═══════════════════ VOICE SEARCH (con palabra clave "buscar" + fuzzy matching) ══════════════════ */
 function initVoiceSearch(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
@@ -167,13 +163,20 @@ function initVoiceSearch(){
     const keywordIndex = lowerTranscript.lastIndexOf(keyword);
 
     if (keywordIndex !== -1) {
-      const query = transcript.substring(0, keywordIndex).trim();
-      if (query) {
-        searchQuery = query.toLowerCase();
+      let rawQuery = transcript.substring(0, keywordIndex).trim();
+      if (rawQuery) {
+        // Buscar la coincidencia más cercana entre canciones y artistas
+        const bestMatch = findBestMatch(rawQuery, allSongs);
+        const finalQuery = bestMatch || rawQuery;
+        searchQuery = finalQuery.toLowerCase();
         const si = $('searchInput');
-        if (si) si.value = query;
+        if (si) si.value = finalQuery;
         renderCatalog();
-        toast('🎤 Buscando: ' + query);
+        if (bestMatch) {
+          toast('🎤 Buscando: ' + bestMatch + ' (corregido)');
+        } else {
+          toast('🎤 Buscando: ' + rawQuery);
+        }
       }
       recognition.stop();
     }
@@ -193,6 +196,49 @@ function toggleVoice(){
       setTimeout(() => recognition.start(), 100);
     }
   }
+}
+
+/* Algoritmo de similitud (Levenshtein) */
+function levenshtein(a, b) {
+  const an = a.length, bn = b.length;
+  const matrix = Array.from({ length: an + 1 }, () => Array(bn + 1).fill(0));
+  for (let i = 0; i <= an; i++) matrix[i][0] = i;
+  for (let j = 0; j <= bn; j++) matrix[0][j] = j;
+  for (let i = 1; i <= an; i++) {
+    for (let j = 1; j <= bn; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[an][bn];
+}
+
+/* Busca la mejor coincidencia entre el texto hablado y los títulos/artistas */
+function findBestMatch(query, songs) {
+  const lowerQuery = query.toLowerCase();
+  let bestMatch = null;
+  let bestDistance = Infinity;
+
+  for (const song of songs) {
+    const title = song.titulo.toLowerCase();
+    const artist = song.artista.toLowerCase();
+
+    const distTitle = levenshtein(lowerQuery, title);
+    const distArtist = levenshtein(lowerQuery, artist);
+    const minDist = Math.min(distTitle, distArtist);
+
+    // Umbral: distancia máxima permitida = 40% de la longitud del campo más largo
+    const maxAllowed = Math.max(title.length, artist.length, lowerQuery.length) * 0.4;
+    if (minDist <= maxAllowed && minDist < bestDistance) {
+      bestDistance = minDist;
+      bestMatch = distTitle < distArtist ? song.titulo : song.artista;
+    }
+  }
+  return bestMatch;  // null si ninguna supera el umbral
 }
 
 /* ═══════════════════ RENDER ALL ══════════════════ */
