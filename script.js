@@ -74,7 +74,7 @@ function clearSession(){ localStorage.removeItem(SESSION_KEY) }
 
 function checkSession(){
   const saved = loadSession();
-  if (!saved) { window.location.href = 'login.html'; return false; }
+  if (!saved) { window.location.href = 'explore.html'; return false; }
   currentUser = saved;
   return true;
 }
@@ -120,7 +120,7 @@ async function doLogout(){
   if(audio){ audio.pause(); audio.removeAttribute('src') }
   $('plDisc')?.classList.remove('spinning');
   updatePlayPauseBtn(false);
-  window.location.href = 'login.html';
+  window.location.href = 'explore.html';
 }
 
 /* ═══════════════════ VOICE SEARCH (con fuzzy matching) ══════════════════ */
