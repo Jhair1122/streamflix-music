@@ -18,7 +18,6 @@
      APP SHELL
 ════════════════════════════════════════ -->
 <div id="app" class="hidden">
-
   <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -58,7 +57,7 @@
   <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- ══════════ HOME (Inicio + Catálogo unificados) ══════════ -->
+    <!-- ══════════ HOME ══════════ -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
@@ -85,7 +84,7 @@
       </div>
       <div class="genre-pills" id="genrePills"></div>
 
-      <!-- Recomendaciones personalizadas (destacadas) -->
+      <!-- Recomendaciones personalizadas (prioridad likes > favoritos) -->
       <div class="section rec-highlight">
         <div class="section-head">
           <div class="section-title">
@@ -93,13 +92,13 @@
             <span class="ai-badge">IA activa</span>
           </div>
         </div>
-        <p class="section-sub">Recomendaciones basadas en tu historial de likes y en usuarios con gustos similares.</p>
+        <p class="section-sub">Basado en tus likes (prioridad) y favoritos.</p>
         <div class="cards-grid" id="homeRecCards">
           <div class="loading"><div class="spin"></div> Analizando tus gustos…</div>
         </div>
       </div>
 
-      <!-- Más populares (basado en interacciones reales) -->
+      <!-- Más populares (interacciones reales) -->
       <div class="section">
         <div class="section-head">
           <div class="section-title">🔥 Más populares</div>
@@ -110,7 +109,7 @@
         </div>
       </div>
 
-      <!-- Todas las canciones (catálogo completo) -->
+      <!-- Catálogo completo -->
       <div class="section">
         <div class="section-head">
           <div class="section-title">🎵 Catálogo completo</div>
@@ -141,6 +140,7 @@
 
     <!-- ══════════ ANALYSIS ══════════ -->
     <div class="page" id="page-analysis">
+      <!-- (mantenido sin cambios) -->
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
 
@@ -238,17 +238,17 @@
 </div>
 
 <!-- ════════════════════════════════════════
-     PLAYER BAR
+     PLAYER BAR (normal)
 ════════════════════════════════════════ -->
 <div id="playerBar" class="hidden">
-  <div class="pl-disc-wrap">
+  <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
     <div class="pl-disc" id="plDisc">
       <div class="pl-disc-cover" id="plDiscCover">🎵</div>
       <div class="pl-disc-center"></div>
     </div>
   </div>
 
-  <div class="pl-info">
+  <div class="pl-info" onclick="openExpandedPlayer()">
     <div class="pl-title" id="plTitle">Sin reproducción</div>
     <div class="pl-artist" id="plArtist"></div>
   </div>
@@ -274,10 +274,49 @@
   <div class="pl-volume">
     <span class="pl-vol-icon" id="volIcon">🔊</span>
     <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8"
-      oninput="setVolume(this.value)">
+      oninput="setVolume(this.value, true)">
+    <span class="vol-percent" id="volPercent">80%</span>
   </div>
 
   <audio id="audioEl" preload="none"></audio>
+</div>
+
+<!-- ════════════════════════════════════════
+     EXPANDED PLAYER OVERLAY
+════════════════════════════════════════ -->
+<div id="expandedPlayer" class="hidden">
+  <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
+  <div class="expanded-card">
+    <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
+    <div class="expanded-disc">
+      <div class="pl-disc expanded-disc-img" id="expDisc">
+        <div class="pl-disc-cover" id="expDiscCover">🎵</div>
+        <div class="pl-disc-center"></div>
+      </div>
+    </div>
+    <div class="expanded-info">
+      <h2 id="expTitle">Sin reproducción</h2>
+      <p id="expArtist"></p>
+    </div>
+    <div class="expanded-controls">
+      <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
+      <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
+      <button class="pl-btn" onclick="playNextInContext()">⏭</button>
+    </div>
+    <div class="expanded-progress">
+      <span id="expCurrentTime">0:00</span>
+      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)">
+        <div class="pl-progress-fill" id="expProgressFill"></div>
+      </div>
+      <span id="expTotalTime">0:00</span>
+    </div>
+    <div class="expanded-volume">
+      <span class="pl-vol-icon">🔊</span>
+      <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8"
+        oninput="setVolume(this.value, true)">
+      <span class="vol-percent" id="expVolPercent">80%</span>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST -->
