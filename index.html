@@ -17,7 +17,8 @@
 <!-- ════════════════════════════════════════
      APP SHELL
 ════════════════════════════════════════ -->
-<div id="app">
+<div id="app" class="hidden">
+
   <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -35,9 +36,6 @@
       <div class="nav-section">Principal</div>
       <button class="nav-item active" id="nav-home" onclick="showPage('home')">
         <span class="nav-icon">🏠</span>Inicio
-      </button>
-      <button class="nav-item" id="nav-catalog" onclick="showPage('catalog')">
-        <span class="nav-icon">🎵</span>Catálogo
       </button>
 
       <div class="nav-section">Mi Biblioteca</div>
@@ -60,13 +58,13 @@
   <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- ══════════ HOME ══════════ -->
+    <!-- ══════════ HOME (Inicio + Catálogo unificados) ══════════ -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
           <div>
             <h2>Hola, <span id="heroName"></span> 👋</h2>
-            <p>SoundMind analiza tus preferencias usando <strong>filtrado colaborativo KNN</strong>, <strong>árbol de decisión J48</strong> y <strong>playlists recursivas</strong> para ofrecerte música que realmente encaja contigo.</p>
+            <p>SoundMind analiza tus gustos con <strong>IA</strong> para recomendarte canciones que realmente encajan contigo.</p>
           </div>
           <div class="hero-stats">
             <div class="hstat"><div class="hstat-val" id="hsSongs">—</div><div class="hstat-label">Canciones</div></div>
@@ -76,29 +74,7 @@
         </div>
       </div>
 
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">🔥 Más populares</div>
-          <span class="ai-badge">🤖 Ranking global</span>
-        </div>
-        <div class="cards-grid" id="homePopCards">
-          <div class="loading"><div class="spin"></div> Cargando…</div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-head">
-          <div class="section-title">🎯 Recomendado para ti</div>
-          <span class="ai-badge">🤖 IA activa</span>
-        </div>
-        <div class="cards-grid" id="homeRecCards">
-          <div class="loading"><div class="spin"></div> Calculando…</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════ CATALOG ══════════ -->
-    <div class="page" id="page-catalog">
+      <!-- Buscador y filtros -->
       <div class="top-bar">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
@@ -108,8 +84,40 @@
         <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
       </div>
       <div class="genre-pills" id="genrePills"></div>
-      <div class="cards-grid" id="catalogCards">
-        <div class="loading"><div class="spin"></div> Cargando…</div>
+
+      <!-- Recomendaciones personalizadas (destacadas) -->
+      <div class="section rec-highlight">
+        <div class="section-head">
+          <div class="section-title">
+            <span class="pulse-icon">🎯</span> Para ti
+            <span class="ai-badge">IA activa</span>
+          </div>
+        </div>
+        <p class="section-sub">Recomendaciones basadas en tu historial de likes y en usuarios con gustos similares.</p>
+        <div class="cards-grid" id="homeRecCards">
+          <div class="loading"><div class="spin"></div> Analizando tus gustos…</div>
+        </div>
+      </div>
+
+      <!-- Más populares (basado en interacciones reales) -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🔥 Más populares</div>
+          <span class="ai-badge">Según la comunidad</span>
+        </div>
+        <div class="cards-grid" id="homePopCards">
+          <div class="loading"><div class="spin"></div> Cargando…</div>
+        </div>
+      </div>
+
+      <!-- Todas las canciones (catálogo completo) -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🎵 Catálogo completo</div>
+        </div>
+        <div class="cards-grid" id="catalogCards">
+          <div class="loading"><div class="spin"></div> Cargando…</div>
+        </div>
       </div>
     </div>
 
@@ -229,28 +237,29 @@
   </main>
 </div>
 
-<!-- PLAYER BAR ... (idéntico al original) ... -->
+<!-- ════════════════════════════════════════
+     PLAYER BAR
+════════════════════════════════════════ -->
 <div id="playerBar" class="hidden">
-  <!-- Disco giratorio -->
   <div class="pl-disc-wrap">
     <div class="pl-disc" id="plDisc">
       <div class="pl-disc-cover" id="plDiscCover">🎵</div>
       <div class="pl-disc-center"></div>
     </div>
   </div>
-  <!-- Info canción -->
+
   <div class="pl-info">
     <div class="pl-title" id="plTitle">Sin reproducción</div>
     <div class="pl-artist" id="plArtist"></div>
   </div>
-  <!-- Centro: controles + progreso + visualizador -->
+
   <div class="pl-center">
     <div class="pl-controls-btns">
       <button class="pl-btn" onclick="playPrevInContext()" title="Anterior">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextInContext()" title="Siguiente">⏭</button>
     </div>
-    <!-- Barra de progreso -->
+
     <div class="pl-progress-wrap">
       <span class="pl-time" id="currentTime">0:00</span>
       <div class="pl-progress" id="progressBar" onclick="seekProgress(event)">
@@ -258,22 +267,23 @@
       </div>
       <span class="pl-time" id="totalTime">0:00</span>
     </div>
-    <!-- Visualizador de barras -->
+
     <div class="pl-visualizer" id="audioVisualizer"></div>
   </div>
-  <!-- Volumen -->
+
   <div class="pl-volume">
     <span class="pl-vol-icon" id="volIcon">🔊</span>
     <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8"
       oninput="setVolume(this.value)">
   </div>
+
   <audio id="audioEl" preload="none"></audio>
 </div>
 
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- VOICE OVERLAY (idéntico) -->
+<!-- VOICE OVERLAY -->
 <div id="voiceOverlay">
   <div class="voice-modal">
     <div class="voice-waves">
