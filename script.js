@@ -1015,7 +1015,94 @@ function renderAnalysis(){
   renderTreeRules();
   renderCrossValidation();
 }
-// ... (resto de funciones del panel IA igual) ...
+async function updateAnalysisMetrics(){
+  try { const { count } = await db.from('usuarios').select('*', { count: 'exact', head: true }); txt('mUsers', count||0); } catch(e) { txt('mUsers', '—'); }
+  txt('mSongs', allSongs.length);
+  txt('mInter', allInter.length);
+  const totalLikes = allInter.filter(i => i.es_like || i.es_favorito).length;
+  txt('mLikes', totalLikes);
+  const model = buildModel();
+  txt('mAcc', model ? model.accuracy + '%' : '—');
+  try { const { count } = await db.from('usuarios').select('*', { count: 'exact', head: true }); txt('mAvg', (totalLikes / (count||1)).toFixed(1)); } catch(e) { txt('mAvg', '—'); }
+}
+function renderGenreBarChart(){
+  const myLikedSongs = myInter.filter(i => i.es_like || i.es_favorito);
+  const genreCount = {};
+  myLikedSongs.forEach(inter => {
+    const song = allSongs.find(s => s.id === inter.cancion_id);
+    if (song) genreCount[song.genero] = (genreCount[song.genero] || 0) + 1;
+  });
+  const sorted = Object.entries(genreCount).sort((a,b) => b[1] - a[1]);
+  const maxVal = Math.max(1, ...sorted.map(e => e[1]));
+  let html = '';
+  sorted.forEach(([genre, count]) => {
+    const pct = (count / maxVal) * 100;
+    html += `<div class="bar-col">
+      <div class="bar-fill" style="height:${pct}%; background:${genreGradient(genre)}"></div>
+      <div class="bar-lbl">${genreEmoji(genre)} ${genre}</div>
+      <div class="bar-num">${count}</div>
+    </div>`;
+  });
+  if (!html) html = '<p style="color:var(--text2);padding:20px">No tienes suficientes interacciones para mostrar gráfico.</p>';
+  $('genreBar').innerHTML = html;
+}
+function renderTreeRules(){
+  const model = buildModel();
+  if (!model) { $('treeViz').textContent = 'No hay suficientes datos para entrenar el árbol.'; return; }
+  let text = '';
+  for (const [genre, stats] of Object.entries(model.byGenre)) {
+    const rate = (stats.likes / stats.total * 100).toFixed(0);
+    text += `Si género = "${genre}" → tasa de likes = ${rate}%\n`;
+  }
+  text += `\nPromedios de atributos en likes:\n  energía ≥ ${model.avgEn.toFixed(2)}\n  bailabilidad ≥ ${model.avgBai.toFixed(2)}\n  popularidad ≥ ${model.avgPop.toFixed(2)}\n\nRegla final: Score ≥ 4 → Recomendar.`;
+  $('treeViz').textContent = text;
+}
+async function renderCrossValidation(){
+  const tbody = $('cvBody');
+  tbody.innerHTML = '<tr><td colspan="5">Calculando…</td></tr>';
+  const data = [];
+  for (const inter of allInter) {
+    const song = allSongs.find(s => s.id === inter.cancion_id);
+    if (!song) continue;
+    data.push({ energia: song.energia, bailabilidad: song.bailabilidad, popularidad: song.popularidad, genero: song.genero, like: (inter.es_like || inter.es_favorito) ? 1 : 0 });
+  }
+  if (data.length < 5) { tbody.innerHTML = '<tr><td colspan="5">Se necesitan al menos 5 interacciones.</td></tr>'; return; }
+  const shuffled = data.sort(() => Math.random() - 0.5);
+  const foldSize = Math.floor(shuffled.length / 5);
+  let rows = '', totalAcc = 0;
+  for (let k = 0; k < 5; k++) {
+    const test = shuffled.slice(k * foldSize, (k + 1) * foldSize);
+    const train = shuffled.filter((_, i) => i < k * foldSize || i >= (k + 1) * foldSize);
+    const byGenre = {}; let sumEn = 0, sumBai = 0, sumPop = 0, likesCount = 0;
+    train.forEach(d => {
+      if (!byGenre[d.genero]) byGenre[d.genero] = { likes: 0, total: 0 };
+      byGenre[d.genero].total++;
+      if (d.like) { byGenre[d.genero].likes++; sumEn += d.energia; sumBai += d.bailabilidad; sumPop += d.popularidad; likesCount++; }
+    });
+    const avgEn = likesCount ? sumEn / likesCount : 0.5;
+    const avgBai = likesCount ? sumBai / likesCount : 0.5;
+    const avgPop = likesCount ? sumPop / likesCount : 50;
+    let correct = 0, detectedLikes = 0;
+    test.forEach(d => {
+      const gd = byGenre[d.genero] || { likes: 0, total: 1 };
+      const rate = gd.total ? gd.likes / gd.total : 0.5;
+      let score = 0;
+      if (rate > 0.55) score += 3; else if (rate > 0.4) score += 1;
+      if (d.energia >= avgEn - 0.05) score += 1;
+      if (d.bailabilidad >= avgBai - 0.05) score += 1;
+      if (d.popularidad >= avgPop) score += 1;
+      const pred = score >= 4 ? 1 : 0;
+      if (pred === d.like) correct++;
+      if (pred === 1 && d.like === 1) detectedLikes++;
+    });
+    const acc = Math.round((correct / test.length) * 100);
+    totalAcc += acc;
+    rows += `<tr><td>${k+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${acc>=70?'good':acc>=50?'mid':''}">${acc}%</td><td>${detectedLikes}</td></tr>`;
+  }
+  const avgAcc = Math.round(totalAcc / 5);
+  rows += `<tr><td colspan="3"><strong>Promedio</strong></td><td class="good"><strong>${avgAcc}%</strong></td><td></td></tr>`;
+  tbody.innerHTML = rows;
+}
 
 /* ═══════════════════ INIT ══════════════════ */
 window.addEventListener('load', async ()=>{
