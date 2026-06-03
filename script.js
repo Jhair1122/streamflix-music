@@ -52,6 +52,7 @@ const GENRE_EMOJI = {
   'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻','default':'🎵'
 };
 const GENRE_COLORS = {
+   'J-Pop':['#ec4899','#f472b6'],
   'Pop':['#ec4899','#f472b6'],
   'Electrónica':['#6366f1','#a78bfa'],
   'Anime':['#f59e0b','#fbbf24'],
