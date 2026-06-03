@@ -55,7 +55,7 @@
   <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- HOME -->
+    <!-- ══════════ HOME ══════════ -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
@@ -71,17 +71,7 @@
         </div>
       </div>
 
-      <div class="top-bar">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
-          <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
-        </div>
-        <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
-      </div>
-      <div class="genre-pills" id="genrePills"></div>
-
-      <!-- Recomendaciones personalizadas -->
+      <!-- Recomendaciones personalizadas (prioridad likes) -->
       <div class="section rec-highlight">
         <div class="section-head">
           <div class="section-title">
@@ -95,7 +85,7 @@
         </div>
       </div>
 
-      <!-- Más populares -->
+      <!-- Más populares (interacciones reales) -->
       <div class="section">
         <div class="section-head">
           <div class="section-title">🔥 Más populares</div>
@@ -106,18 +96,28 @@
         </div>
       </div>
 
-      <!-- Catálogo completo -->
+      <!-- Catálogo completo con búsqueda y filtros integrados -->
       <div class="section">
         <div class="section-head">
           <div class="section-title">🎵 Catálogo completo</div>
         </div>
+        <!-- Buscador y filtros colocados aquí, justo encima de los resultados -->
+        <div class="top-bar">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
+            <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
+          </div>
+          <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
+        </div>
+        <div class="genre-pills" id="genrePills"></div>
         <div class="cards-grid" id="catalogCards">
           <div class="loading"><div class="spin"></div> Cargando…</div>
         </div>
       </div>
     </div>
 
-    <!-- FAVORITES -->
+    <!-- ══════════ FAVORITES ══════════ -->
     <div class="page" id="page-favorites">
       <div class="page-title">⭐ Favoritos</div>
       <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
@@ -126,7 +126,7 @@
       </div>
     </div>
 
-    <!-- LIKES -->
+    <!-- ══════════ LIKES ══════════ -->
     <div class="page" id="page-likes">
       <div class="page-title">❤️ Mis likes</div>
       <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
@@ -135,7 +135,7 @@
       </div>
     </div>
 
-    <!-- ANALYSIS -->
+    <!-- ══════════ ANALYSIS ══════════ -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
@@ -249,9 +249,11 @@
 
   <div class="pl-center">
     <div class="pl-controls-btns">
+      <button class="pl-btn" onclick="skipBackward()" title="Retroceder 15s">⏪</button>
       <button class="pl-btn" onclick="playPrevInContext()" title="Anterior">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextInContext()" title="Siguiente">⏭</button>
+      <button class="pl-btn" onclick="skipForward()" title="Adelantar 15s">⏩</button>
     </div>
 
     <div class="pl-progress-wrap">
@@ -291,9 +293,11 @@
       <p id="expArtist"></p>
     </div>
     <div class="expanded-controls">
+      <button class="pl-btn" onclick="skipBackward()" title="Retroceder 15s">⏪</button>
       <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextInContext()">⏭</button>
+      <button class="pl-btn" onclick="skipForward()" title="Adelantar 15s">⏩</button>
     </div>
     <div class="expanded-progress">
       <span id="expCurrentTime">0:00</span>
