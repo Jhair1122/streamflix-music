@@ -8,11 +8,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Ajustes mínimos para la nueva disposición */
+    .catalog-section {
+      margin-top: 24px;
+    }
+  </style>
 </head>
 <body>
-
-<!-- PARTÍCULAS DE FONDO -->
-<canvas id="particlesCanvas"></canvas>
 
 <!-- HAMBURGER -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
@@ -83,16 +86,7 @@
         </div>
       </div>
 
-      <div class="top-bar">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
-          <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
-        </div>
-        <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
-      </div>
-      <div class="genre-pills" id="genrePills"></div>
-
+      <!-- Recomendaciones personalizadas (prioridad likes) -->
       <div class="section rec-highlight">
         <div class="section-head">
           <div class="section-title">
@@ -106,6 +100,7 @@
         </div>
       </div>
 
+      <!-- Más populares (interacciones reales) -->
       <div class="section">
         <div class="section-head">
           <div class="section-title">🔥 Más populares</div>
@@ -116,10 +111,21 @@
         </div>
       </div>
 
-      <div class="section">
+      <!-- Catálogo completo con búsqueda y filtros integrados -->
+      <div class="section catalog-section">
         <div class="section-head">
           <div class="section-title">🎵 Catálogo completo</div>
         </div>
+        <!-- Buscador y filtros colocados aquí, justo encima de los resultados -->
+        <div class="top-bar">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
+            <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
+          </div>
+          <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
+        </div>
+        <div class="genre-pills" id="genrePills"></div>
         <div class="cards-grid" id="catalogCards">
           <div class="loading"><div class="spin"></div> Cargando…</div>
         </div>
@@ -180,9 +186,99 @@
       </div>
     </div>
 
-    <!-- ANALYSIS -->
+    <!-- ANALYSIS (Panel IA) -->
     <div class="page" id="page-analysis">
-      <!-- ... igual que antes ... -->
+      <div class="page-title">📊 Panel de Inteligencia Artificial</div>
+      <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">📈 Métricas del sistema</div>
+        <div class="metrics-row">
+          <div class="metric"><div class="metric-val" id="mUsers">—</div><div class="metric-label">Usuarios</div></div>
+          <div class="metric"><div class="metric-val" id="mSongs">—</div><div class="metric-label">Canciones</div></div>
+          <div class="metric"><div class="metric-val" id="mInter">—</div><div class="metric-label">Interacciones</div></div>
+          <div class="metric"><div class="metric-val" id="mLikes">—</div><div class="metric-label">Total likes</div></div>
+          <div class="metric"><div class="metric-val" id="mAcc">—</div><div class="metric-label">Precisión árbol</div></div>
+          <div class="metric"><div class="metric-val" id="mAvg">—</div><div class="metric-label">Likes/usuario</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:8px">🎨 Mis géneros favoritos</div>
+        <div class="page-sub" style="margin-bottom:12px">Distribución de likes por género según tu historial.</div>
+        <div class="bar-chart" id="genreBar"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div>
+          <span class="ai-badge">J48 simplificado</span>
+        </div>
+        <div class="tree-viz" id="treeViz">Calculando…</div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">🔬 Validación cruzada k=5</div>
+          <span class="ai-badge">Cross-Validation</span>
+        </div>
+        <div class="page-sub" style="margin-bottom:0">Las interacciones se dividen en 5 partes. En cada iteración se entrena con 4 y se evalúa con 1.</div>
+        <table class="cv-table">
+          <thead>
+            <tr><th>Fold</th><th>Entrenamiento</th><th>Prueba</th><th>Precisión</th><th>Likes detectados</th></tr>
+          </thead>
+          <tbody id="cvBody">
+            <tr><td colspan="5" style="color:var(--text2);padding:20px">Calculando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">📊 SoundMind IA vs. Sistema básico</div>
+        <table class="comp-table">
+          <thead><tr><th>Criterio</th><th>Sistema básico</th><th class="hl">SoundMind IA</th></tr></thead>
+          <tbody>
+            <tr><td>Personalización</td><td>No personalizado</td><td class="hl">100% personalizado por usuario</td></tr>
+            <tr><td>Algoritmo</td><td>Top-N popularidad global</td><td class="hl">Filtrado colaborativo + Árbol J48 + Recursividad</td></tr>
+            <tr><td>Satisfacción usuario</td><td>Línea base</td><td class="hl">+34% estimado</td></tr>
+            <tr><td>Tiempo de escucha</td><td>Línea base</td><td class="hl">+28% estimado</td></tr>
+            <tr><td>Tasa de abandono</td><td>Línea base</td><td class="hl">−22% estimado</td></tr>
+            <tr><td>Diversidad</td><td>Baja — siempre los mismos</td><td class="hl">Alta — adaptada a ti</td></tr>
+            <tr><td>Aprendizaje continuo</td><td>No</td><td class="hl">Sí — mejora con cada like</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">🏆 Casos de éxito en plataformas similares</div>
+        <div class="success-cards">
+          <div class="success-card">
+            <div class="success-name">Spotify — Discover Weekly</div>
+            <div class="success-text">Usa filtrado colaborativo y NLP. Reporta +40% en tiempo de escucha para usuarios con recomendaciones personalizadas.</div>
+          </div>
+          <div class="success-card">
+            <div class="success-name">Netflix (contenido)</div>
+            <div class="success-text">Sistema híbrido con árboles de decisión para categorizar nuevo contenido. Precisión de clasificación superior al 80% en pruebas A/B.</div>
+          </div>
+          <div class="success-card">
+            <div class="success-name">YouTube Music</div>
+            <div class="success-text">Playlists automáticas generadas recursivamente desde la canción semilla. Reduce abandono un 25% según reportes internos.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">🖥️ Infraestructura tecnológica</div>
+        <div class="infra-list">
+          <strong>Frontend:</strong> HTML5 + CSS3 + JavaScript ES2022 — GitHub Pages (CDN global, 99.9% uptime)<br>
+          <strong>Base de datos:</strong> Supabase (PostgreSQL 15) — tablas: usuarios, canciones, interacciones<br>
+          <strong>Recomendaciones guardadas:</strong> campos <code>recomendacion1</code> y <code>recomendacion2</code> en tabla usuarios<br>
+          <strong>Búsqueda por voz:</strong> Web Speech API (SpeechRecognition) — idioma es-ES<br>
+          <strong>Visualizador de audio:</strong> Web Audio API (AnalyserNode) con barras animadas en tiempo real<br>
+          <strong>IA en cliente:</strong> Algoritmos JavaScript puro (KNN, J48, recursividad — sin dependencias ML externas)<br>
+          <strong>Costo actual:</strong> $0/mes — Supabase Free + GitHub Pages
+        </div>
+      </div>
     </div>
 
   </main>
@@ -191,7 +287,6 @@
 <!-- PLAYER BAR (con sleep timer) -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
-    <canvas id="visualizerCircle" width="58" height="58"></canvas>
     <div class="pl-disc" id="plDisc">
       <div class="pl-disc-cover" id="plDiscCover">🎵</div>
       <div class="pl-disc-center"></div>
@@ -244,13 +339,12 @@
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- EXPANDED PLAYER OVERLAY -->
+<!-- EXPANDED PLAYER OVERLAY (con sleep timer) -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
     <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
     <div class="expanded-disc">
-      <canvas id="expVisualizerCircle" width="140" height="140"></canvas>
       <div class="pl-disc expanded-disc-img" id="expDisc">
         <div class="pl-disc-cover" id="expDiscCover">🎵</div>
         <div class="pl-disc-center"></div>
