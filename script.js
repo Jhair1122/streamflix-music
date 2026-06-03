@@ -1,11 +1,11 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v6 final con imágenes)
-   - Soporte para url_imagen en tarjetas y discos.
-   - Voz con fuzzy matching + palabra clave "buscar".
-   - Saltos 15s, reproductor expandido, volumen en %.
-   - Prioridad likes (1) sobre favoritos (0.5).
-   - Tarjeta completa cliqueable para reproducir.
-   - Panel IA completo con validación cruzada.
+   SoundMind — script.js (versión estable final)
+   - Imágenes en tarjetas y discos
+   - Likes y favoritos con manejo de errores
+   - Búsqueda por voz con palabra clave "buscar" + fuzzy matching
+   - Saltos de 15 s, reproductor expandido, volumen en %
+   - Prioridad likes (peso 1) sobre favoritos (0.5)
+   - Panel IA completo con validación cruzada
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -247,7 +247,7 @@ function updateBadges(){
   if(favs>0) {bf.textContent=favs; bf.classList.remove('hidden')}else bf.classList.add('hidden');
 }
 
-/* ── Song Card (con imagen si existe) ── */
+/* ── Song Card (con imagen y likes/favoritos) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
@@ -255,7 +255,6 @@ function songCard(s, context = 'global'){
   const playing=nowPlayingId===s.id;
   const ctxParam = context === 'global' ? '' : `, '${context}'`;
 
-  // Contenido de la portada
   let coverContent = '';
   if (s.url_imagen) {
     coverContent = `<img src="${esc(s.url_imagen)}" alt="${esc(s.titulo)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
@@ -471,17 +470,19 @@ function recursivePlaylist(seedId,depth,visited=new Set()){
   return [next.s,...recursivePlaylist(next.s.id,depth-1,visited)];
 }
 
-/* ═══════════════════ INTERACTIONS ══════════════════ */
+/* ═══════════════════ INTERACTIONS (LIKES Y FAVORITOS) ══════════════════ */
 async function toggleLike(e,songId){
   e.stopPropagation();
   const ex=myInter.find(i=>i.cancion_id===songId);
   if(ex){
     const nv=!ex.es_like;
-    await db.from('interacciones').update({es_like:nv}).eq('id',ex.id);
+    const {error} = await db.from('interacciones').update({es_like:nv}).eq('id',ex.id);
+    if (error) { toast('Error al actualizar like'); return; }
     ex.es_like=nv;
     toast(nv?'❤️ Like añadido':'Like eliminado');
   } else {
-    const{data}=await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:true,es_favorito:false}).select().single();
+    const {data,error} = await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:true,es_favorito:false}).select().single();
+    if (error) { toast('Error al dar like'); return; }
     if(data) myInter.push(data);
     toast('❤️ Like añadido');
   }
@@ -495,11 +496,13 @@ async function toggleFav(e,songId){
   const ex=myInter.find(i=>i.cancion_id===songId);
   if(ex){
     const nv=!ex.es_favorito;
-    await db.from('interacciones').update({es_favorito:nv}).eq('id',ex.id);
+    const {error} = await db.from('interacciones').update({es_favorito:nv}).eq('id',ex.id);
+    if (error) { toast('Error al actualizar favorito'); return; }
     ex.es_favorito=nv;
     toast(nv?'⭐ Favorito añadido':'Favorito eliminado');
   } else {
-    const{data}=await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:false,es_favorito:true}).select().single();
+    const {data,error} = await db.from('interacciones').insert({usuario_id:currentUser.id,cancion_id:songId,es_like:false,es_favorito:true}).select().single();
+    if (error) { toast('Error al dar favorito'); return; }
     if(data) myInter.push(data);
     toast('⭐ Favorito añadido');
   }
@@ -543,9 +546,7 @@ async function playSong(e, songId, context = null){
   txt('plTitle', song.titulo);
   txt('plArtist', song.artista);
 
-  // Actualizar disco normal
   updateDiscCover($('plDiscCover'), song);
-  // Actualizar disco expandido si está abierto
   if (!$('expandedPlayer').classList.contains('hidden')) {
     updateDiscCover($('expDiscCover'), song);
     $('expDisc').classList.toggle('spinning', false);
