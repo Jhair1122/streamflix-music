@@ -563,7 +563,7 @@ async function playSong(e, songId, context = null){
     if (audioCtx && audioCtx.state === 'suspended') {
       try { await audioCtx.resume(); } catch(e) {}
     }
-    audio.play().then(() => {
+        audio.play().then(() => {
       $('plDisc').classList.add('spinning');
       updatePlayPauseBtn(true);
       if (sourceLinked) startVisRaf(); else startIdleVisualizer();
@@ -571,7 +571,19 @@ async function playSong(e, songId, context = null){
       toast('▶ ' + song.titulo);
     }).catch(err => {
       console.warn('play error:', err);
-      toast('⚠️ No se pudo reproducir');
+      // Mostrar el mensaje de error real en el toast
+      let errorMsg = '⚠️ No se pudo reproducir';
+      if (err && err.message) {
+        // Traducir algunos errores comunes
+        if (err.message.includes('NotAllowedError')) {
+          errorMsg = '⚠️ El navegador bloqueó la reproducción. Toca "Play" de nuevo.';
+        } else if (err.message.includes('NotSupportedError')) {
+          errorMsg = '⚠️ Formato de audio no soportado o archivo no encontrado.';
+        } else {
+          errorMsg = '⚠️ ' + err.message;
+        }
+      }
+      toast(errorMsg);
     });
   } else {
     audio.pause();
