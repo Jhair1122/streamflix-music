@@ -1,5 +1,11 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v5 final corregido + saltos)
+   SoundMind — script.js (v5 final corregido + voz mejorada)
+   - Búsqueda por voz: decir "buscar" para ejecutar búsqueda.
+   - Saltos de 15s en reproductor normal y expandido.
+   - Prioridad likes (peso 1) sobre favoritos (0.5).
+   - Tarjeta completa cliqueable para reproducir.
+   - Reproductor expandido con volumen en %.
+   - Panel IA completo con validación cruzada.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -116,47 +122,77 @@ async function doLogout(){
   window.location.href = 'login.html';
 }
 
-/* ═══════════════════ VOICE SEARCH ══════════════════ */
+/* ═══════════════════ VOICE SEARCH (con palabra clave "buscar") ══════════════════ */
 function initVoiceSearch(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){ const vb=$('voiceBtn'); if(vb) vb.style.opacity='.35'; return }
-  recognition=new SR();
-  recognition.lang='es-ES';
-  recognition.continuous=false;
-  recognition.interimResults=true;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    const vb = $('voiceBtn');
+    if (vb) vb.style.opacity = '0.35';
+    return;
+  }
+  recognition = new SR();
+  recognition.lang = 'es-ES';
+  recognition.continuous = true;   // escucha continua para detectar la palabra clave
+  recognition.interimResults = true;
 
-  recognition.onstart=()=>{
-    isListening=true;
+  recognition.onstart = () => {
+    isListening = true;
     $('voiceBtn').classList.add('listening');
     $('voiceOverlay').classList.add('show');
-    txt('voiceTranscript','Escuchando…');
+    txt('voiceTranscript', 'Escuchando… di "buscar" para iniciar la búsqueda');
   };
-  recognition.onend=()=>{
-    isListening=false;
-    $('voiceBtn').classList.remove('listening');
-    setTimeout(()=>$('voiceOverlay').classList.remove('show'),500);
-  };
-  recognition.onerror=(e)=>{
-    isListening=false;
+
+  recognition.onend = () => {
+    isListening = false;
     $('voiceBtn').classList.remove('listening');
     $('voiceOverlay').classList.remove('show');
-    toast('⚠️ Micrófono: '+e.error);
   };
-  recognition.onresult=(e)=>{
-    const tr=Array.from(e.results).map(r=>r[0].transcript).join('');
-    txt('voiceTranscript','"'+tr+'"');
-    if(e.results[0].isFinal){
-      searchQuery=tr.toLowerCase();
-      const si=$('searchInput'); if(si) si.value=tr;
-      renderCatalog();   // solo actualiza catálogo
-      toast('🎤 Buscando: '+tr);
+
+  recognition.onerror = (e) => {
+    isListening = false;
+    $('voiceBtn').classList.remove('listening');
+    $('voiceOverlay').classList.remove('show');
+    toast('⚠️ Micrófono: ' + e.error);
+  };
+
+  recognition.onresult = (e) => {
+    let transcript = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    txt('voiceTranscript', '"' + transcript + '"');
+
+    const keyword = 'buscar';
+    const lowerTranscript = transcript.toLowerCase();
+    const keywordIndex = lowerTranscript.lastIndexOf(keyword);
+
+    if (keywordIndex !== -1) {
+      const query = transcript.substring(0, keywordIndex).trim();
+      if (query) {
+        searchQuery = query.toLowerCase();
+        const si = $('searchInput');
+        if (si) si.value = query;
+        renderCatalog();
+        toast('🎤 Buscando: ' + query);
+      }
+      recognition.stop();
     }
   };
 }
+
 function toggleVoice(){
-  if(!recognition){ toast('⚠️ Voz no disponible en este navegador'); return }
-  if(isListening) recognition.stop();
-  else recognition.start();
+  if (!recognition) {
+    toast('⚠️ Voz no disponible en este navegador');
+    return;
+  }
+  if (isListening) {
+    recognition.stop();
+  } else {
+    try { recognition.start(); } catch(e) {
+      recognition.stop();
+      setTimeout(() => recognition.start(), 100);
+    }
+  }
 }
 
 /* ═══════════════════ RENDER ALL ══════════════════ */
