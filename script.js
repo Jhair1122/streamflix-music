@@ -1,7 +1,11 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v5 final + voz con fuzzy matching)
-   - Búsqueda por voz: palabra clave "buscar" + corrección automática.
-   - Saltos de 15s, contexto de reproducción, IA, panel completo.
+   SoundMind — script.js (v6 final con imágenes)
+   - Soporte para url_imagen en tarjetas y discos.
+   - Voz con fuzzy matching + palabra clave "buscar".
+   - Saltos 15s, reproductor expandido, volumen en %.
+   - Prioridad likes (1) sobre favoritos (0.5).
+   - Tarjeta completa cliqueable para reproducir.
+   - Panel IA completo con validación cruzada.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -118,39 +122,32 @@ async function doLogout(){
   window.location.href = 'login.html';
 }
 
-/* ═══════════════════ VOICE SEARCH (con palabra clave "buscar" + fuzzy matching) ══════════════════ */
+/* ═══════════════════ VOICE SEARCH (con fuzzy matching) ══════════════════ */
 function initVoiceSearch(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    const vb = $('voiceBtn');
-    if (vb) vb.style.opacity = '0.35';
-    return;
-  }
+  if (!SR) { const vb=$('voiceBtn'); if(vb) vb.style.opacity='.35'; return; }
   recognition = new SR();
   recognition.lang = 'es-ES';
-  recognition.continuous = true;   // escucha continua para detectar la palabra clave
+  recognition.continuous = true;
   recognition.interimResults = true;
 
   recognition.onstart = () => {
     isListening = true;
     $('voiceBtn').classList.add('listening');
     $('voiceOverlay').classList.add('show');
-    txt('voiceTranscript', 'Escuchando… di "buscar" para iniciar la búsqueda');
+    txt('voiceTranscript','Escuchando… di "buscar" para iniciar la búsqueda');
   };
-
   recognition.onend = () => {
     isListening = false;
     $('voiceBtn').classList.remove('listening');
     $('voiceOverlay').classList.remove('show');
   };
-
   recognition.onerror = (e) => {
     isListening = false;
     $('voiceBtn').classList.remove('listening');
     $('voiceOverlay').classList.remove('show');
     toast('⚠️ Micrófono: ' + e.error);
   };
-
   recognition.onresult = (e) => {
     let transcript = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -165,18 +162,13 @@ function initVoiceSearch(){
     if (keywordIndex !== -1) {
       let rawQuery = transcript.substring(0, keywordIndex).trim();
       if (rawQuery) {
-        // Buscar la coincidencia más cercana entre canciones y artistas
         const bestMatch = findBestMatch(rawQuery, allSongs);
         const finalQuery = bestMatch || rawQuery;
         searchQuery = finalQuery.toLowerCase();
         const si = $('searchInput');
         if (si) si.value = finalQuery;
         renderCatalog();
-        if (bestMatch) {
-          toast('🎤 Buscando: ' + bestMatch + ' (corregido)');
-        } else {
-          toast('🎤 Buscando: ' + rawQuery);
-        }
+        toast(bestMatch ? '🎤 Buscando: ' + bestMatch + ' (corregido)' : '🎤 Buscando: ' + rawQuery);
       }
       recognition.stop();
     }
@@ -184,13 +176,9 @@ function initVoiceSearch(){
 }
 
 function toggleVoice(){
-  if (!recognition) {
-    toast('⚠️ Voz no disponible en este navegador');
-    return;
-  }
-  if (isListening) {
-    recognition.stop();
-  } else {
+  if (!recognition) { toast('⚠️ Voz no disponible en este navegador'); return; }
+  if (isListening) { recognition.stop(); }
+  else {
     try { recognition.start(); } catch(e) {
       recognition.stop();
       setTimeout(() => recognition.start(), 100);
@@ -198,7 +186,6 @@ function toggleVoice(){
   }
 }
 
-/* Algoritmo de similitud (Levenshtein) */
 function levenshtein(a, b) {
   const an = a.length, bn = b.length;
   const matrix = Array.from({ length: an + 1 }, () => Array(bn + 1).fill(0));
@@ -217,28 +204,23 @@ function levenshtein(a, b) {
   return matrix[an][bn];
 }
 
-/* Busca la mejor coincidencia entre el texto hablado y los títulos/artistas */
 function findBestMatch(query, songs) {
   const lowerQuery = query.toLowerCase();
   let bestMatch = null;
   let bestDistance = Infinity;
-
   for (const song of songs) {
     const title = song.titulo.toLowerCase();
     const artist = song.artista.toLowerCase();
-
     const distTitle = levenshtein(lowerQuery, title);
     const distArtist = levenshtein(lowerQuery, artist);
     const minDist = Math.min(distTitle, distArtist);
-
-    // Umbral: distancia máxima permitida = 40% de la longitud del campo más largo
     const maxAllowed = Math.max(title.length, artist.length, lowerQuery.length) * 0.4;
     if (minDist <= maxAllowed && minDist < bestDistance) {
       bestDistance = minDist;
       bestMatch = distTitle < distArtist ? song.titulo : song.artista;
     }
   }
-  return bestMatch;  // null si ninguna supera el umbral
+  return bestMatch;
 }
 
 /* ═══════════════════ RENDER ALL ══════════════════ */
@@ -265,18 +247,29 @@ function updateBadges(){
   if(favs>0) {bf.textContent=favs; bf.classList.remove('hidden')}else bf.classList.add('hidden');
 }
 
-/* ── Song Card (tarjeta completa cliqueable) ── */
+/* ── Song Card (con imagen si existe) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
   const faved  =inter&&inter.es_favorito;
   const playing=nowPlayingId===s.id;
   const ctxParam = context === 'global' ? '' : `, '${context}'`;
+
+  // Contenido de la portada
+  let coverContent = '';
+  if (s.url_imagen) {
+    coverContent = `<img src="${esc(s.url_imagen)}" alt="${esc(s.titulo)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+  } else {
+    coverContent = genreEmoji(s.genero);
+  }
+
   return `<div class="song-card${liked?' liked':''}${faved?' faved':''}${playing?' playing':''}"
             data-id="${s.id}"
             onclick="playSong(event, ${s.id}${ctxParam})">
     <div class="card-cover">
-      <div class="card-cover-inner" style="background:${genreGradient(s.genero)}">${genreEmoji(s.genero)}</div>
+      <div class="card-cover-inner" style="background:${genreGradient(s.genero)}">
+        ${coverContent}
+      </div>
       ${playing?`<div class="now-playing-badge">Reproduciendo</div>`:''}
     </div>
     <div class="card-body">
@@ -532,7 +525,7 @@ async function saveRecommendations(){
   }catch(_){}
 }
 
-/* ═══════════════════ PLAYER — contexto y reproductor expandido ══════════════════ */
+/* ═══════════════════ PLAYER — con imágenes en el disco ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs(){
   if (playlistContext === 'favorites') return getFavoriteSongs();
@@ -549,19 +542,16 @@ async function playSong(e, songId, context = null){
   nowPlayingId = songId;
   txt('plTitle', song.titulo);
   txt('plArtist', song.artista);
-  const dc = $('plDiscCover');
-  dc.style.background = genreGradient(song.genero);
-  dc.innerHTML = genreEmoji(song.genero);
-  dc.className = 'pl-disc-cover';
 
+  // Actualizar disco normal
+  updateDiscCover($('plDiscCover'), song);
+  // Actualizar disco expandido si está abierto
   if (!$('expandedPlayer').classList.contains('hidden')) {
-    txt('expTitle', song.titulo);
-    txt('expArtist', song.artista);
-    const expCover = $('expDiscCover');
-    expCover.style.background = genreGradient(song.genero);
-    expCover.innerHTML = genreEmoji(song.genero);
+    updateDiscCover($('expDiscCover'), song);
     $('expDisc').classList.toggle('spinning', false);
     $('expPlayPauseBtn').textContent = '▶';
+    txt('expTitle', song.titulo);
+    txt('expArtist', song.artista);
   }
 
   const audio = $('audioEl');
@@ -589,6 +579,23 @@ async function playSong(e, songId, context = null){
     toast('⚠️ Sin archivo de audio');
   }
   refreshCardHighlight();
+}
+
+function updateDiscCover(coverEl, song) {
+  coverEl.innerHTML = '';
+  coverEl.style.background = genreGradient(song.genero);
+  if (song.url_imagen) {
+    const img = document.createElement('img');
+    img.src = song.url_imagen;
+    img.alt = song.titulo;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.style.borderRadius = '50%';
+    coverEl.appendChild(img);
+  } else {
+    coverEl.textContent = genreEmoji(song.genero);
+  }
 }
 
 function playPrevInContext(){
@@ -778,9 +785,7 @@ function openExpandedPlayer(){
   txt('expTitle', song.titulo);
   txt('expArtist', song.artista);
   const disc = $('expDisc');
-  const discCover = $('expDiscCover');
-  discCover.style.background = genreGradient(song.genero);
-  discCover.innerHTML = genreEmoji(song.genero);
+  updateDiscCover($('expDiscCover'), song);
   const audio = $('audioEl');
   if (audio && !audio.paused) {
     disc.classList.add('spinning');
