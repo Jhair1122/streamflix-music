@@ -1,9 +1,11 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js  (v3 final)
-   - Sesión: redirige a login.html si no hay usuario.
-   - Contexto de reproducción (favoritos, likes, global).
-   - Panel IA completo.
-   - Adaptable: sidebar colapsa en móviles, player ajustable.
+   SoundMind — script.js (v4 final)
+   - Sesión separada (redirige a login.html).
+   - Populares basados en interacciones reales.
+   - Recomendaciones con IA en segundo plano.
+   - Contexto de reproducción (favorites, likes, global).
+   - Panel IA con validación cruzada, métricas, casos de éxito.
+   - Diseño moderno, adaptable.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -64,26 +66,17 @@ function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
 /* ════════════════════════════════════════════════════
-   SESSION PERSISTENCE
+   SESSION
 ════════════════════════════════════════════════════ */
 const SESSION_KEY = 'soundmind_user';
 
-function saveSession(user){
-  try{ localStorage.setItem(SESSION_KEY, JSON.stringify(user)) }catch(_){}
-}
-function loadSession(){
-  try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||'null') }catch(_){ return null }
-}
-function clearSession(){
-  try{ localStorage.removeItem(SESSION_KEY) }catch(_){}
-}
+function saveSession(user){ localStorage.setItem(SESSION_KEY, JSON.stringify(user)) }
+function loadSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||'null') }catch(_){ return null } }
+function clearSession(){ localStorage.removeItem(SESSION_KEY) }
 
 function checkSession(){
   const saved = loadSession();
-  if (!saved) {
-    window.location.href = 'login.html';
-    return false;
-  }
+  if (!saved) { window.location.href = 'login.html'; return false; }
   currentUser = saved;
   return true;
 }
@@ -172,8 +165,7 @@ function initVoiceSearch(){
     if(e.results[0].isFinal){
       searchQuery=tr.toLowerCase();
       const si=$('searchInput'); if(si) si.value=tr;
-      renderCatalog();
-      showPage('catalog');
+      renderAll();
       toast('🎤 Buscando: '+tr);
     }
   };
@@ -251,9 +243,29 @@ function renderCards(songs,containerId,emptyMsg='No hay canciones aquí aún.', 
   el.innerHTML=songs.map(s => songCard(s, context)).join('');
 }
 
-/* ── Home ── */
-function renderHomePopular(){ renderCards(allSongs.slice(0,10),'homePopCards', undefined, 'global') }
+/* ── Populars basados en interacciones ── */
+function computePopularSongs(){
+  const interactionCount = {};
+  allInter.forEach(inter => {
+    if (inter.es_like || inter.es_favorito) {
+      interactionCount[inter.cancion_id] = (interactionCount[inter.cancion_id] || 0) + 1;
+    }
+  });
+  return allSongs
+    .filter(s => interactionCount[s.id])
+    .sort((a, b) => (interactionCount[b.id] || 0) - (interactionCount[a.id] || 0));
+}
 
+function renderHomePopular() {
+  const popular = computePopularSongs();
+  if (popular.length === 0) {
+    renderCards([], 'homePopCards', 'Aún no hay suficientes interacciones en la comunidad para mostrar populares.');
+  } else {
+    renderCards(popular.slice(0, 10), 'homePopCards');
+  }
+}
+
+/* ── Home Rec (IA) ── */
 function renderHomeRec(){
   const collab=aiCollaborative();
   const model=buildModel();
@@ -285,12 +297,11 @@ function onSearch(){
   renderCatalog();
 }
 function renderCatalog(){
-  const songs=allSongs.filter(s=>
-    (!activeGenre||s.genero===activeGenre)&&
-    (!searchQuery||(s.titulo.toLowerCase().includes(searchQuery)||s.artista.toLowerCase().includes(searchQuery)))
-  );
-  txt('catalogCount',songs.length+' canciones');
-  renderCards(songs,'catalogCards', undefined, 'global');
+  let songs = allSongs;
+  if (activeGenre) songs = songs.filter(s => s.genero === activeGenre);
+  if (searchQuery) songs = songs.filter(s => s.titulo.toLowerCase().includes(searchQuery) || s.artista.toLowerCase().includes(searchQuery));
+  txt('catalogCount', songs.length + ' canciones');
+  renderCards(songs, 'catalogCards', 'No se encontraron canciones.', 'global');
 }
 
 /* ── Library ── */
@@ -302,7 +313,6 @@ function getLikedSongs(){
   const ids=new Set(myInter.filter(i=>i.es_like).map(i=>i.cancion_id));
   return allSongs.filter(s=>ids.has(s.id));
 }
-
 function renderFavorites(){
   renderCards(getFavoriteSongs(),'favCards','Aún no tienes favoritos. Haz clic en ☆ en cualquier canción.', 'favorites');
 }
@@ -313,8 +323,6 @@ function renderLikes(){
 /* ════════════════════════════════════════════════════
    AI ALGORITHMS
 ════════════════════════════════════════════════════ */
-
-/* KNN Collaborative Filtering */
 function aiCollaborative(){
   const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
   if(myLiked.size===0) return [];
@@ -338,7 +346,6 @@ function aiCollaborative(){
   return allSongs.filter(s=>candidates.has(s.id));
 }
 
-/* Decision Tree J48 */
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
@@ -373,7 +380,6 @@ function predictTree(song,model){
   return score>=4;
 }
 
-/* Recursive Playlist */
 function recursivePlaylist(seedId,depth,visited=new Set()){
   if(depth===0||!seedId) return [];
   const seed=allSongs.find(s=>s.id===seedId);
@@ -444,7 +450,7 @@ async function saveRecommendations(){
 }
 
 /* ════════════════════════════════════════════════════
-   PLAYER — con contexto de reproducción
+   PLAYER — contexto de reproducción
 ════════════════════════════════════════════════════ */
 
 function setPlaylistContext(context){
@@ -454,7 +460,7 @@ function setPlaylistContext(context){
 function getContextSongs(){
   if (playlistContext === 'favorites') return getFavoriteSongs();
   if (playlistContext === 'likes') return getLikedSongs();
-  return allSongs; // global
+  return allSongs;
 }
 
 async function playSong(e, songId, context = null){
@@ -515,7 +521,6 @@ function playNextInContext(){
   playSong(null, list[nextIdx].id, playlistContext);
 }
 
-/* Crea el grafo Web Audio UNA sola vez */
 function ensureAudioContext(audioEl){
   if(sourceLinked) return;
   try{
@@ -533,7 +538,6 @@ function ensureAudioContext(audioEl){
   }
 }
 
-/* Actualiza solo el highlight de tarjetas sin redibujar todo */
 function refreshCardHighlight(){
   document.querySelectorAll('.song-card').forEach(card=>{
     const id=parseInt(card.dataset.id);
@@ -644,7 +648,7 @@ function onAudioEnded(){
 }
 
 /* ════════════════════════════════════════════════════
-   NAVIGATION + Panel IA
+   NAVIGATION & PANEL IA
 ════════════════════════════════════════════════════ */
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -659,7 +663,6 @@ function showPage(name){
 
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
-/* ── Panel IA ── */
 function renderAnalysis(){
   updateAnalysisMetrics();
   renderGenreBarChart();
@@ -668,21 +671,14 @@ function renderAnalysis(){
 }
 
 async function updateAnalysisMetrics(){
-  try {
-    const { count: userCount } = await db.from('usuarios').select('*', { count: 'exact', head: true });
-    txt('mUsers', userCount || 0);
-  } catch(e) { txt('mUsers', '—'); }
+  try { const { count } = await db.from('usuarios').select('*', { count: 'exact', head: true }); txt('mUsers', count||0); } catch(e) { txt('mUsers', '—'); }
   txt('mSongs', allSongs.length);
   txt('mInter', allInter.length);
   const totalLikes = allInter.filter(i => i.es_like || i.es_favorito).length;
   txt('mLikes', totalLikes);
   const model = buildModel();
   txt('mAcc', model ? model.accuracy + '%' : '—');
-  try {
-    const { count: totalUsers } = await db.from('usuarios').select('*', { count: 'exact', head: true });
-    const users = totalUsers || 1;
-    txt('mAvg', (totalLikes / users).toFixed(1));
-  } catch(e) { txt('mAvg', '—'); }
+  try { const { count } = await db.from('usuarios').select('*', { count: 'exact', head: true }); txt('mAvg', (totalLikes / (count||1)).toFixed(1)); } catch(e) { txt('mAvg', '—'); }
 }
 
 function renderGenreBarChart(){
@@ -715,11 +711,7 @@ function renderTreeRules(){
     const rate = (stats.likes / stats.total * 100).toFixed(0);
     text += `Si género = "${genre}" → tasa de likes = ${rate}%\n`;
   }
-  text += `\nPromedios de atributos en likes:\n`;
-  text += `  energía      ≥ ${model.avgEn.toFixed(2)}\n`;
-  text += `  bailabilidad ≥ ${model.avgBai.toFixed(2)}\n`;
-  text += `  popularidad  ≥ ${model.avgPop.toFixed(2)}\n`;
-  text += `\nRegla final: Score ≥ 4 → Recomendar.`;
+  text += `\nPromedios de atributos en likes:\n  energía ≥ ${model.avgEn.toFixed(2)}\n  bailabilidad ≥ ${model.avgBai.toFixed(2)}\n  popularidad ≥ ${model.avgPop.toFixed(2)}\n\nRegla final: Score ≥ 4 → Recomendar.`;
   $('treeViz').textContent = text;
 }
 
@@ -730,38 +722,20 @@ async function renderCrossValidation(){
   for (const inter of allInter) {
     const song = allSongs.find(s => s.id === inter.cancion_id);
     if (!song) continue;
-    data.push({
-      usuario_id: inter.usuario_id,
-      energia: song.energia,
-      bailabilidad: song.bailabilidad,
-      popularidad: song.popularidad,
-      genero: song.genero,
-      like: (inter.es_like || inter.es_favorito) ? 1 : 0
-    });
+    data.push({ energia: song.energia, bailabilidad: song.bailabilidad, popularidad: song.popularidad, genero: song.genero, like: (inter.es_like || inter.es_favorito) ? 1 : 0 });
   }
-  if (data.length < 5) {
-    tbody.innerHTML = '<tr><td colspan="5">Se necesitan al menos 5 interacciones para validación.</td></tr>';
-    return;
-  }
+  if (data.length < 5) { tbody.innerHTML = '<tr><td colspan="5">Se necesitan al menos 5 interacciones.</td></tr>'; return; }
   const shuffled = data.sort(() => Math.random() - 0.5);
   const foldSize = Math.floor(shuffled.length / 5);
-  let rows = '';
-  let totalAcc = 0;
+  let rows = '', totalAcc = 0;
   for (let k = 0; k < 5; k++) {
     const test = shuffled.slice(k * foldSize, (k + 1) * foldSize);
     const train = shuffled.filter((_, i) => i < k * foldSize || i >= (k + 1) * foldSize);
-    const byGenre = {};
-    let sumEn = 0, sumBai = 0, sumPop = 0, likesCount = 0;
+    const byGenre = {}; let sumEn = 0, sumBai = 0, sumPop = 0, likesCount = 0;
     train.forEach(d => {
       if (!byGenre[d.genero]) byGenre[d.genero] = { likes: 0, total: 0 };
       byGenre[d.genero].total++;
-      if (d.like) {
-        byGenre[d.genero].likes++;
-        sumEn += d.energia;
-        sumBai += d.bailabilidad;
-        sumPop += d.popularidad;
-        likesCount++;
-      }
+      if (d.like) { byGenre[d.genero].likes++; sumEn += d.energia; sumBai += d.bailabilidad; sumPop += d.popularidad; likesCount++; }
     });
     const avgEn = likesCount ? sumEn / likesCount : 0.5;
     const avgBai = likesCount ? sumBai / likesCount : 0.5;
@@ -781,13 +755,7 @@ async function renderCrossValidation(){
     });
     const acc = Math.round((correct / test.length) * 100);
     totalAcc += acc;
-    rows += `<tr>
-      <td>${k+1}</td>
-      <td>${train.length}</td>
-      <td>${test.length}</td>
-      <td class="${acc>=70?'good':acc>=50?'mid':''}">${acc}%</td>
-      <td>${detectedLikes}</td>
-    </tr>`;
+    rows += `<tr><td>${k+1}</td><td>${train.length}</td><td>${test.length}</td><td class="${acc>=70?'good':acc>=50?'mid':''}">${acc}%</td><td>${detectedLikes}</td></tr>`;
   }
   const avgAcc = Math.round(totalAcc / 5);
   rows += `<tr><td colspan="3"><strong>Promedio</strong></td><td class="good"><strong>${avgAcc}%</strong></td><td></td></tr>`;
@@ -798,19 +766,13 @@ async function renderCrossValidation(){
    INIT
 ════════════════════════════════════════════════════ */
 window.addEventListener('load', async ()=>{
-  if (!loadSession()) {
-    window.location.href = 'login.html';
-    return;
-  }
+  if (!loadSession()) { window.location.href = 'login.html'; return; }
 
   const { data } = await db.from('canciones').select('*').order('popularidad', { ascending: false });
   allSongs = data || [];
 
   const vizEl = $('audioVisualizer');
-  if (vizEl) {
-    vizEl.innerHTML = Array.from({ length: 14 }, (_, i) =>
-      `<div class="vis-bar idle" style="--d:${i * 0.06}s"></div>`).join('');
-  }
+  if (vizEl) vizEl.innerHTML = Array.from({ length: 14 }, (_, i) => `<div class="vis-bar idle" style="--d:${i * 0.06}s"></div>`).join('');
 
   const audio = $('audioEl');
   if (audio) {
