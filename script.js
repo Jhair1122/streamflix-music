@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v7 final con nuevas funciones)
-   - Imágenes, voz, likes/favs, IA
-   - Discover Weekly, perfil, logros, sleep timer, efectos, cola
+   SoundMind — script.js (v7.1 corregido)
+   - Se soluciona el panel expandido al hacer clic en el disco.
+   - Se mantienen todas las funciones anteriores.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -991,6 +991,32 @@ function openQueueModal() {
 }
 function closeQueue() {
   $('queueModal')?.classList.add('hidden');
+}
+
+/* ═══════════════════ PANEL EXPANDIDO (REPRODUCTOR) ══════════════════ */
+// ¡IMPORTANTE! Estas funciones deben estar presentes y libres de errores.
+function openExpandedPlayer() {
+  if (!nowPlayingId) return;
+  const song = allSongs.find(s => s.id === nowPlayingId);
+  if (!song) return;
+  txt('expTitle', song.titulo);
+  txt('expArtist', song.artista);
+  const disc = $('expDisc');
+  updateDiscCover($('expDiscCover'), song);
+  const audio = $('audioEl');
+  if (audio && !audio.paused) {
+    disc.classList.add('spinning');
+    $('expPlayPauseBtn').textContent = '⏸';
+  } else {
+    disc.classList.remove('spinning');
+    $('expPlayPauseBtn').textContent = '▶';
+  }
+  $('expVolumeRange').value = audio ? audio.volume : 0.8;
+  txt('expVolPercent', Math.round((audio?.volume || 0.8)*100)+'%');
+  $('expandedPlayer').classList.remove('hidden');
+}
+function closeExpandedPlayer() {
+  $('expandedPlayer').classList.add('hidden');
 }
 
 /* ═══════════════════ NAVIGATION & PANEL IA ══════════════════ */
