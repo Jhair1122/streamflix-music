@@ -562,3 +562,104 @@ body::before {
   .pl-info { width: 120px }
   .pl-volume { display: none }
 }
+
+/* ════════════════════════════════════════
+   HAMBURGER / RESPONSIVE (mejorado)
+════════════════════════════════════════ */
+.hamburger {
+  display: none;
+  position: fixed; top: 14px; left: 14px; z-index: 200;
+  background: var(--bg1); border: 1px solid var(--border); border-radius: var(--r3);
+  padding: 10px; color: var(--text); font-size: 18px;
+}
+
+/* Tablets grandes y escritorios pequeños (≤1024px) */
+@media (max-width: 1024px) {
+  :root { --nav: 220px; }
+  .main { padding: 24px 20px; }
+}
+
+/* Tablets (≤900px) */
+@media (max-width: 900px) {
+  :root { --nav: 0px; }
+  .sidebar {
+    transform: translateX(-100%);
+    width: 260px;
+    transition: transform 0.3s ease;
+    z-index: 150;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main {
+    margin-left: 0;
+    padding: 20px 16px;
+    max-width: 100vw;
+  }
+  .hamburger { display: flex; }
+  .hero { padding: 22px 20px; }
+  .hero h2 { font-size: 22px; }
+  .hero-stats { gap: 12px; }
+  .hstat-val { font-size: 22px; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .pl-disc-wrap { width: 46px; height: 46px; }
+  .pl-disc, .pl-disc-cover { width: 46px; height: 46px; }
+  .pl-info { width: 120px; }
+  .pl-volume { display: none; }
+  .search-wrap { max-width: 100%; }
+}
+
+/* Móviles (≤600px) */
+@media (max-width: 600px) {
+  .sidebar { width: 80%; }
+  .main { padding: 14px 10px; }
+  .hero {
+    padding: 18px 14px;
+    margin-bottom: 20px;
+  }
+  .hero-content { flex-direction: column; align-items: flex-start; }
+  .hero h2 { font-size: 20px; }
+  .hero p { font-size: 12px; max-width: 100%; }
+  .hstat-val { font-size: 20px; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .page-title { font-size: 22px; }
+  .page-sub { font-size: 12px; margin-bottom: 14px; }
+  .top-bar { flex-direction: column; align-items: stretch; }
+  .search-wrap { max-width: 100%; }
+  #playerBar {
+    padding: 0 10px;
+    gap: 8px;
+    height: 72px;
+  }
+  .pl-disc-wrap { width: 40px; height: 40px; }
+  .pl-disc, .pl-disc-cover { width: 40px; height: 40px; }
+  .pl-info { width: 100px; }
+  .pl-title { font-size: 12px; }
+  .pl-artist { font-size: 10px; }
+  .pl-center { gap: 2px; }
+  .pl-controls-btns { gap: 8px; }
+  .pl-btn { width: 30px; height: 30px; font-size: 16px; }
+  .pl-btn.play-pause { width: 34px; height: 34px; }
+  .pl-progress-wrap { gap: 4px; }
+  .pl-time { font-size: 9px; width: 28px; }
+  .pl-visualizer { height: 20px; }
+  .vis-bar { width: 2px; }
+  .voice-btn { width: 28px; height: 28px; font-size: 12px; }
+  .genre-pills { gap: 4px; }
+  .gpill { padding: 4px 10px; font-size: 11px; }
+  .metrics-row { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+  .metric { padding: 10px; }
+  .metric-val { font-size: 22px; }
+  .cv-table { font-size: 11px; }
+  .comp-table { font-size: 11px; }
+  .infra-list { font-size: 11px; }
+}
+
+/* Móviles pequeños (≤400px) */
+@media (max-width: 400px) {
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .pl-disc-wrap { width: 34px; height: 34px; }
+  .pl-disc, .pl-disc-cover { width: 34px; height: 34px; }
+  .pl-info { width: 80px; }
+  .pl-title { font-size: 11px; }
+  .pl-artist { font-size: 9px; }
+  .pl-btn { width: 26px; height: 26px; font-size: 14px; }
+}
