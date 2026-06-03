@@ -1,9 +1,7 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v5 final)
-   - Peso likes=1, favoritos=0.5 en colaborativo.
-   - Tarjeta completa reproduce canción.
-   - Reproductor expandido con volumen en %.
-   - Todas las funcionalidades anteriores intactas.
+   SoundMind — script.js (v5 final corregido)
+   - Eliminada declaración duplicada de playlistContext.
+   - Todo lo demás funciona correctamente.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -354,7 +352,7 @@ function aiCollaborative() {
     .filter(Boolean);
 }
 
-/* Árbol de decisión J48 (sin cambios) */
+/* Árbol de decisión J48 */
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
@@ -457,7 +455,6 @@ async function saveRecommendations(){
 }
 
 /* ═══════════════════ PLAYER — contexto y reproductor expandido ══════════════════ */
-let playlistContext = 'global';
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs(){
   if (playlistContext === 'favorites') return getFavoriteSongs();
@@ -472,7 +469,6 @@ async function playSong(e, songId, context = null){
   if (context) setPlaylistContext(context);
 
   nowPlayingId = songId;
-  // Actualizar UI básica
   txt('plTitle', song.titulo);
   txt('plArtist', song.artista);
   const dc = $('plDiscCover');
@@ -480,7 +476,6 @@ async function playSong(e, songId, context = null){
   dc.innerHTML = genreEmoji(song.genero);
   dc.className = 'pl-disc-cover';
 
-  // Sincronizar reproductor expandido si está abierto
   if (!$('expandedPlayer').classList.contains('hidden')) {
     txt('expTitle', song.titulo);
     txt('expArtist', song.artista);
@@ -534,7 +529,6 @@ function playNextInContext(){
   playSong(null, list[nextIdx].id, playlistContext);
 }
 
-/* Audio Web y visualizer */
 function ensureAudioContext(audioEl){
   if(sourceLinked) return;
   try{
@@ -576,7 +570,6 @@ function togglePlayPause(){
       $('plDisc').classList.add('spinning');
       updatePlayPauseBtn(true);
       if (sourceLinked) startVisRaf(); else startIdleVisualizer();
-      // Actualizar botón expandido
       $('expPlayPauseBtn').textContent = '⏸';
       $('expDisc')?.classList.add('spinning');
     });
@@ -633,11 +626,9 @@ function updateProgress(){
   const audio=$('audioEl');
   if(!audio.duration) return;
   const pct=(audio.currentTime/audio.duration)*100;
-  // Normal
   const fill=$('progressFill'); if(fill) fill.style.width=pct+'%';
   txt('currentTime',fmtTime(audio.currentTime));
   txt('totalTime',fmtTime(audio.duration));
-  // Expandido
   const expFill=$('expProgressFill'); if(expFill) expFill.style.width=pct+'%';
   txt('expCurrentTime',fmtTime(audio.currentTime));
   txt('expTotalTime',fmtTime(audio.duration));
@@ -674,11 +665,9 @@ function setVolume(val){
   if(icon) icon.textContent=val==0?'🔇':val<0.5?'🔉':'🔊';
 }
 
-/* Auto-play con contexto */
 function onAudioEnded(){
   $('plDisc').classList.remove('spinning');
   updatePlayPauseBtn(false);
-  // Sincronizar expandido
   $('expDisc')?.classList.remove('spinning');
   $('expPlayPauseBtn').textContent = '▶';
   if(nowPlayingId){
@@ -699,7 +688,6 @@ function openExpandedPlayer(){
   const discCover = $('expDiscCover');
   discCover.style.background = genreGradient(song.genero);
   discCover.innerHTML = genreEmoji(song.genero);
-  // Sincronizar estado
   const audio = $('audioEl');
   if (audio && !audio.paused) {
     disc.classList.add('spinning');
@@ -729,7 +717,6 @@ function showPage(name){
 }
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
-/* ── Panel IA (métricas, gráfico, árbol, cross‑validation) ── */
 function renderAnalysis(){
   updateAnalysisMetrics();
   renderGenreBarChart();
