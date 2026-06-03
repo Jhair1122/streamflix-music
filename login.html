@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoundMind — Iniciar sesión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Solo para login.html: centrar el formulario a pantalla completa */
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    #authScreen { position: static; background: none; }
+  </style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <h1>SoundMind</h1>
+      <p>Sistema de Recomendación Musical con Inteligencia Artificial</p>
+    </div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Iniciar sesión</button>
+        <button class="auth-tab" id="tabReg" onclick="switchTab('register')">Crear cuenta</button>
+      </div>
+
+      <div id="formLogin">
+        <div class="auth-field">
+          <label>Usuario</label>
+          <input type="text" id="loginUser" placeholder="Tu nombre de usuario" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label>Contraseña</label>
+          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn-auth" onclick="doLogin()">Ingresar →</button>
+      </div>
+
+      <div id="formReg" class="hidden">
+        <div class="auth-field">
+          <label>Nombre</label>
+          <input type="text" id="regName" placeholder="Tu nombre real" autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <label>Usuario</label>
+          <input type="text" id="regUser" placeholder="Elige un nombre de usuario" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label>Contraseña</label>
+          <input type="password" id="regPass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+        </div>
+        <button class="btn-auth" onclick="doRegister()">Crear cuenta →</button>
+      </div>
+
+      <div id="authMsg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
+  const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+  const SESSION_KEY = 'soundmind_user';
+
+  function saveSession(user) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabReg').classList.toggle('active', tab === 'register');
+    document.getElementById('formLogin').classList.toggle('hidden', tab !== 'login');
+    document.getElementById('formReg').classList.toggle('hidden', tab !== 'register');
+    document.getElementById('authMsg').textContent = '';
+  }
+
+  async function doLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    if (!username || !password) { document.getElementById('authMsg').textContent = 'Completa todos los campos'; return; }
+    document.getElementById('authMsg').textContent = 'Verificando…';
+    const { data, error } = await db.from('usuarios').select('*').eq('username', username).eq('password', password).maybeSingle();
+    if (!data) {
+      document.getElementById('authMsg').textContent = error ? 'Error de conexión' : 'Usuario o contraseña incorrectos';
+      return;
+    }
+    saveSession(data);
+    window.location.href = 'index.html';
+  }
+
+  async function doRegister() {
+    const nombre = document.getElementById('regName').value.trim();
+    const username = document.getElementById('regUser').value.trim();
+    const password = document.getElementById('regPass').value.trim();
+    if (!nombre || !username || !password) { document.getElementById('authMsg').textContent = 'Completa todos los campos'; return; }
+    if (username.length < 3) { document.getElementById('authMsg').textContent = 'El usuario debe tener al menos 3 caracteres'; return; }
+    if (password.length < 6) { document.getElementById('authMsg').textContent = 'La contraseña debe tener al menos 6 caracteres'; return; }
+    document.getElementById('authMsg').textContent = 'Creando cuenta…';
+    const { data: ex } = await db.from('usuarios').select('id').eq('username', username).maybeSingle();
+    if (ex) { document.getElementById('authMsg').textContent = 'Ese usuario ya existe, elige otro'; return; }
+    const { data, error } = await db.from('usuarios').insert({ username, password, nombre }).select().single();
+    if (!data) { document.getElementById('authMsg').textContent = 'Error: ' + (error?.message || 'desconocido'); return; }
+    saveSession(data);
+    window.location.href = 'index.html';
+  }
+</script>
+</body>
+</html>
