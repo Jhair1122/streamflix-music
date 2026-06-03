@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoundMind — Explorar música</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { padding-bottom: 88px; }
+    .top-bar-public {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 20px 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .login-btn {
+      background: var(--accent2);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: .2s;
+      box-shadow: 0 4px 14px rgba(124,58,237,.4);
+    }
+    .login-btn:hover { filter: brightness(1.1); }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero" style="margin: 20px;">
+  <div class="hero-content">
+    <div>
+      <h2>Explora la música 🎧</h2>
+      <p>Escucha gratis. <strong>Inicia sesión</strong> para recibir recomendaciones personalizadas, guardar favoritos y usar búsqueda por voz.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-val" id="hsSongs">—</div>
+        <div class="hstat-label">Canciones</div>
+      </div>
+      <button class="login-btn" onclick="window.location.href='login.html'">Iniciar sesión →</button>
+    </div>
+  </div>
+</div>
+
+<!-- BARRA DE BÚSQUEDA Y GÉNEROS -->
+<div class="top-bar-public">
+  <div class="search-wrap" style="max-width:460px; flex:1;">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
+    <button class="voice-btn" id="voiceBtn" onclick="showLoginAlert()" title="Inicia sesión para usar voz">🎤</button>
+  </div>
+  <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
+</div>
+<div class="genre-pills" id="genrePills" style="margin: 0 20px 18px;"></div>
+
+<!-- CATÁLOGO -->
+<div class="cards-grid" id="catalogCards" style="padding: 0 20px;">
+  <div class="loading"><div class="spin"></div> Cargando…</div>
+</div>
+
+<!-- PLAYER BAR -->
+<div id="playerBar" class="hidden">
+  <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
+    <div class="pl-disc" id="plDisc">
+      <div class="pl-disc-cover" id="plDiscCover">🎵</div>
+      <div class="pl-disc-center"></div>
+    </div>
+  </div>
+
+  <div class="pl-info" onclick="openExpandedPlayer()">
+    <div class="pl-title" id="plTitle">Sin reproducción</div>
+    <div class="pl-artist" id="plArtist"></div>
+  </div>
+
+  <div class="pl-center">
+    <div class="pl-controls-btns">
+      <button class="pl-btn" onclick="skipBackward()" title="Retroceder 15s">⏪</button>
+      <button class="pl-btn" onclick="playPrevSong()" title="Anterior">⏮</button>
+      <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
+      <button class="pl-btn" onclick="playNextSong()" title="Siguiente">⏭</button>
+      <button class="pl-btn" onclick="skipForward()" title="Adelantar 15s">⏩</button>
+    </div>
+
+    <div class="pl-progress-wrap">
+      <span class="pl-time" id="currentTime">0:00</span>
+      <div class="pl-progress" id="progressBar" onclick="seekProgress(event)">
+        <div class="pl-progress-fill" id="progressFill"></div>
+      </div>
+      <span class="pl-time" id="totalTime">0:00</span>
+    </div>
+
+    <div class="pl-visualizer" id="audioVisualizer"></div>
+  </div>
+
+  <div class="pl-volume">
+    <span class="pl-vol-icon" id="volIcon">🔊</span>
+    <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8"
+      oninput="setVolume(this.value)">
+    <span class="vol-percent" id="volPercent">80%</span>
+  </div>
+
+  <audio id="audioEl" preload="none"></audio>
+</div>
+
+<!-- EXPANDED PLAYER OVERLAY -->
+<div id="expandedPlayer" class="hidden">
+  <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
+  <div class="expanded-card">
+    <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
+    <div class="expanded-disc">
+      <div class="pl-disc expanded-disc-img" id="expDisc">
+        <div class="pl-disc-cover" id="expDiscCover">🎵</div>
+        <div class="pl-disc-center"></div>
+      </div>
+    </div>
+    <div class="expanded-info">
+      <h2 id="expTitle">Sin reproducción</h2>
+      <p id="expArtist"></p>
+    </div>
+    <div class="expanded-controls">
+      <button class="pl-btn" onclick="skipBackward()">⏪</button>
+      <button class="pl-btn" onclick="playPrevSong()">⏮</button>
+      <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
+      <button class="pl-btn" onclick="playNextSong()">⏭</button>
+      <button class="pl-btn" onclick="skipForward()">⏩</button>
+    </div>
+    <div class="expanded-progress">
+      <span id="expCurrentTime">0:00</span>
+      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)">
+        <div class="pl-progress-fill" id="expProgressFill"></div>
+      </div>
+      <span id="expTotalTime">0:00</span>
+    </div>
+    <div class="expanded-volume">
+      <span class="pl-vol-icon">🔊</span>
+      <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8"
+        oninput="setVolume(this.value)">
+      <span class="vol-percent" id="expVolPercent">80%</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script src="explore.js"></script>
+</body>
+</html>
