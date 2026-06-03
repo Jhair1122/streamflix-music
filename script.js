@@ -1,11 +1,9 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v4 final)
-   - Sesión separada (redirige a login.html).
-   - Populares basados en interacciones reales.
-   - Recomendaciones con IA en segundo plano.
-   - Contexto de reproducción (favorites, likes, global).
-   - Panel IA con validación cruzada, métricas, casos de éxito.
-   - Diseño moderno, adaptable.
+   SoundMind — script.js (v5 final)
+   - Peso likes=1, favoritos=0.5 en colaborativo.
+   - Tarjeta completa reproduce canción.
+   - Reproductor expandido con volumen en %.
+   - Todas las funcionalidades anteriores intactas.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -65,11 +63,8 @@ const GENRE_COLORS = {
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
-/* ════════════════════════════════════════════════════
-   SESSION
-════════════════════════════════════════════════════ */
+/* ═══════════════════ SESSION ══════════════════ */
 const SESSION_KEY = 'soundmind_user';
-
 function saveSession(user){ localStorage.setItem(SESSION_KEY, JSON.stringify(user)) }
 function loadSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||'null') }catch(_){ return null } }
 function clearSession(){ localStorage.removeItem(SESSION_KEY) }
@@ -81,12 +76,9 @@ function checkSession(){
   return true;
 }
 
-/* ════════════════════════════════════════════════════
-   BOOT
-════════════════════════════════════════════════════ */
+/* ═══════════════════ BOOT ══════════════════ */
 async function bootApp(){
   if (!checkSession()) return;
-
   $('app').classList.remove('hidden');
   $('playerBar').classList.remove('hidden');
 
@@ -110,16 +102,13 @@ async function bootApp(){
     myInter = [];
     allInter = [];
   }
-
   buildGenrePills();
   renderAll();
   showPage('home');
   initVoiceSearch();
 }
 
-/* ════════════════════════════════════════════════════
-   LOGOUT
-════════════════════════════════════════════════════ */
+/* ═══════════════════ LOGOUT ══════════════════ */
 async function doLogout(){
   currentUser=null; myInter=[]; allInter=[]; nowPlayingId=null;
   clearSession();
@@ -131,9 +120,7 @@ async function doLogout(){
   window.location.href = 'login.html';
 }
 
-/* ════════════════════════════════════════════════════
-   VOICE SEARCH
-════════════════════════════════════════════════════ */
+/* ═══════════════════ VOICE SEARCH ══════════════════ */
 function initVoiceSearch(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){ const vb=$('voiceBtn'); if(vb) vb.style.opacity='.35'; return }
@@ -170,16 +157,13 @@ function initVoiceSearch(){
     }
   };
 }
-
 function toggleVoice(){
   if(!recognition){ toast('⚠️ Voz no disponible en este navegador'); return }
   if(isListening) recognition.stop();
   else recognition.start();
 }
 
-/* ════════════════════════════════════════════════════
-   RENDER ALL
-════════════════════════════════════════════════════ */
+/* ═══════════════════ RENDER ALL ══════════════════ */
 function renderAll(){
   updateHeroStats();
   updateBadges();
@@ -195,7 +179,6 @@ function updateHeroStats(){
   txt('hsLikes',myInter.filter(i=>i.es_like).length);
   txt('hsFavs', myInter.filter(i=>i.es_favorito).length);
 }
-
 function updateBadges(){
   const likes=myInter.filter(i=>i.es_like).length;
   const favs =myInter.filter(i=>i.es_favorito).length;
@@ -204,14 +187,16 @@ function updateBadges(){
   if(favs>0) {bf.textContent=favs; bf.classList.remove('hidden')}else bf.classList.add('hidden');
 }
 
-/* ── Song Card (con contexto) ── */
+/* ── Song Card (tarjeta completa cliqueable) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
   const faved  =inter&&inter.es_favorito;
   const playing=nowPlayingId===s.id;
   const ctxParam = context === 'global' ? '' : `, '${context}'`;
-  return `<div class="song-card${liked?' liked':''}${faved?' faved':''}${playing?' playing':''}" data-id="${s.id}">
+  return `<div class="song-card${liked?' liked':''}${faved?' faved':''}${playing?' playing':''}"
+            data-id="${s.id}"
+            onclick="playSong(event, ${s.id}${ctxParam})">
     <div class="card-cover">
       <div class="card-cover-inner" style="background:${genreGradient(s.genero)}">${genreEmoji(s.genero)}</div>
       ${playing?`<div class="now-playing-badge">Reproduciendo</div>`:''}
@@ -225,10 +210,10 @@ function songCard(s, context = 'global'){
         <span class="card-attr">💃${(s.bailabilidad*100).toFixed(0)}%</span>
         <span class="card-attr">🔥${s.popularidad}</span>
       </div>
-      <div class="card-actions">
+      <div class="card-actions" onclick="event.stopPropagation()">
         <button class="cta${liked?' liked-btn':''}" onclick="toggleLike(event,${s.id})">${liked?'❤️':'🤍'}</button>
         <button class="cta${faved?' faved-btn':''}" onclick="toggleFav(event,${s.id})">${faved?'⭐':'☆'}</button>
-        <button class="cta play-btn" onclick="playSong(event,${s.id}${ctxParam})">▶ Play</button>
+        <button class="cta play-btn" onclick="playSong(event,${s.id}${ctxParam}); event.stopPropagation()">▶ Play</button>
       </div>
     </div>
   </div>`;
@@ -243,7 +228,7 @@ function renderCards(songs,containerId,emptyMsg='No hay canciones aquí aún.', 
   el.innerHTML=songs.map(s => songCard(s, context)).join('');
 }
 
-/* ── Populars basados en interacciones ── */
+/* ── Populars basados en interacciones reales ── */
 function computePopularSongs(){
   const interactionCount = {};
   allInter.forEach(inter => {
@@ -265,7 +250,7 @@ function renderHomePopular() {
   }
 }
 
-/* ── Home Rec (IA) ── */
+/* ── Home Rec (IA con pesos diferenciados) ── */
 function renderHomeRec(){
   const collab=aiCollaborative();
   const model=buildModel();
@@ -320,32 +305,56 @@ function renderLikes(){
   renderCards(getLikedSongs(),'likeCards','Aún no tienes likes. Haz clic en 🤍 en cualquier canción.', 'likes');
 }
 
-/* ════════════════════════════════════════════════════
-   AI ALGORITHMS
-════════════════════════════════════════════════════ */
-function aiCollaborative(){
-  const myLiked=new Set(myInter.filter(i=>i.es_like||i.es_favorito).map(i=>i.cancion_id));
-  if(myLiked.size===0) return [];
-  const others={};
-  for(const inter of allInter){
-    if(inter.usuario_id===currentUser.id) continue;
-    if(!(inter.es_like||inter.es_favorito)) continue;
-    if(!others[inter.usuario_id]) others[inter.usuario_id]=new Set();
-    others[inter.usuario_id].add(inter.cancion_id);
+/* ═══════════════════ AI ALGORITHMS ══════════════════ */
+/* Filtrado colaborativo con pesos: like=1, favorito=0.5 */
+function aiCollaborative() {
+  const myWeights = {};
+  myInter.forEach(inter => {
+    if (inter.es_like) myWeights[inter.cancion_id] = (myWeights[inter.cancion_id] || 0) + 1;
+    if (inter.es_favorito) myWeights[inter.cancion_id] = (myWeights[inter.cancion_id] || 0) + 0.5;
+  });
+  const myLikedSongs = Object.keys(myWeights);
+  if (myLikedSongs.length === 0) return [];
+
+  const others = {};
+  allInter.forEach(inter => {
+    if (inter.usuario_id === currentUser.id) return;
+    if (!inter.es_like && !inter.es_favorito) return;
+    if (!others[inter.usuario_id]) others[inter.usuario_id] = {};
+    const weight = inter.es_like ? 1 : 0.5;
+    others[inter.usuario_id][inter.cancion_id] = (others[inter.usuario_id][inter.cancion_id] || 0) + weight;
+  });
+
+  const sims = [];
+  for (const [uid, neighborWeights] of Object.entries(others)) {
+    let intersection = 0;
+    let normU = 0, normV = 0;
+    for (const songId of myLikedSongs) {
+      const wu = myWeights[songId] || 0;
+      const wv = neighborWeights[songId] || 0;
+      intersection += wu * wv;
+    }
+    for (const w of Object.values(myWeights)) normU += w * w;
+    for (const w of Object.values(neighborWeights)) normV += w * w;
+    const sim = intersection / (Math.sqrt(normU) * Math.sqrt(normV) || 1);
+    if (sim > 0) sims.push({ uid, sim, neighborWeights });
   }
-  const sims=[];
-  for(const[uid,likedSet] of Object.entries(others)){
-    let comunes=0;
-    for(const id of myLiked) if(likedSet.has(id)) comunes++;
-    const sim=comunes/Math.min(myLiked.size,likedSet.size);
-    if(sim>0) sims.push({uid,sim,likedSet});
-  }
-  sims.sort((a,b)=>b.sim-a.sim);
-  const candidates=new Set();
-  for(const v of sims.slice(0,3)) for(const id of v.likedSet) if(!myLiked.has(id)) candidates.add(id);
-  return allSongs.filter(s=>candidates.has(s.id));
+  sims.sort((a, b) => b.sim - a.sim);
+
+  const candidates = {};
+  sims.slice(0, 3).forEach(n => {
+    for (const [songId, weight] of Object.entries(n.neighborWeights)) {
+      if (myWeights[songId]) continue;
+      candidates[songId] = (candidates[songId] || 0) + (n.sim * weight);
+    }
+  });
+  return Object.entries(candidates)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => allSongs.find(s => s.id == id))
+    .filter(Boolean);
 }
 
+/* Árbol de decisión J48 (sin cambios) */
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
@@ -393,9 +402,7 @@ function recursivePlaylist(seedId,depth,visited=new Set()){
   return [next.s,...recursivePlaylist(next.s.id,depth-1,visited)];
 }
 
-/* ════════════════════════════════════════════════════
-   INTERACTIONS
-════════════════════════════════════════════════════ */
+/* ═══════════════════ INTERACTIONS ══════════════════ */
 async function toggleLike(e,songId){
   e.stopPropagation();
   const ex=myInter.find(i=>i.cancion_id===songId);
@@ -449,14 +456,9 @@ async function saveRecommendations(){
   }catch(_){}
 }
 
-/* ════════════════════════════════════════════════════
-   PLAYER — contexto de reproducción
-════════════════════════════════════════════════════ */
-
-function setPlaylistContext(context){
-  playlistContext = context;
-}
-
+/* ═══════════════════ PLAYER — contexto y reproductor expandido ══════════════════ */
+let playlistContext = 'global';
+function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs(){
   if (playlistContext === 'favorites') return getFavoriteSongs();
   if (playlistContext === 'likes') return getLikedSongs();
@@ -467,17 +469,27 @@ async function playSong(e, songId, context = null){
   if (e && e.stopPropagation) e.stopPropagation();
   const song = allSongs.find(s => s.id === songId);
   if (!song) return;
-
   if (context) setPlaylistContext(context);
 
   nowPlayingId = songId;
+  // Actualizar UI básica
   txt('plTitle', song.titulo);
   txt('plArtist', song.artista);
-
   const dc = $('plDiscCover');
   dc.style.background = genreGradient(song.genero);
   dc.innerHTML = genreEmoji(song.genero);
   dc.className = 'pl-disc-cover';
+
+  // Sincronizar reproductor expandido si está abierto
+  if (!$('expandedPlayer').classList.contains('hidden')) {
+    txt('expTitle', song.titulo);
+    txt('expArtist', song.artista);
+    const expCover = $('expDiscCover');
+    expCover.style.background = genreGradient(song.genero);
+    expCover.innerHTML = genreEmoji(song.genero);
+    $('expDisc').classList.toggle('spinning', false);
+    $('expPlayPauseBtn').textContent = '▶';
+  }
 
   const audio = $('audioEl');
   if (song.url_preview) {
@@ -489,6 +501,7 @@ async function playSong(e, songId, context = null){
     audio.play().then(() => {
       $('plDisc').classList.add('spinning');
       updatePlayPauseBtn(true);
+      if (sourceLinked) startVisRaf(); else startIdleVisualizer();
       ensureAudioContext(audio);
       toast('▶ ' + song.titulo);
     }).catch(err => {
@@ -521,6 +534,7 @@ function playNextInContext(){
   playSong(null, list[nextIdx].id, playlistContext);
 }
 
+/* Audio Web y visualizer */
 function ensureAudioContext(audioEl){
   if(sourceLinked) return;
   try{
@@ -537,7 +551,6 @@ function ensureAudioContext(audioEl){
     startIdleVisualizer();
   }
 }
-
 function refreshCardHighlight(){
   document.querySelectorAll('.song-card').forEach(card=>{
     const id=parseInt(card.dataset.id);
@@ -559,20 +572,31 @@ function togglePlayPause(){
   if(!audio.src||audio.src===window.location.href) return;
   if(audio.paused){
     if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
-    audio.play().then(()=>{ $('plDisc').classList.add('spinning'); updatePlayPauseBtn(true) });
+    audio.play().then(()=>{
+      $('plDisc').classList.add('spinning');
+      updatePlayPauseBtn(true);
+      if (sourceLinked) startVisRaf(); else startIdleVisualizer();
+      // Actualizar botón expandido
+      $('expPlayPauseBtn').textContent = '⏸';
+      $('expDisc')?.classList.add('spinning');
+    });
   } else {
     audio.pause();
     $('plDisc').classList.remove('spinning');
     updatePlayPauseBtn(false);
+    $('expPlayPauseBtn').textContent = '▶';
+    $('expDisc')?.classList.remove('spinning');
+    startIdleVisualizer();
   }
 }
-
 function updatePlayPauseBtn(playing){
   const btn=$('playPauseBtn');
   if(btn) btn.textContent=playing?'⏸':'▶';
+  const expBtn=$('expPlayPauseBtn');
+  if(expBtn) expBtn.textContent=playing?'⏸':'▶';
 }
 
-/* ── Visualizer ── */
+/* Visualizer */
 function startVisRaf(){
   stopVisRaf();
   if(!analyser) return;
@@ -592,11 +616,9 @@ function startVisRaf(){
   }
   draw();
 }
-
 function stopVisRaf(){
   if(visRaf){ cancelAnimationFrame(visRaf); visRaf=null }
 }
-
 function startIdleVisualizer(){
   stopVisRaf();
   document.querySelectorAll('.vis-bar').forEach((bar,i)=>{
@@ -606,17 +628,20 @@ function startIdleVisualizer(){
   });
 }
 
-/* ── Progress ── */
+/* Progress */
 function updateProgress(){
   const audio=$('audioEl');
   if(!audio.duration) return;
   const pct=(audio.currentTime/audio.duration)*100;
+  // Normal
   const fill=$('progressFill'); if(fill) fill.style.width=pct+'%';
-  const ct=$('currentTime'),tt=$('totalTime');
-  if(ct) ct.textContent=fmtTime(audio.currentTime);
-  if(tt) tt.textContent=fmtTime(audio.duration);
+  txt('currentTime',fmtTime(audio.currentTime));
+  txt('totalTime',fmtTime(audio.duration));
+  // Expandido
+  const expFill=$('expProgressFill'); if(expFill) expFill.style.width=pct+'%';
+  txt('expCurrentTime',fmtTime(audio.currentTime));
+  txt('expTotalTime',fmtTime(audio.duration));
 }
-
 function seekProgress(e){
   const audio=$('audioEl'); if(!audio.duration) return;
   const bar=$('progressBar');
@@ -624,22 +649,38 @@ function seekProgress(e){
   const pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
   audio.currentTime=pct*audio.duration;
 }
-
+function seekProgressExpanded(e){
+  const audio=$('audioEl'); if(!audio.duration) return;
+  const bar=$('expProgressBar');
+  const rect=bar.getBoundingClientRect();
+  const pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  audio.currentTime=pct*audio.duration;
+}
 function fmtTime(s){
   if(isNaN(s)||!isFinite(s)) return '0:00';
   const m=Math.floor(s/60),sec=Math.floor(s%60);
   return m+':'+(sec<10?'0':'')+sec;
 }
 
+/* Volumen con porcentaje */
 function setVolume(val){
   const audio=$('audioEl'); if(audio) audio.volume=parseFloat(val);
+  const pct = Math.round(val*100);
+  txt('volPercent', pct+'%');
+  txt('expVolPercent', pct+'%');
+  $('volumeRange').value=val;
+  $('expVolumeRange').value=val;
   const icon=$('volIcon');
   if(icon) icon.textContent=val==0?'🔇':val<0.5?'🔉':'🔊';
 }
 
+/* Auto-play con contexto */
 function onAudioEnded(){
   $('plDisc').classList.remove('spinning');
   updatePlayPauseBtn(false);
+  // Sincronizar expandido
+  $('expDisc')?.classList.remove('spinning');
+  $('expPlayPauseBtn').textContent = '▶';
   if(nowPlayingId){
     const next=recursivePlaylist(nowPlayingId,1,new Set([nowPlayingId]));
     if(next.length>0) playSong(null,next[0].id, playlistContext);
@@ -647,9 +688,35 @@ function onAudioEnded(){
   }
 }
 
-/* ════════════════════════════════════════════════════
-   NAVIGATION & PANEL IA
-════════════════════════════════════════════════════ */
+/* Reproductor expandido */
+function openExpandedPlayer(){
+  if (!nowPlayingId) return;
+  const song = allSongs.find(s => s.id === nowPlayingId);
+  if (!song) return;
+  txt('expTitle', song.titulo);
+  txt('expArtist', song.artista);
+  const disc = $('expDisc');
+  const discCover = $('expDiscCover');
+  discCover.style.background = genreGradient(song.genero);
+  discCover.innerHTML = genreEmoji(song.genero);
+  // Sincronizar estado
+  const audio = $('audioEl');
+  if (audio && !audio.paused) {
+    disc.classList.add('spinning');
+    $('expPlayPauseBtn').textContent = '⏸';
+  } else {
+    disc.classList.remove('spinning');
+    $('expPlayPauseBtn').textContent = '▶';
+  }
+  $('expVolumeRange').value = audio ? audio.volume : 0.8;
+  txt('expVolPercent', Math.round((audio?.volume || 0.8)*100)+'%');
+  $('expandedPlayer').classList.remove('hidden');
+}
+function closeExpandedPlayer(){
+  $('expandedPlayer').classList.add('hidden');
+}
+
+/* ═══════════════════ NAVIGATION & PANEL IA ══════════════════ */
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -660,16 +727,15 @@ function showPage(name){
 
   if(name === 'analysis') renderAnalysis();
 }
-
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
+/* ── Panel IA (métricas, gráfico, árbol, cross‑validation) ── */
 function renderAnalysis(){
   updateAnalysisMetrics();
   renderGenreBarChart();
   renderTreeRules();
   renderCrossValidation();
 }
-
 async function updateAnalysisMetrics(){
   try { const { count } = await db.from('usuarios').select('*', { count: 'exact', head: true }); txt('mUsers', count||0); } catch(e) { txt('mUsers', '—'); }
   txt('mSongs', allSongs.length);
@@ -680,13 +746,12 @@ async function updateAnalysisMetrics(){
   txt('mAcc', model ? model.accuracy + '%' : '—');
   try { const { count } = await db.from('usuarios').select('*', { count: 'exact', head: true }); txt('mAvg', (totalLikes / (count||1)).toFixed(1)); } catch(e) { txt('mAvg', '—'); }
 }
-
 function renderGenreBarChart(){
   const myLikedSongs = myInter.filter(i => i.es_like || i.es_favorito);
   const genreCount = {};
   myLikedSongs.forEach(inter => {
     const song = allSongs.find(s => s.id === inter.cancion_id);
-    if (song) genreCount[s.genero] = (genreCount[s.genero] || 0) + 1;
+    if (song) genreCount[song.genero] = (genreCount[song.genero] || 0) + 1;
   });
   const sorted = Object.entries(genreCount).sort((a,b) => b[1] - a[1]);
   const maxVal = Math.max(1, ...sorted.map(e => e[1]));
@@ -702,7 +767,6 @@ function renderGenreBarChart(){
   if (!html) html = '<p style="color:var(--text2);padding:20px">No tienes suficientes interacciones para mostrar gráfico.</p>';
   $('genreBar').innerHTML = html;
 }
-
 function renderTreeRules(){
   const model = buildModel();
   if (!model) { $('treeViz').textContent = 'No hay suficientes datos para entrenar el árbol.'; return; }
@@ -714,7 +778,6 @@ function renderTreeRules(){
   text += `\nPromedios de atributos en likes:\n  energía ≥ ${model.avgEn.toFixed(2)}\n  bailabilidad ≥ ${model.avgBai.toFixed(2)}\n  popularidad ≥ ${model.avgPop.toFixed(2)}\n\nRegla final: Score ≥ 4 → Recomendar.`;
   $('treeViz').textContent = text;
 }
-
 async function renderCrossValidation(){
   const tbody = $('cvBody');
   tbody.innerHTML = '<tr><td colspan="5">Calculando…</td></tr>';
@@ -762,12 +825,9 @@ async function renderCrossValidation(){
   tbody.innerHTML = rows;
 }
 
-/* ════════════════════════════════════════════════════
-   INIT
-════════════════════════════════════════════════════ */
+/* ═══════════════════ INIT ══════════════════ */
 window.addEventListener('load', async ()=>{
   if (!loadSession()) { window.location.href = 'login.html'; return; }
-
   const { data } = await db.from('canciones').select('*').order('popularidad', { ascending: false });
   allSongs = data || [];
 
@@ -782,18 +842,20 @@ window.addEventListener('load', async ()=>{
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
       $('plDisc')?.classList.add('spinning');
       updatePlayPauseBtn(true);
+      $('expDisc')?.classList.add('spinning');
+      $('expPlayPauseBtn').textContent = '⏸';
       if (sourceLinked) startVisRaf(); else startIdleVisualizer();
     });
     audio.addEventListener('pause', () => {
       $('plDisc')?.classList.remove('spinning');
       updatePlayPauseBtn(false);
+      $('expDisc')?.classList.remove('spinning');
+      $('expPlayPauseBtn').textContent = '▶';
       startIdleVisualizer();
     });
   }
-
   const volRange = $('volumeRange');
   if (volRange) { volRange.value = 0.8; setVolume(0.8); }
-
   await bootApp();
 });
 
