@@ -1,7 +1,5 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v5 final corregido)
-   - Eliminada declaración duplicada de playlistContext.
-   - Todo lo demás funciona correctamente.
+   SoundMind — script.js (v5 final corregido + saltos)
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
@@ -150,7 +148,7 @@ function initVoiceSearch(){
     if(e.results[0].isFinal){
       searchQuery=tr.toLowerCase();
       const si=$('searchInput'); if(si) si.value=tr;
-      renderAll();
+      renderCatalog();   // solo actualiza catálogo
       toast('🎤 Buscando: '+tr);
     }
   };
@@ -304,7 +302,6 @@ function renderLikes(){
 }
 
 /* ═══════════════════ AI ALGORITHMS ══════════════════ */
-/* Filtrado colaborativo con pesos: like=1, favorito=0.5 */
 function aiCollaborative() {
   const myWeights = {};
   myInter.forEach(inter => {
@@ -352,7 +349,6 @@ function aiCollaborative() {
     .filter(Boolean);
 }
 
-/* Árbol de decisión J48 */
 function buildModel(){
   const datos=[];
   for(const inter of allInter){
@@ -527,6 +523,21 @@ function playNextInContext(){
   const idx = list.findIndex(s => s.id === nowPlayingId);
   const nextIdx = idx < list.length - 1 ? idx + 1 : 0;
   playSong(null, list[nextIdx].id, playlistContext);
+}
+
+/* Saltos de 15 segundos */
+function skipBackward() {
+  const audio = $('audioEl');
+  if (!audio || !audio.src || audio.src === window.location.href) return;
+  audio.currentTime = Math.max(0, audio.currentTime - 15);
+  updateProgress();
+}
+
+function skipForward() {
+  const audio = $('audioEl');
+  if (!audio || !audio.src || audio.src === window.location.href) return;
+  audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15);
+  updateProgress();
 }
 
 function ensureAudioContext(audioEl){
