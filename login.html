@@ -7,17 +7,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
   <style>
-    /* Estilos mínimos para la pantalla de login, el resto se hereda de style.css */
-    @import url('style.css');
+    /* Fondo animado exclusivo para el login */
     body {
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       padding: 20px;
-      background: linear-gradient(135deg, #05050c 0%, #0f0f23 50%, #050510 100%);
-      animation: gradientShift 20s ease infinite;
+      background: radial-gradient(circle at 20% 30%, #1a0533 0%, #0b0b16 60%, #05050c 100%);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
     }
     @keyframes gradientShift {
       0% { background-position: 0% 50%; }
@@ -26,8 +27,12 @@
     }
     #authScreen {
       position: static;
-      background: none;
+      background: transparent;
       backdrop-filter: none;
+    }
+    .auth-card {
+      background: rgba(11,11,22,0.9);
+      backdrop-filter: blur(15px);
     }
   </style>
 </head>
