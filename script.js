@@ -3,7 +3,7 @@
    - Sesión: redirige a login.html si no hay usuario.
    - Contexto de reproducción (favoritos, likes, global).
    - Panel IA completo.
-   - Responsive: sidebar colapsa en móviles, player adaptable.
+   - Adaptable: sidebar colapsa en móviles, player ajustable.
 ════════════════════════════════════════════════════ */
 
 const SUPA_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
