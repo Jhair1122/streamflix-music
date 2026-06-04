@@ -10,25 +10,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<!-- HAMBURGER -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
-<!-- APP SHELL -->
 <div id="app" class="hidden">
-  <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <h1>SoundMind</h1>
       <p>IA · Recomendación Musical</p>
     </div>
-
     <div class="sidebar-user">
       <div class="user-avatar" id="userAvatar"></div>
       <div class="user-name" id="userName"></div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
-
     <div class="sidebar-nav">
       <div class="nav-section">Principal</div>
       <button class="nav-item active" id="nav-home" onclick="showPage('home')">
@@ -37,20 +31,16 @@
       <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">
         <span class="nav-icon">📅</span>Discover Weekly
       </button>
-
       <div class="nav-section">Mi Biblioteca</div>
       <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')">
-        <span class="nav-icon">⭐</span>Favoritos
-        <span class="nav-badge hidden" id="badge-fav">0</span>
+        <span class="nav-icon">⭐</span>Favoritos <span class="nav-badge hidden" id="badge-fav">0</span>
       </button>
       <button class="nav-item" id="nav-likes" onclick="showPage('likes')">
-        <span class="nav-icon">❤️</span>Mis likes
-        <span class="nav-badge hidden" id="badge-like">0</span>
+        <span class="nav-icon">❤️</span>Mis likes <span class="nav-badge hidden" id="badge-like">0</span>
       </button>
       <button class="nav-item" id="nav-queue" onclick="showPage('queue'); openQueueModal()">
         <span class="nav-icon">🔀</span>Cola de reproducción
       </button>
-
       <div class="nav-section">Mi cuenta</div>
       <button class="nav-item" id="nav-profile" onclick="showPage('profile')">
         <span class="nav-icon">👤</span>Mi perfil
@@ -61,10 +51,7 @@
     </div>
   </nav>
 
-  <!-- MAIN CONTENT -->
   <main class="main">
-
-    <!-- ══════════ HOME ══════════ -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
@@ -80,36 +67,23 @@
         </div>
       </div>
 
-      <!-- Recomendaciones personalizadas -->
       <div class="section rec-highlight">
         <div class="section-head">
-          <div class="section-title">
-            <span class="pulse-icon">🎯</span> Para ti
-            <span class="ai-badge">IA activa</span>
-          </div>
+          <div class="section-title"><span class="pulse-icon">🎯</span> Para ti <span class="ai-badge">IA activa</span></div>
         </div>
         <p class="section-sub">Basado en tus likes (prioridad) y favoritos.</p>
-        <div class="cards-grid" id="homeRecCards">
-          <div class="loading"><div class="spin"></div> Analizando tus gustos…</div>
-        </div>
+        <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Analizando tus gustos…</div></div>
       </div>
 
-      <!-- Más populares -->
       <div class="section">
         <div class="section-head">
-          <div class="section-title">🔥 Más populares</div>
-          <span class="ai-badge">Según la comunidad</span>
+          <div class="section-title">🔥 Más populares</div><span class="ai-badge">Según la comunidad</span>
         </div>
-        <div class="cards-grid" id="homePopCards">
-          <div class="loading"><div class="spin"></div> Cargando…</div>
-        </div>
+        <div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
 
-      <!-- Catálogo completo con búsqueda y filtros -->
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">🎵 Catálogo completo</div>
-        </div>
+        <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
         <div class="top-bar">
           <div class="search-wrap">
             <span class="search-icon">🔍</span>
@@ -119,40 +93,28 @@
           <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
         </div>
         <div class="genre-pills" id="genrePills"></div>
-        <div class="cards-grid" id="catalogCards">
-          <div class="loading"><div class="spin"></div> Cargando…</div>
-        </div>
+        <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
     </div>
 
-    <!-- ══════════ DISCOVER WEEKLY ══════════ -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
       <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas. ¡Dale like para que sea más precisa!</div>
-      <div class="cards-grid" id="weeklyCards">
-        <div class="loading"><div class="spin"></div> Generando tu lista semanal…</div>
-      </div>
+      <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando tu lista semanal…</div></div>
     </div>
 
-    <!-- ══════════ FAVORITES ══════════ -->
     <div class="page" id="page-favorites">
       <div class="page-title">⭐ Favoritos</div>
       <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
-      <div class="cards-grid" id="favCards">
-        <div class="loading"><div class="spin"></div> Cargando…</div>
-      </div>
+      <div class="cards-grid" id="favCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
-    <!-- ══════════ LIKES ══════════ -->
     <div class="page" id="page-likes">
       <div class="page-title">❤️ Mis likes</div>
       <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
-      <div class="cards-grid" id="likeCards">
-        <div class="loading"><div class="spin"></div> Cargando…</div>
-      </div>
+      <div class="cards-grid" id="likeCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
-    <!-- ══════════ QUEUE MODAL ══════════ -->
     <div id="queueModal" class="hidden">
       <div class="queue-overlay" onclick="closeQueue()"></div>
       <div class="queue-panel">
@@ -163,7 +125,6 @@
       </div>
     </div>
 
-    <!-- ══════════ PROFILE ══════════ -->
     <div class="page" id="page-profile">
       <div class="page-title">👤 Mi perfil</div>
       <div class="page-sub">Estadísticas de escucha y logros.</div>
@@ -179,11 +140,9 @@
       </div>
     </div>
 
-    <!-- ══════════ ANALYSIS (PANEL IA) ══════════ -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
-
       <div class="section">
         <div class="section-title" style="margin-bottom:14px">📈 Métricas del sistema</div>
         <div class="metrics-row">
@@ -195,37 +154,27 @@
           <div class="metric"><div class="metric-val" id="mAvg">—</div><div class="metric-label">Likes/usuario</div></div>
         </div>
       </div>
-
       <div class="section">
         <div class="section-title" style="margin-bottom:8px">🎨 Mis géneros favoritos</div>
         <div class="page-sub" style="margin-bottom:12px">Distribución de likes por género según tu historial.</div>
         <div class="bar-chart" id="genreBar"></div>
       </div>
-
       <div class="section">
         <div class="section-head">
-          <div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div>
-          <span class="ai-badge">J48 simplificado</span>
+          <div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div><span class="ai-badge">J48 simplificado</span>
         </div>
         <div class="tree-viz" id="treeViz">Calculando…</div>
       </div>
-
       <div class="section">
         <div class="section-head">
-          <div class="section-title">🔬 Validación cruzada k=5</div>
-          <span class="ai-badge">Cross-Validation</span>
+          <div class="section-title">🔬 Validación cruzada k=5</div><span class="ai-badge">Cross-Validation</span>
         </div>
         <div class="page-sub" style="margin-bottom:0">Las interacciones se dividen en 5 partes. En cada iteración se entrena con 4 y se evalúa con 1.</div>
         <table class="cv-table">
-          <thead>
-            <tr><th>Fold</th><th>Entrenamiento</th><th>Prueba</th><th>Precisión</th><th>Likes detectados</th></tr>
-          </thead>
-          <tbody id="cvBody">
-            <tr><td colspan="5" style="color:var(--text2);padding:20px">Calculando…</td></tr>
-          </tbody>
+          <thead><tr><th>Fold</th><th>Entrenamiento</th><th>Prueba</th><th>Precisión</th><th>Likes detectados</th></tr></thead>
+          <tbody id="cvBody"><tr><td colspan="5" style="color:var(--text2);padding:20px">Calculando…</td></tr></tbody>
         </table>
       </div>
-
       <div class="section">
         <div class="section-title" style="margin-bottom:14px">📊 SoundMind IA vs. Sistema básico</div>
         <table class="comp-table">
@@ -241,25 +190,14 @@
           </tbody>
         </table>
       </div>
-
       <div class="section">
         <div class="section-title" style="margin-bottom:14px">🏆 Casos de éxito en plataformas similares</div>
         <div class="success-cards">
-          <div class="success-card">
-            <div class="success-name">Spotify — Discover Weekly</div>
-            <div class="success-text">Usa filtrado colaborativo y NLP. Reporta +40% en tiempo de escucha para usuarios con recomendaciones personalizadas.</div>
-          </div>
-          <div class="success-card">
-            <div class="success-name">Netflix (contenido)</div>
-            <div class="success-text">Sistema híbrido con árboles de decisión para categorizar nuevo contenido. Precisión de clasificación superior al 80% en pruebas A/B.</div>
-          </div>
-          <div class="success-card">
-            <div class="success-name">YouTube Music</div>
-            <div class="success-text">Playlists automáticas generadas recursivamente desde la canción semilla. Reduce abandono un 25% según reportes internos.</div>
-          </div>
+          <div class="success-card"><div class="success-name">Spotify — Discover Weekly</div><div class="success-text">Usa filtrado colaborativo y NLP. Reporta +40% en tiempo de escucha para usuarios con recomendaciones personalizadas.</div></div>
+          <div class="success-card"><div class="success-name">Netflix (contenido)</div><div class="success-text">Sistema híbrido con árboles de decisión para categorizar nuevo contenido. Precisión de clasificación superior al 80% en pruebas A/B.</div></div>
+          <div class="success-card"><div class="success-name">YouTube Music</div><div class="success-text">Playlists automáticas generadas recursivamente desde la canción semilla. Reduce abandono un 25% según reportes internos.</div></div>
         </div>
       </div>
-
       <div class="section">
         <div class="section-title" style="margin-bottom:14px">🖥️ Infraestructura tecnológica</div>
         <div class="infra-list">
@@ -273,33 +211,25 @@
         </div>
       </div>
     </div>
-
   </main>
 </div>
 
-<!-- ══════════ PLAYER BAR ══════════ -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
-    <div class="pl-disc" id="plDisc">
-      <div class="pl-disc-cover" id="plDiscCover">🎵</div>
-      <div class="pl-disc-center"></div>
-    </div>
+    <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
   </div>
-
   <div class="pl-info" onclick="openExpandedPlayer()">
-    <div class="pl-title" id="plTitle">Sin reproducción</div>
-    <div class="pl-artist" id="plArtist"></div>
+    <div class="pl-title" id="plTitle">Sin reproducción</div><div class="pl-artist" id="plArtist"></div>
   </div>
-
   <div class="pl-center">
     <div class="pl-controls-btns">
-      <button class="pl-btn" onclick="skipBackward()" title="Retroceder 15s">⏪</button>
-      <button class="pl-btn" onclick="playPrevInContext()" title="Anterior">⏮</button>
+      <button class="pl-btn" onclick="skipBackward()">⏪</button>
+      <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
-      <button class="pl-btn" onclick="playNextInContext()" title="Siguiente">⏭</button>
-      <button class="pl-btn" onclick="skipForward()" title="Adelantar 15s">⏩</button>
-      <div class="sleep-timer-wrap" id="sleepTimerWrap">
-        <button class="pl-btn" onclick="toggleSleepMenu()" title="Temporizador">⏰</button>
+      <button class="pl-btn" onclick="playNextInContext()">⏭</button>
+      <button class="pl-btn" onclick="skipForward()">⏩</button>
+      <div class="sleep-timer-wrap">
+        <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
         <div class="sleep-menu hidden" id="sleepMenu">
           <button onclick="setSleepTimer(15)">15 min</button>
           <button onclick="setSleepTimer(30)">30 min</button>
@@ -310,74 +240,52 @@
         <span class="sleep-countdown hidden" id="sleepCountdown"></span>
       </div>
     </div>
-
     <div class="pl-progress-wrap">
       <span class="pl-time" id="currentTime">0:00</span>
-      <div class="pl-progress" id="progressBar" onclick="seekProgress(event)">
-        <div class="pl-progress-fill" id="progressFill"></div>
-      </div>
+      <div class="pl-progress" id="progressBar" onclick="seekProgress(event)"><div class="pl-progress-fill" id="progressFill"></div></div>
       <span class="pl-time" id="totalTime">0:00</span>
     </div>
-
     <div class="pl-visualizer" id="audioVisualizer"></div>
   </div>
-
   <div class="pl-volume">
     <span class="pl-vol-icon" id="volIcon">🔊</span>
-    <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8"
-      oninput="setVolume(this.value)">
+    <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
     <span class="vol-percent" id="volPercent">80%</span>
   </div>
-
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- ══════════ EXPANDED PLAYER ══════════ -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
     <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
     <div class="expanded-disc">
-      <div class="pl-disc expanded-disc-img" id="expDisc">
-        <div class="pl-disc-cover" id="expDiscCover">🎵</div>
-        <div class="pl-disc-center"></div>
-      </div>
+      <div class="pl-disc expanded-disc-img" id="expDisc"><div class="pl-disc-cover" id="expDiscCover">🎵</div><div class="pl-disc-center"></div></div>
     </div>
-    <div class="expanded-info">
-      <h2 id="expTitle">Sin reproducción</h2>
-      <p id="expArtist"></p>
-    </div>
+    <div class="expanded-info"><h2 id="expTitle">Sin reproducción</h2><p id="expArtist"></p></div>
     <div class="expanded-controls">
       <button class="pl-btn" onclick="skipBackward()">⏪</button>
       <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextInContext()">⏭</button>
       <button class="pl-btn" onclick="skipForward()">⏩</button>
-      <div class="sleep-timer-wrap">
-        <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
-        <span class="sleep-countdown hidden" id="expSleepCountdown"></span>
-      </div>
+      <div class="sleep-timer-wrap"><button class="pl-btn" onclick="toggleSleepMenu()">⏰</button><span class="sleep-countdown hidden" id="expSleepCountdown"></span></div>
     </div>
     <div class="expanded-progress">
       <span id="expCurrentTime">0:00</span>
-      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)">
-        <div class="pl-progress-fill" id="expProgressFill"></div>
-      </div>
+      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)"><div class="pl-progress-fill" id="expProgressFill"></div></div>
       <span id="expTotalTime">0:00</span>
     </div>
     <div class="expanded-volume">
       <span class="pl-vol-icon">🔊</span>
-      <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8"
-        oninput="setVolume(this.value)">
+      <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
       <span class="vol-percent" id="expVolPercent">80%</span>
     </div>
   </div>
 </div>
 
-<!-- ══════════ TOAST ══════════ -->
 <div id="toast"></div>
 
-<!-- ══════════ VOICE OVERLAY (con botón Cancelar) ══════════ -->
 <div id="voiceOverlay">
   <div class="voice-modal">
     <div class="voice-waves">
