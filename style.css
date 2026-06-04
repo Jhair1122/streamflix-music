@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════
-   SOUNDMIND — style.css (Rediseño Moderno 2025)
+   SOUNDMIND — style.css (Rediseño Moderno + Chat)
    - Efectos 3D, vidrio, animaciones fluidas.
-   - ¡El disco vuelve a ser cliqueable! (z-index + pointer-events)
+   - Chat integrado, botones de salto, sleep timer.
 ═══════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
@@ -298,7 +298,6 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   box-shadow: 0 -8px 30px rgba(0,0,0,.5);
 }
 
-/* Asegurar que el disco y la info capturen clics */
 .pl-disc-wrap,
 .pl-info {
   pointer-events: auto !important;
@@ -405,102 +404,63 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 .expanded-volume input[type=range] { flex: 1; max-width: 200px; accent-color: var(--accent); }
 
 /* ── Sleep Timer ── */
-.sleep-timer-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+.sleep-timer-wrap { position: relative; display: flex; align-items: center; gap: 4px; }
 .sleep-menu {
   position: absolute;
-  bottom: 50px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 50px; left: 50%; transform: translateX(-50%);
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: var(--r2);
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  border-radius: var(--r2); padding: 8px;
+  display: flex; flex-direction: column; gap: 4px;
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(20px);
   z-index: 20;
 }
 .sleep-menu button {
-  background: var(--bg3);
-  color: var(--text);
-  border: none;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: var(--transition-fast);
+  background: var(--bg3); color: var(--text);
+  border: none; padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; cursor: pointer; transition: var(--transition-fast);
 }
 .sleep-menu button:hover { background: var(--accentA); }
 .sleep-countdown {
-  font-size: 12px;
-  color: var(--accent3);
-  font-weight: 600;
-  min-width: 40px;
-  text-align: center;
+  font-size: 12px; color: var(--accent3);
+  font-weight: 600; min-width: 40px; text-align: center;
 }
 
 /* ── Queue Modal ── */
 #queueModal {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(5,5,12,.85);
-  backdrop-filter: blur(10px);
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5,5,12,.85); backdrop-filter: blur(10px);
 }
 .queue-overlay { position: absolute; inset: 0; }
 .queue-panel {
   position: relative;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  padding: 24px;
-  width: 90%;
-  max-width: 400px;
-  max-height: 70vh;
-  overflow-y: auto;
+  border-radius: 24px; padding: 24px;
+  width: 90%; max-width: 400px; max-height: 70vh; overflow-y: auto;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px);
 }
 .queue-panel h3 { font-family: var(--font-h); margin-bottom: 16px; }
 .queue-item {
-  padding: 8px;
-  cursor: pointer;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: var(--text);
-  transition: var(--transition-fast);
+  padding: 8px; cursor: pointer; border-radius: 8px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; color: var(--text); transition: var(--transition-fast);
 }
 .queue-item:hover { background: var(--accentA); }
 
 /* ── Profile ── */
 #page-profile .profile-stat {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
 }
 .achievement-badge {
   display: inline-block;
-  background: var(--accentA);
-  border: 1px solid var(--border2);
-  border-radius: 20px;
-  padding: 4px 12px;
-  margin: 4px;
-  font-size: 13px;
-  color: var(--accent3);
+  background: var(--accentA); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 4px 12px; margin: 4px;
+  font-size: 13px; color: var(--accent3);
 }
 
 /* ── Auth Screen ── */
@@ -520,8 +480,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 .auth-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  padding: 32px 36px;
+  border-radius: 24px; padding: 32px 36px;
   box-shadow: var(--shadow-lg), var(--shadow-glow);
   backdrop-filter: blur(20px);
 }
@@ -574,8 +533,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 .voice-modal {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  padding: 40px 50px;
+  border-radius: 24px; padding: 40px 50px;
   text-align: center;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px);
@@ -657,6 +615,115 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 .infra-list { font-size: 13px; color: var(--text2); line-height: 2.4; }
 .infra-list strong { color: var(--text); }
 
+/* ── Botones de salto -15 / +15 ── */
+.pl-btn.skip-btn {
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  width: auto;
+  padding: 0 12px;
+  border-radius: 20px;
+}
+.pl-btn.skip-btn:hover {
+  background: var(--accentA);
+  color: var(--accent3);
+}
+
+/* ── Chat FAB y Panel ── */
+#chatFAB {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 600;
+  box-shadow: 0 4px 14px rgba(124,58,237,.4);
+  transition: transform .2s;
+}
+#chatFAB:hover { transform: scale(1.1); }
+#chatPanel {
+  position: fixed;
+  bottom: 100px;
+  right: 90px;
+  width: 320px;
+  max-height: 450px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(20px);
+  z-index: 599;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-header h3 { font-family: var(--font-h); font-size: 16px; }
+.chat-close { background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; }
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+}
+.msg-bubble {
+  background: var(--accentA);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  max-width: 85%;
+  word-wrap: break-word;
+}
+.msg-user {
+  font-weight: 700;
+  color: var(--accent3);
+  margin-bottom: 2px;
+  font-size: 11px;
+}
+.chat-input-wrap {
+  display: flex;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+.chat-input-wrap input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.chat-input-wrap button {
+  margin-left: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: var(--accent2);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
 /* ═══════════════════ RESPONSIVE ══════════════════ */
 @media (max-width: 1024px) {
   :root { --nav: 220px; }
@@ -712,6 +779,8 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .metrics-row { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
   .metric { padding: 10px; }
   .metric-val { font-size: 22px; }
+  #chatPanel { width: 280px; right: 10px; }
+  #chatFAB { right: 10px; }
 }
 @media (max-width: 400px) {
   .cards-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
@@ -721,19 +790,4 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .pl-title { font-size: 11px; }
   .pl-artist { font-size: 9px; }
   .pl-btn { width: 26px; height: 26px; font-size: 14px; }
-}
-
-/* ── Botones de salto -15 / +15 ── */
-.pl-btn.skip-btn {
-  font-size: 13px;
-  font-weight: 700;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  width: auto;
-  padding: 0 12px;
-  border-radius: 20px;
-}
-.pl-btn.skip-btn:hover {
-  background: var(--accentA);
-  color: var(--accent3);
 }
