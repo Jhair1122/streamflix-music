@@ -9,39 +9,23 @@
   <link rel="stylesheet" href="style.css">
   <style>
     body { padding-bottom: 88px; }
-    .top-bar-public {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 0 20px 18px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .login-btn {
-      background: var(--accent2);
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 50px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: .2s;
-      box-shadow: 0 4px 14px rgba(124,58,237,.4);
-    }
-    .admin-btn {
-      background: var(--accent2);
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 50px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: .2s;
-      box-shadow: 0 4px 14px rgba(124,58,237,.4);
-    }
+    .top-bar-public { display: flex; justify-content: space-between; align-items: center; margin: 0 20px 18px; flex-wrap: wrap; gap: 12px; }
+    .login-btn { background: var(--accent2); color: #fff; border: none; padding: 10px 20px; border-radius: 50px; font-weight: 700; font-size: 14px; cursor: pointer; transition: .2s; box-shadow: 0 4px 14px rgba(124,58,237,.4); }
     .login-btn:hover { filter: brightness(1.1); }
+    /* Chat FAB y panel (bloqueado) */
+    #chatFAB { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent2); color: #fff; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 600; box-shadow: 0 4px 14px rgba(124,58,237,.4); transition: transform .2s; }
+    #chatFAB:hover { transform: scale(1.1); }
+    #chatPanel { position: fixed; bottom: 100px; right: 90px; width: 320px; max-height: 450px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; display: flex; flex-direction: column; backdrop-filter: blur(20px); z-index: 599; box-shadow: var(--shadow-lg); overflow: hidden; }
+    .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .chat-header h3 { font-family: var(--font-h); font-size: 16px; }
+    .chat-close { background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 280px; }
+    .msg-bubble { background: var(--accentA); padding: 8px 12px; border-radius: 12px; font-size: 13px; max-width: 85%; word-wrap: break-word; }
+    .msg-user { font-weight: 700; color: var(--accent3); margin-bottom: 2px; font-size: 11px; }
+    .chat-input-wrap { display: flex; padding: 8px; border-top: 1px solid var(--border); }
+    .chat-input-wrap input { flex: 1; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 13px; outline: none; }
+    .chat-input-wrap button { margin-left: 8px; padding: 8px 14px; border-radius: 20px; background: var(--accent2); color: #fff; font-weight: 600; border: none; cursor: pointer; }
+    @media (max-width: 600px) { #chatPanel { width: 280px; right: 10px; } #chatFAB { right: 10px; } }
   </style>
 </head>
 <body>
@@ -53,12 +37,8 @@
       <p>Escucha gratis. <strong>Inicia sesión</strong> para recibir recomendaciones personalizadas, guardar favoritos y usar búsqueda por voz.</p>
     </div>
     <div class="hero-stats">
-      <div class="hstat">
-        <div class="hstat-val" id="hsSongs">—</div>
-        <div class="hstat-label">Canciones</div>
-      </div>
+      <div class="hstat"><div class="hstat-val" id="hsSongs">—</div><div class="hstat-label">Canciones</div></div>
       <button class="login-btn" onclick="window.location.href='login.html'">Iniciar sesión →</button>
-      <button class="admin-btn" onclick="window.location.href='admin.html'">Acceder como Admin →</button>
     </div>
   </div>
 </div>
@@ -67,7 +47,7 @@
   <div class="search-wrap" style="max-width:460px; flex:1;">
     <span class="search-icon">🔍</span>
     <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
-    <button class="voice-btn" id="voiceBtn" onclick="showLoginAlert()" title="Inicia sesión para usar voz">🎤</button>
+    <button class="voice-btn" onclick="showLoginAlert()" title="Inicia sesión para usar voz">🎤</button>
   </div>
   <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
 </div>
@@ -77,83 +57,80 @@
   <div class="loading"><div class="spin"></div> Cargando…</div>
 </div>
 
+<!-- Reproductor normal (idéntico al que ya tienes) -->
 <div id="playerBar">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
-    <div class="pl-disc" id="plDisc">
-      <div class="pl-disc-cover" id="plDiscCover">🎵</div>
-      <div class="pl-disc-center"></div>
-    </div>
+    <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
   </div>
-
   <div class="pl-info" onclick="openExpandedPlayer()">
-    <div class="pl-title" id="plTitle">Sin reproducción</div>
-    <div class="pl-artist" id="plArtist"></div>
+    <div class="pl-title" id="plTitle">Sin reproducción</div><div class="pl-artist" id="plArtist"></div>
   </div>
-
   <div class="pl-center">
     <div class="pl-controls-btns">
-      <button class="pl-btn" onclick="skipBackward()">⏪</button>
+      <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
       <button class="pl-btn" onclick="playPrevSong()">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextSong()">⏭</button>
-      <button class="pl-btn" onclick="skipForward()">⏩</button>
+      <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
     </div>
-
     <div class="pl-progress-wrap">
       <span class="pl-time" id="currentTime">0:00</span>
-      <div class="pl-progress" id="progressBar" onclick="seekProgress(event)">
-        <div class="pl-progress-fill" id="progressFill"></div>
-      </div>
+      <div class="pl-progress" id="progressBar" onclick="seekProgress(event)"><div class="pl-progress-fill" id="progressFill"></div></div>
       <span class="pl-time" id="totalTime">0:00</span>
     </div>
-
     <div class="pl-visualizer" id="audioVisualizer"></div>
   </div>
-
   <div class="pl-volume">
     <span class="pl-vol-icon" id="volIcon">🔊</span>
-    <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8"
-      oninput="setVolume(this.value)">
+    <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
     <span class="vol-percent" id="volPercent">80%</span>
   </div>
-
   <audio id="audioEl" preload="none"></audio>
 </div>
 
+<!-- Reproductor expandido -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
     <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
     <div class="expanded-disc">
-      <div class="pl-disc expanded-disc-img" id="expDisc">
-        <div class="pl-disc-cover" id="expDiscCover">🎵</div>
-        <div class="pl-disc-center"></div>
-      </div>
+      <div class="pl-disc expanded-disc-img" id="expDisc"><div class="pl-disc-cover" id="expDiscCover">🎵</div><div class="pl-disc-center"></div></div>
     </div>
-    <div class="expanded-info">
-      <h2 id="expTitle">Sin reproducción</h2>
-      <p id="expArtist"></p>
-    </div>
+    <div class="expanded-info"><h2 id="expTitle">Sin reproducción</h2><p id="expArtist"></p></div>
     <div class="expanded-controls">
-      <button class="pl-btn" onclick="skipBackward()">⏪</button>
+      <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
       <button class="pl-btn" onclick="playPrevSong()">⏮</button>
       <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextSong()">⏭</button>
-      <button class="pl-btn" onclick="skipForward()">⏩</button>
+      <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
     </div>
     <div class="expanded-progress">
       <span id="expCurrentTime">0:00</span>
-      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)">
-        <div class="pl-progress-fill" id="expProgressFill"></div>
-      </div>
+      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)"><div class="pl-progress-fill" id="expProgressFill"></div></div>
       <span id="expTotalTime">0:00</span>
     </div>
     <div class="expanded-volume">
       <span class="pl-vol-icon">🔊</span>
-      <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8"
-        oninput="setVolume(this.value)">
+      <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
       <span class="vol-percent" id="expVolPercent">80%</span>
     </div>
+  </div>
+</div>
+
+<!-- Chat (solo lectura) -->
+<div id="chatFAB" onclick="toggleChat()">💬</div>
+<div id="chatPanel" class="hidden">
+  <div class="chat-header">
+    <h3>💬 Chat de la comunidad</h3>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div style="text-align:center;padding:6px;font-size:12px;color:var(--text2);">
+    🔒 <a href="login.html" style="color:var(--accent3);">Inicia sesión</a> para participar.
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-wrap">
+    <input type="text" disabled placeholder="Inicia sesión para chatear…" style="flex:1;">
+    <button disabled>Enviar</button>
   </div>
 </div>
 
