@@ -6,6 +6,7 @@
   <title>SoundMind — Panel de Administración</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <!-- Cargar Supabase desde CDN (versión 2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -67,25 +68,27 @@
     .btn:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(124,58,237,.48); }
     .btn:disabled { opacity: 0.5; pointer-events: none; }
     .msg { text-align: center; margin-top: 10px; font-size: 14px; color: #f87171; }
-    .file-label {
+    label {
       display: block;
-      margin-bottom: 6px;
       font-size: 13px;
       color: #9090b0;
+      margin-bottom: 4px;
       font-weight: 600;
     }
-    #uploadForm label { display: block; font-size: 13px; color: #9090b0; margin-bottom: 4px; font-weight: 600; }
   </style>
 </head>
 <body>
+
+<!-- Pantalla de login -->
 <div class="container" id="loginBox">
   <h2>🔐 Administración</h2>
   <p class="sub">Ingresa la contraseña para continuar</p>
   <input type="password" id="adminPass" placeholder="Contraseña">
-  <button class="btn" onclick="checkPassword()">Acceder</button>
+  <button class="btn" id="loginBtn">Acceder</button>
   <div id="loginMsg" class="msg"></div>
 </div>
 
+<!-- Pantalla de subida (oculta inicialmente) -->
 <div class="container hidden" id="uploadBox">
   <h2>🎵 Subir nueva canción</h2>
   <p class="sub">Completa los campos y selecciona los archivos</p>
@@ -125,23 +128,40 @@
 </div>
 
 <script>
+  // Crear cliente de Supabase
   const SUPABASE_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  const ADMIN_PASSWORD = 'soundmind2025';  // cambia la contraseña si quieres
 
-  function checkPassword() {
-    const pass = document.getElementById('adminPass').value;
-    const msg = document.getElementById('loginMsg');
+  const ADMIN_PASSWORD = 'admin2026';  // cambia aquí si quieres otra contraseña
+
+  // Referencias al DOM
+  const loginBox = document.getElementById('loginBox');
+  const uploadBox = document.getElementById('uploadBox');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginMsg = document.getElementById('loginMsg');
+  const adminPass = document.getElementById('adminPass');
+
+  // Verificar contraseña al hacer clic en el botón
+  loginBtn.addEventListener('click', () => {
+    const pass = adminPass.value;
     if (pass === ADMIN_PASSWORD) {
-      document.getElementById('loginBox').classList.add('hidden');
-      document.getElementById('uploadBox').classList.remove('hidden');
-      msg.textContent = '';
+      loginBox.classList.add('hidden');
+      uploadBox.classList.remove('hidden');
+      loginMsg.textContent = '';
     } else {
-      msg.textContent = 'Contraseña incorrecta';
+      loginMsg.textContent = 'Contraseña incorrecta';
     }
-  }
+  });
 
+  // También permitir login al presionar Enter en el campo de contraseña
+  adminPass.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      loginBtn.click();
+    }
+  });
+
+  // Manejar la subida de la canción
   document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const submitBtn = document.getElementById('submitBtn');
