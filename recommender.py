@@ -51,16 +51,16 @@ def collaborative_filtering(user_id, my_inter, all_inter, all_songs):
     return [s for s in all_songs if s["id"] in rec_ids]
 
 
-# ── Árbol de decisión J48 simplificado ──
+# ── Árbol de decisión J48 simplificado (solo para análisis) ──
 def build_decision_tree(all_inter, all_songs):
     datos = []
     for inter in all_inter:
         song = next((s for s in all_songs if s["id"] == inter["cancion_id"]), None)
         if song:
             datos.append({
-                "energia": song["energia"],
-                "bailabilidad": song["bailabilidad"],
-                "popularidad": song["popularidad"],
+                "energia": song.get("energia", 0.5),
+                "bailabilidad": song.get("bailabilidad", 0.5),
+                "popularidad": song.get("popularidad", 50),
                 "genero": song["genero"],
                 "like": 1 if (inter["es_like"] or inter["es_favorito"]) else 0
             })
@@ -76,9 +76,9 @@ def build_decision_tree(all_inter, all_songs):
         if d["like"]:
             by_genre[gen]["likes"] += 1
 
-    avg_en = sum(d["energia"] for d in datos) / len(datos)
-    avg_bai = sum(d["bailabilidad"] for d in datos) / len(datos)
-    avg_pop = sum(d["popularidad"] for d in datos) / len(datos)
+    avg_en = sum(d.get("energia", 0.5) for d in datos) / len(datos)
+    avg_bai = sum(d.get("bailabilidad", 0.5) for d in datos) / len(datos)
+    avg_pop = sum(d.get("popularidad", 50) for d in datos) / len(datos)
 
     accuracy = max(
         sum(1 for d in datos if d["like"]),
@@ -96,18 +96,23 @@ def build_decision_tree(all_inter, all_songs):
 def predict_tree(song, model):
     if not model:
         return False
-    gd = model["by_genre"].get(song["genero"], {"likes": 0, "total": 1})
+    gd = model["by_genre"].get(song.get("genero", ""), {"likes": 0, "total": 1})
     rate = gd["likes"] / gd["total"] if gd["total"] > 0 else 0.5
     score = 0
-    if rate > 0.55: score += 3
-    elif rate > 0.4: score += 1
-    if song["energia"] >= model["avg_en"] - 0.05: score += 1
-    if song["bailabilidad"] >= model["avg_bai"] - 0.05: score += 1
-    if song["popularidad"] >= model["avg_pop"]: score += 1
+    if rate > 0.55:
+        score += 3
+    elif rate > 0.4:
+        score += 1
+    if song.get("energia", 0.5) >= model["avg_en"] - 0.05:
+        score += 1
+    if song.get("bailabilidad", 0.5) >= model["avg_bai"] - 0.05:
+        score += 1
+    if song.get("popularidad", 50) >= model["avg_pop"]:
+        score += 1
     return score >= 4
 
 
-# ── Playlist recursiva ──
+# ── Playlist recursiva BASADA SOLO EN GÉNERO ──
 def recursive_playlist(seed_id, depth, visited, all_songs):
     if depth == 0 or not seed_id:
         return []
@@ -115,7 +120,8 @@ def recursive_playlist(seed_id, depth, visited, all_songs):
     if not seed or seed_id in visited:
         return []
     visited.add(seed_id)
-    # Puntuación simple: 3 si coinciden en género, 0 en caso contrario
+
+    # Puntuación simple: 3 si coincide el género, 0 en caso contrario
     candidates = [
         {
             "s": s,
@@ -125,9 +131,11 @@ def recursive_playlist(seed_id, depth, visited, all_songs):
     ]
     if not candidates:
         return []
-    # En caso de empate, se usa la popularidad como desempate (si existe)
+
+    # En caso de empate, usamos popularidad como desempate (si existe)
     best = max(candidates, key=lambda x: (x["score"], x["s"].get("popularidad", 0)))
     return [best["s"]] + recursive_playlist(best["s"]["id"], depth - 1, visited, all_songs)
+
 
 # ── Validación cruzada k=5 ──
 def cross_validation(all_inter, all_songs, k=5):
@@ -136,9 +144,9 @@ def cross_validation(all_inter, all_songs, k=5):
         song = next((s for s in all_songs if s["id"] == inter["cancion_id"]), None)
         if song:
             data.append({
-                "energia": song["energia"],
-                "bailabilidad": song["bailabilidad"],
-                "popularidad": song["popularidad"],
+                "energia": song.get("energia", 0.5),
+                "bailabilidad": song.get("bailabilidad", 0.5),
+                "popularidad": song.get("popularidad", 50),
                 "genero": song["genero"],
                 "like": 1 if (inter["es_like"] or inter["es_favorito"]) else 0
             })
@@ -159,9 +167,9 @@ def cross_validation(all_inter, all_songs, k=5):
             by_genre[gen]["total"] += 1
             if d["like"]:
                 by_genre[gen]["likes"] += 1
-                sum_en += d["energia"]
-                sum_bai += d["bailabilidad"]
-                sum_pop += d["popularidad"]
+                sum_en += d.get("energia", 0.5)
+                sum_bai += d.get("bailabilidad", 0.5)
+                sum_pop += d.get("popularidad", 50)
                 likes_count += 1
 
         avg_en = sum_en / likes_count if likes_count else 0.5
@@ -173,11 +181,16 @@ def cross_validation(all_inter, all_songs, k=5):
             gd = by_genre.get(d["genero"], {"likes": 0, "total": 1})
             rate = gd["likes"] / gd["total"] if gd["total"] > 0 else 0.5
             score = 0
-            if rate > 0.55: score += 3
-            elif rate > 0.4: score += 1
-            if d["energia"] >= avg_en - 0.05: score += 1
-            if d["bailabilidad"] >= avg_bai - 0.05: score += 1
-            if d["popularidad"] >= avg_pop: score += 1
+            if rate > 0.55:
+                score += 3
+            elif rate > 0.4:
+                score += 1
+            if d.get("energia", 0.5) >= avg_en - 0.05:
+                score += 1
+            if d.get("bailabilidad", 0.5) >= avg_bai - 0.05:
+                score += 1
+            if d.get("popularidad", 50) >= avg_pop:
+                score += 1
             pred = 1 if score >= 4 else 0
             if pred == d["like"]:
                 correct += 1
