@@ -1,10 +1,4 @@
-/* ════════════════════════════════════════════════════
-   explore.js — Página pública (Flask API)
-   - Todas las funciones del reproductor incluidas
-   - Sin dependencias de Supabase (usa fetch a backend)
-════════════════════════════════════════════════════ */
-
-const API_BASE = 'https://streamflix-music.onrender.com';   // ← cambia por tu URL real
+const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
 
 let allSongs     = [];
 let nowPlayingId = null;
@@ -35,17 +29,10 @@ const GENRE_EMOJI = {
   'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻','J-Pop':'🎌','Phonk':'💜','default':'🎵'
 };
 const GENRE_COLORS = {
-  'Pop':['#ec4899','#f472b6'],
-  'Electrónica':['#6366f1','#a78bfa'],
-  'Anime':['#f59e0b','#fbbf24'],
-  'Rock':['#ef4444','#f87171'],
-  'Latino':['#10b981','#34d399'],
-  'Alternativo':['#0ea5e9','#38bdf8'],
-  'Trap':['#8b5cf6','#a78bfa'],
-  'Balada':['#f97316','#fb923c'],
-  'J-Pop':['#ec4899','#f472b6'],
-  'Phonk':['#8b5cf6','#a78bfa'],
-  'default':['#6b7280','#9ca3af']
+  'Pop':['#ec4899','#f472b6'], 'Electrónica':['#6366f1','#a78bfa'], 'Anime':['#f59e0b','#fbbf24'],
+  'Rock':['#ef4444','#f87171'], 'Latino':['#10b981','#34d399'], 'Alternativo':['#0ea5e9','#38bdf8'],
+  'Trap':['#8b5cf6','#a78bfa'], 'Balada':['#f97316','#fb923c'], 'J-Pop':['#ec4899','#f472b6'],
+  'Phonk':['#8b5cf6','#a78bfa'], 'default':['#6b7280','#9ca3af']
 };
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
@@ -72,10 +59,7 @@ function filterGenre(btn, genre) {
   activeGenre = genre;
   renderCatalog();
 }
-function onSearch() {
-  searchQuery = $('searchInput').value.toLowerCase();
-  renderCatalog();
-}
+function onSearch() { searchQuery = $('searchInput').value.toLowerCase(); renderCatalog(); }
 function renderCatalog() {
   let songs = allSongs;
   if (activeGenre) songs = songs.filter(s => s.genero === activeGenre);
@@ -89,9 +73,7 @@ function songCard(s) {
   let coverContent = '';
   if (s.url_imagen) {
     coverContent = `<img src="${esc(s.url_imagen)}" alt="${esc(s.titulo)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
-  } else {
-    coverContent = genreEmoji(s.genero);
-  }
+  } else { coverContent = genreEmoji(s.genero); }
   return `<div class="song-card${playing?' playing':''}" data-id="${s.id}" onclick="playSong(event, ${s.id})">
     <div class="card-cover">
       <div class="card-cover-inner" style="background:${genreGradient(s.genero)}">${coverContent}</div>
@@ -124,7 +106,7 @@ function renderCards(songs, containerId, emptyMsg) {
   el.innerHTML = songs.map(s => songCard(s)).join('');
 }
 
-/* ── Reproductor (todas las funciones) ── */
+/* ── Reproductor ── */
 function playSong(e, songId) {
   if (e && e.stopPropagation) e.stopPropagation();
   const song = allSongs.find(s => s.id === songId);
@@ -162,8 +144,7 @@ function playSong(e, songId) {
       toast('⚠️ No se pudo reproducir');
     });
   } else {
-    audio.pause();
-    audio.removeAttribute('src');
+    audio.pause(); audio.removeAttribute('src');
     $('plDisc').classList.remove('spinning');
     updatePlayPauseBtn(false);
     toast('⚠️ Sin archivo de audio');
@@ -178,14 +159,10 @@ function updateDiscCover(coverEl, song) {
     const img = document.createElement('img');
     img.src = song.url_imagen;
     img.alt = song.titulo;
-    img.style.width = '100%';
-    img.style.height = '100%';
-    img.style.objectFit = 'cover';
-    img.style.borderRadius = '50%';
+    img.style.width = '100%'; img.style.height = '100%';
+    img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
     coverEl.appendChild(img);
-  } else {
-    coverEl.textContent = genreEmoji(song.genero);
-  }
+  } else { coverEl.textContent = genreEmoji(song.genero); }
 }
 
 function playPrevSong() {
@@ -212,6 +189,7 @@ function skipForward() {
   audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15);
   updateProgress();
 }
+
 function ensureAudioContext(audioEl){
   if(sourceLinked) return;
   try{
@@ -333,7 +311,6 @@ function fmtTime(s){
   const m=Math.floor(s/60),sec=Math.floor(s%60);
   return m+':'+(sec<10?'0':'')+sec;
 }
-
 function setVolume(val){
   const audio=$('audioEl'); if(audio) audio.volume=parseFloat(val);
   const pct = Math.round(val*100);
@@ -344,7 +321,6 @@ function setVolume(val){
   const icon=$('volIcon');
   if(icon) icon.textContent=val==0?'🔇':val<0.5?'🔉':'🔊';
 }
-
 function onAudioEnded(){
   $('plDisc').classList.remove('spinning');
   updatePlayPauseBtn(false);
@@ -353,7 +329,6 @@ function onAudioEnded(){
   playNextSong();
 }
 
-/* ── Panel expandido (click en disco) ── */
 function openExpandedPlayer() {
   if (!nowPlayingId) return;
   const song = allSongs.find(s => s.id === nowPlayingId);
@@ -374,15 +349,52 @@ function openExpandedPlayer() {
   txt('expVolPercent', Math.round((audio?.volume || 0.8)*100)+'%');
   $('expandedPlayer').classList.remove('hidden');
 }
-function closeExpandedPlayer() {
-  $('expandedPlayer').classList.add('hidden');
+function closeExpandedPlayer() { $('expandedPlayer').classList.add('hidden'); }
+
+function showLoginAlert() { toast('🔒 Inicia sesión para usar esta función'); }
+
+/* ═══════════════════ CHAT (SOLO LECTURA) ══════════════════ */
+function initChatReadOnly() {
+  fetch(`${API_BASE}/api/messages`)
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById('chatMessages');
+      if (container) {
+        container.innerHTML = '';
+        (data.messages || []).forEach(msg => addMessageToUI(msg));
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+
+  if (!window.supabase) return;
+  const supabaseClient = window.supabase.createClient(
+    'https://jhlktvdylbiieeuwykgj.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s'
+  );
+  supabaseClient
+    .channel('table-db-changes')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, payload => {
+      addMessageToUI(payload.new);
+      const container = document.getElementById('chatMessages');
+      if (container) container.scrollTop = container.scrollHeight;
+    })
+    .subscribe();
 }
 
-function showLoginAlert() {
-  toast('🔒 Inicia sesión para usar esta función');
+function addMessageToUI(msg) {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'msg-bubble';
+  div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
+  container.appendChild(div);
 }
 
-/* ── Inicialización ── */
+function toggleChat() {
+  const panel = document.getElementById('chatPanel');
+  if (panel) panel.classList.toggle('hidden');
+}
+
 window.addEventListener('load', async () => {
   await loadSongs();
   const vizEl = $('audioVisualizer');
@@ -410,4 +422,5 @@ window.addEventListener('load', async () => {
   const volRange = $('volumeRange');
   if (volRange) { volRange.value = 0.8; setVolume(0.8); }
   $('playerBar').classList.remove('hidden');
+  initChatReadOnly();
 });
