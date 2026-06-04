@@ -722,3 +722,18 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .pl-artist { font-size: 9px; }
   .pl-btn { width: 26px; height: 26px; font-size: 14px; }
 }
+
+/* ── Botones de salto -15 / +15 ── */
+.pl-btn.skip-btn {
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  width: auto;
+  padding: 0 12px;
+  border-radius: 20px;
+}
+.pl-btn.skip-btn:hover {
+  background: var(--accentA);
+  color: var(--accent3);
+}
