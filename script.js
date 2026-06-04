@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v8) → API Python
-   - Todas las operaciones de BD e IA se delegan al backend.
-   - El resto (player, voz, efectos, cola, logros) sigue igual.
+   SoundMind — script.js (v8 final API Python)
+   - Conexión a backend FastAPI (API_BASE)
+   - Todas las funciones completas y sin conflictos.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'http://localhost:8000';   // ← Cambia por tu URL pública
@@ -25,7 +25,7 @@ let visRaf       = null;
 let recognition  = null;
 let isListening  = false;
 
-// ── Variables de las nuevas funciones ──
+// ── Nuevas variables ──
 let sleepTimer = null;
 let queue = [];
 
@@ -249,7 +249,7 @@ function updateBadges(){
   if(favs>0) {bf.textContent=favs; bf.classList.remove('hidden')}else bf.classList.add('hidden');
 }
 
-/* ── Song Card ── */
+/* ── Song Card (con imagen) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
@@ -300,7 +300,7 @@ function renderCards(songs,containerId,emptyMsg='No hay canciones aquí aún.', 
   el.innerHTML=songs.map(s => songCard(s, context)).join('');
 }
 
-/* ── Populars (backend) ── */
+/* ── Populars (API) ── */
 async function renderHomePopular() {
   try {
     const res = await fetch(`${API_BASE}/api/popular-songs`);
@@ -662,7 +662,7 @@ function onAudioEnded(){
     updateStats(nowPlayingId, duration);
     checkAchievements();
 
-    // Siguiente canción (usando cola local)
+    // Siguiente canción (cola local)
     if (queue.length > 0) {
       const nextSong = queue.shift();
       renderQueueUI();
@@ -673,11 +673,9 @@ function onAudioEnded(){
   }
 }
 
-/* ═══════════════════ NUEVAS FUNCIONES (sin cambios) ══════════════════ */
-// Discover Weekly, Estadísticas, Logros, Sleep Timer, Efectos, Cola, Reproductor expandido...
-// (Se incluyen exactamente igual que en la versión v7.1, sin tocar)
+/* ═══════════════════ NUEVAS FUNCIONES ══════════════════ */
 
-// ── Discover Weekly ──
+// ── Discover Weekly (backend) ──
 async function generateWeekly() {
   const res = await fetch(`${API_BASE}/api/discover-weekly?user_id=${currentUser.id}`);
   const data = await res.json();
@@ -828,22 +826,6 @@ function resetEnergyEffect() {
 }
 
 // ── Cola de reproducción (local) ──
-function updateQueue() {
-  // Se genera una pequeña cola local basada en el contexto
-  if (playlistContext === 'favorites') {
-    queue = getFavoriteSongs().filter(s => s.id !== nowPlayingId);
-  } else if (playlistContext === 'likes') {
-    queue = getLikedSongs().filter(s => s.id !== nowPlayingId);
-  } else {
-    // Generar usando una función similar a recursivePlaylist (local)
-    if (nowPlayingId) {
-      queue = recursivePlaylistLocal(nowPlayingId, 10, new Set([nowPlayingId]));
-    } else {
-      queue = allSongs.slice(0, 20);
-    }
-  }
-  renderQueueUI();
-}
 function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
   if (depth === 0 || !seedId) return [];
   const seed = allSongs.find(s => s.id === seedId);
@@ -861,6 +843,20 @@ function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
     .sort((a, b) => b.score - a.score)[0];
   if (!next) return [];
   return [next.s, ...recursivePlaylistLocal(next.s.id, depth - 1, visited)];
+}
+function updateQueue() {
+  if (playlistContext === 'favorites') {
+    queue = getFavoriteSongs().filter(s => s.id !== nowPlayingId);
+  } else if (playlistContext === 'likes') {
+    queue = getLikedSongs().filter(s => s.id !== nowPlayingId);
+  } else {
+    if (nowPlayingId) {
+      queue = recursivePlaylistLocal(nowPlayingId, 10, new Set([nowPlayingId]));
+    } else {
+      queue = allSongs.slice(0, 20);
+    }
+  }
+  renderQueueUI();
 }
 function renderQueueUI() {
   const list = $('queueList');
@@ -882,7 +878,7 @@ function closeQueue() {
   $('queueModal')?.classList.add('hidden');
 }
 
-/* ── Panel expandido ── */
+/* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
 function openExpandedPlayer() {
   if (!nowPlayingId) return;
   const song = allSongs.find(s => s.id === nowPlayingId);
@@ -926,14 +922,12 @@ async function renderAnalysis() {
   try {
     const res = await fetch(`${API_BASE}/api/analysis?user_id=${currentUser.id}`);
     const data = await res.json();
-    // Métricas
     txt('mUsers', data.metrics.users);
     txt('mSongs', data.metrics.songs);
     txt('mInter', data.metrics.interactions);
     txt('mLikes', data.metrics.likes);
     txt('mAcc', data.metrics.accuracy);
     txt('mAvg', data.metrics.avg_likes_per_user);
-    // Gráfico de barras de géneros
     const genreChart = data.genre_chart || {};
     const sorted = Object.entries(genreChart).sort((a,b) => b[1] - a[1]);
     const maxVal = Math.max(1, ...sorted.map(e => e[1]));
@@ -948,9 +942,7 @@ async function renderAnalysis() {
     });
     if (!html) html = '<p style="color:var(--text2);padding:20px">No tienes suficientes interacciones para mostrar gráfico.</p>';
     $('genreBar').innerHTML = html;
-    // Árbol
     $('treeViz').textContent = data.tree_rules;
-    // Validación cruzada
     const cvBody = $('cvBody');
     let rows = '';
     data.cross_validation.forEach(cv => {
@@ -970,7 +962,6 @@ async function renderAnalysis() {
 window.addEventListener('load', async ()=>{
   if (!loadSession()) { window.location.href = 'explore.html'; return; }
 
-  // Precargar canciones para el reproductor y búsquedas locales
   try {
     const res = await fetch(`${API_BASE}/api/songs`);
     const data = await res.json();
