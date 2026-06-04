@@ -1,6 +1,7 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v12 final)
-   - Incluye chat en tiempo real, CORS, sleep timer, etc.
+   SoundMind — script.js (v13 FINAL COMPLETO)
+   - Chat en página dedicada, envío corregido, sin FAB.
+   - Todas las funciones previas intactas.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -101,7 +102,7 @@ async function bootApp(){
   initChat();           // ← chat
 }
 
-/* ═══════════════════ LOGOUT (corregido) ══════════════════ */
+/* ═══════════════════ LOGOUT ══════════════════ */
 async function doLogout(){
   currentUser=null; myInter=[]; allSongs=[]; nowPlayingId=null;
   clearSession();
@@ -401,7 +402,7 @@ async function toggleFav(e, songId) {
   checkAchievements();
 }
 
-/* ═══════════════════ PLAYER (corregido) ══════════════════ */
+/* ═══════════════════ PLAYER ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs(){
   if (playlistContext === 'favorites') return getFavoriteSongs();
@@ -911,20 +912,11 @@ function closeExpandedPlayer() {
   $('expandedPlayer').classList.add('hidden');
 }
 
-/* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
+/* ═══════════════════ CHAT EN TIEMPO REAL (página dedicada) ══════════════════ */
 let chatSubscription = null;
 
 function initChat() {
-  fetch(`${API_BASE}/api/messages`)
-    .then(r => r.json())
-    .then(data => {
-      const container = document.getElementById('chatMessages');
-      if (container) {
-        container.innerHTML = '';
-        (data.messages || []).forEach(msg => addMessageToUI(msg));
-        container.scrollTop = container.scrollHeight;
-      }
-    });
+  loadChatMessages();
 
   if (!window.supabase) return;
   const supabaseClient = window.supabase.createClient(
@@ -935,24 +927,36 @@ function initChat() {
     .channel('table-db-changes')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, payload => {
       addMessageToUI(payload.new);
-      const container = document.getElementById('chatMessages');
+      const container = document.getElementById('chatMessagesPanel');
       if (container) container.scrollTop = container.scrollHeight;
     })
     .subscribe();
 }
 
+function loadChatMessages() {
+  fetch(`${API_BASE}/api/messages`)
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById('chatMessagesPanel');
+      if (container) {
+        container.innerHTML = '';
+        (data.messages || []).forEach(msg => addMessageToUI(msg));
+        container.scrollTop = container.scrollHeight;
+      }
+    })
+    .catch(err => {
+      console.error('Error cargando mensajes:', err);
+      toast('Error al cargar el chat');
+    });
+}
+
 function addMessageToUI(msg) {
-  const container = document.getElementById('chatMessages');
+  const container = document.getElementById('chatMessagesPanel');
   if (!container) return;
   const div = document.createElement('div');
   div.className = 'msg-bubble';
   div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
   container.appendChild(div);
-}
-
-function toggleChat() {
-  const panel = document.getElementById('chatPanel');
-  if (panel) panel.classList.toggle('hidden');
 }
 
 async function sendMessage() {
@@ -961,7 +965,7 @@ async function sendMessage() {
   if (!mensaje || !currentUser) return;
   input.value = '';
   try {
-    await fetch(`${API_BASE}/api/messages`, {
+    const res = await fetch(`${API_BASE}/api/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -970,12 +974,17 @@ async function sendMessage() {
         mensaje
       })
     });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Error al enviar');
+    }
   } catch (e) {
-    toast('Error al enviar mensaje');
+    console.error('Error enviando mensaje:', e);
+    toast('Error al enviar mensaje: ' + e.message);
   }
 }
 
-/* ═══════════════════ NAVEGACIÓN Y PANEL IA (API) ══════════════════ */
+/* ═══════════════════ NAVEGACIÓN Y PANEL IA ══════════════════ */
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -987,6 +996,10 @@ function showPage(name){
   if (name === 'weekly') renderWeekly();
   else if (name === 'profile') renderProfile();
   else if (name === 'analysis') renderAnalysis();
+  else if (name === 'chat') {
+    if (!chatSubscription) initChat();
+    loadChatMessages();
+  }
 }
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
