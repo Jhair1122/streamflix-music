@@ -1,8 +1,10 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v10 final corregido)
-   - Soluciona todos los fallos reportados.
-   - Reproducción, progreso, panel expandido, logout,
-     auto‑siguiente, contexto, cola, etc.
+   SoundMind — script.js (v11 final)
+   - API_BASE apuntando a backend Python (Render)
+   - Sleep timer con entrada manual de minutos
+   - Botones de salto -15 / +15
+   - Corrección de logout, progreso, panel expandido
+   - Búsqueda por voz, catálogo, recomendaciones, etc.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -25,7 +27,7 @@ let visRaf       = null;
 let recognition  = null;
 let isListening  = false;
 
-// ── Variables de las funciones extra ──
+// ── Variables de funciones extra ──
 let sleepTimer = null;
 let queue = [];
 
@@ -247,7 +249,7 @@ function updateBadges(){
   if(favs>0) {bf.textContent=favs; bf.classList.remove('hidden')}else bf.classList.add('hidden');
 }
 
-/* ── Song Card ── */
+/* ── Song Card (con imagen) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
@@ -450,7 +452,6 @@ async function playSong(e, songId, context = null){
       ensureAudioContext(audio);
       toast('▶ ' + song.titulo);
     }).catch(err => {
-      // El audio se reprodujo a pesar del error (problema de autoplay)
       if (audio.currentTime > 0 || audio.duration > 0) {
         // ya está sonando, no mostrar error
       } else {
@@ -665,7 +666,6 @@ function onAudioEnded(){
     updateStats(nowPlayingId, duration);
     checkAchievements();
 
-    // Intentar cola local primero
     if (queue.length > 0) {
       const nextSong = queue.shift();
       renderQueueUI();
@@ -778,15 +778,35 @@ function checkAchievements() {
   saveAchievements(achieved);
 }
 
-// ── Sleep Timer ──
+// ── Sleep Timer (mejorado) ──
 function toggleSleepMenu() {
   const menu = $('sleepMenu');
   if (menu) menu.classList.toggle('hidden');
 }
+
+function cancelSleepMenu() {
+  $('sleepMenu')?.classList.add('hidden');
+}
+
+function startCustomSleepTimer() {
+  const input = $('sleepMinutesInput');
+  if (!input) return;
+  const minutes = parseInt(input.value, 10);
+  if (isNaN(minutes) || minutes < 1) {
+    toast('⚠️ Ingresa un número válido de minutos');
+    return;
+  }
+  setSleepTimer(minutes);
+  $('sleepMenu')?.classList.add('hidden');
+}
+
 function setSleepTimer(minutes) {
   clearSleepTimer();
   const countdownEl = $('sleepCountdown');
   const expCountdownEl = $('expSleepCountdown');
+  const cancelBtn = $('cancelSleepBtn');
+  const expCancelBtn = $('expCancelSleepBtn');
+  
   let remaining = minutes * 60;
   const updateCountdown = () => {
     const min = Math.floor(remaining / 60);
@@ -794,25 +814,31 @@ function setSleepTimer(minutes) {
     const text = `${min}:${sec < 10 ? '0' : ''}${sec}`;
     if (countdownEl) { countdownEl.textContent = text; countdownEl.classList.remove('hidden'); }
     if (expCountdownEl) { expCountdownEl.textContent = text; expCountdownEl.classList.remove('hidden'); }
+    if (cancelBtn) cancelBtn.classList.remove('hidden');
+    if (expCancelBtn) expCancelBtn.classList.remove('hidden');
   };
   updateCountdown();
-  $('sleepMenu')?.classList.add('hidden');
+  
   sleepTimer = setInterval(() => {
     remaining--;
     updateCountdown();
     if (remaining <= 0) {
       clearSleepTimer();
       togglePlayPause();
-      if (countdownEl) countdownEl.classList.add('hidden');
-      if (expCountdownEl) expCountdownEl.classList.add('hidden');
       toast('⏰ Temporizador finalizado');
     }
   }, 1000);
 }
+
 function clearSleepTimer() {
-  if (sleepTimer) { clearInterval(sleepTimer); sleepTimer = null; }
+  if (sleepTimer) {
+    clearInterval(sleepTimer);
+    sleepTimer = null;
+  }
   $('sleepCountdown')?.classList.add('hidden');
   $('expSleepCountdown')?.classList.add('hidden');
+  $('cancelSleepBtn')?.classList.add('hidden');
+  $('expCancelSleepBtn')?.classList.add('hidden');
 }
 
 // ── Efectos visuales por energía ──
@@ -881,7 +907,7 @@ function closeQueue() {
   $('queueModal')?.classList.add('hidden');
 }
 
-/* ═══════════════════ PANEL EXPANDIDO (CORREGIDO) ══════════════════ */
+/* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
 function openExpandedPlayer() {
   if (!nowPlayingId) return;
   const song = allSongs.find(s => s.id === nowPlayingId);
@@ -968,9 +994,7 @@ window.addEventListener('load', async ()=>{
     const res = await fetch(`${API_BASE}/api/songs`);
     const data = await res.json();
     allSongs = data.data || [];
-  } catch(e) {
-    allSongs = [];
-  }
+  } catch(e) { allSongs = []; }
 
   const vizEl = $('audioVisualizer');
   if (vizEl) vizEl.innerHTML = Array.from({ length: 14 }, (_, i) => `<div class="vis-bar idle" style="--d:${i * 0.06}s"></div>`).join('');
