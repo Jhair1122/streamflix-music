@@ -792,7 +792,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .pl-btn { width: 26px; height: 26px; font-size: 14px; }
 }
 
-/* ── Página de Chat (sección completa) ── */
+/* ── Chat (página completa) ── */
 .chat-container {
   display: flex;
   flex-direction: column;
@@ -804,29 +804,45 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   overflow: hidden;
   backdrop-filter: blur(15px);
 }
+
 .chat-messages-panel {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
-.chat-messages-panel .msg-bubble {
-  background: var(--accentA);
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-size: 14px;
+/* Burbujas de mensaje */
+.msg-bubble {
   max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
   word-wrap: break-word;
+  background: var(--accentA);          /* mensajes ajenos */
   color: var(--text);
+  align-self: flex-start;               /* alineado a la izquierda */
 }
-.chat-messages-panel .msg-user {
+
+/* Mensaje propio (derecha) */
+.msg-bubble.my-msg {
+  align-self: flex-end !important;      /* forzar alineación derecha */
+  background: rgba(167,139,250,0.25);
+  border: 1px solid rgba(167,139,250,0.4);
+  text-align: left;                     /* el texto sigue siendo legible */
+}
+
+/* Nombre de usuario solo en mensajes ajenos */
+.msg-user {
   font-weight: 700;
   color: var(--accent3);
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   font-size: 12px;
 }
+
+/* Área de entrada */
 .chat-input-area {
   display: flex;
   padding: 10px 14px;
@@ -834,6 +850,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   background: var(--bg1);
   gap: 8px;
 }
+
 .chat-input-area input {
   flex: 1;
   padding: 10px 16px;
@@ -844,9 +861,11 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   font-size: 14px;
   outline: none;
 }
+
 .chat-input-area input:focus {
   border-color: var(--accent);
 }
+
 .chat-send-btn {
   padding: 10px 20px;
   border-radius: 25px;
@@ -858,18 +877,20 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   cursor: pointer;
   transition: var(--transition-fast);
 }
+
 .chat-send-btn:hover {
   filter: brightness(1.2);
   box-shadow: 0 0 10px var(--accent2);
 }
 
-/* Eliminamos los estilos del FAB y del panel anterior (si los tenías) */
-#chatFAB, #chatPanel { display: none !important; }
-
-/* Mensaje propio alineado a la derecha */
-.msg-bubble.my-msg {
-  align-self: flex-end;
-  background: rgba(167,139,250,0.25);
-  border: 1px solid rgba(167,139,250,0.4);
+/* Ajustes para móviles (pantallas pequeñas) */
+@media (max-width: 600px) {
+  .chat-container {
+    height: 75vh;               /* un poco más de espacio en móvil */
+    border-radius: 0;           /* sin bordes redondeados para aprovechar ancho */
+  }
+  .msg-bubble {
+    max-width: 90%;             /* burbujas un poco más anchas */
+    font-size: 13px;
+  }
 }
-/* Mensajes ajenos (por defecto) ya quedan alineados a la izquierda */
