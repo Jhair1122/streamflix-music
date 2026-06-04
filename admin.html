@@ -6,7 +6,6 @@
   <title>SoundMind — Panel de Administración</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
-  <!-- Cargar Supabase desde CDN (versión 2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -128,104 +127,110 @@
 </div>
 
 <script>
-  // Crear cliente de Supabase
-  const SUPABASE_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  const ADMIN_PASSWORD = 'admin2026';  // cambia aquí si quieres otra contraseña
-
-  // Referencias al DOM
-  const loginBox = document.getElementById('loginBox');
-  const uploadBox = document.getElementById('uploadBox');
-  const loginBtn = document.getElementById('loginBtn');
-  const loginMsg = document.getElementById('loginMsg');
-  const adminPass = document.getElementById('adminPass');
-
-  // Verificar contraseña al hacer clic en el botón
-  loginBtn.addEventListener('click', () => {
-    const pass = adminPass.value;
-    if (pass === ADMIN_PASSWORD) {
-      loginBox.classList.add('hidden');
-      uploadBox.classList.remove('hidden');
-      loginMsg.textContent = '';
-    } else {
-      loginMsg.textContent = 'Contraseña incorrecta';
-    }
-  });
-
-  // También permitir login al presionar Enter en el campo de contraseña
-  adminPass.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      loginBtn.click();
-    }
-  });
-
-  // Manejar la subida de la canción
-  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const submitBtn = document.getElementById('submitBtn');
-    const uploadMsg = document.getElementById('uploadMsg');
-    submitBtn.disabled = true;
-    uploadMsg.textContent = 'Subiendo archivos…';
-
-    const audioFile = document.getElementById('audioFile').files[0];
-    const imageFile = document.getElementById('imageFile').files[0];
-    const titulo = document.getElementById('titulo').value.trim();
-    const artista = document.getElementById('artista').value.trim();
-    const genero = document.getElementById('genero').value;
-    const popularidad = parseInt(document.getElementById('popularidad').value);
-    const energia = parseFloat(document.getElementById('energia').value);
-    const bailabilidad = parseFloat(document.getElementById('bailabilidad').value);
-
-    if (!audioFile || !imageFile || !titulo || !artista || !genero) {
-      uploadMsg.textContent = 'Completa todos los campos y selecciona ambos archivos.';
-      submitBtn.disabled = false;
+  // Esperar a que el DOM esté completamente cargado
+  document.addEventListener('DOMContentLoaded', () => {
+    // Verificar que Supabase esté disponible
+    if (!window.supabase) {
+      document.getElementById('loginMsg').textContent = 'Error: No se pudo cargar la librería de Supabase.';
       return;
     }
 
-    try {
-      // Subir audio
-      const audioPath = `audios/${Date.now()}_${audioFile.name}`;
-      const { error: audioError } = await supabase.storage
-        .from('musica')
-        .upload(audioPath, audioFile);
-      if (audioError) throw new Error('Error al subir audio: ' + audioError.message);
+    // Crear cliente de Supabase
+    const SUPABASE_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Subir imagen
-      const imagePath = `imagenes/${Date.now()}_${imageFile.name}`;
-      const { error: imageError } = await supabase.storage
-        .from('musica')
-        .upload(imagePath, imageFile);
-      if (imageError) throw new Error('Error al subir imagen: ' + imageError.message);
+    const ADMIN_PASSWORD = 'soundmind2025';
 
-      // Obtener URLs públicas
-      const audioUrl = supabase.storage.from('musica').getPublicUrl(audioPath).data.publicUrl;
-      const imageUrl = supabase.storage.from('musica').getPublicUrl(imagePath).data.publicUrl;
+    const loginBox = document.getElementById('loginBox');
+    const uploadBox = document.getElementById('uploadBox');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginMsg = document.getElementById('loginMsg');
+    const adminPass = document.getElementById('adminPass');
 
-      // Insertar en tabla canciones
-      const { error: insertError } = await supabase
-        .from('canciones')
-        .insert({
-          titulo,
-          artista,
-          genero,
-          popularidad,
-          energia,
-          bailabilidad,
-          url_preview: audioUrl,
-          url_imagen: imageUrl
-        });
-      if (insertError) throw new Error('Error al guardar canción: ' + insertError.message);
+    // Función de login
+    loginBtn.addEventListener('click', () => {
+      const pass = adminPass.value;
+      if (pass === ADMIN_PASSWORD) {
+        loginBox.classList.add('hidden');
+        uploadBox.classList.remove('hidden');
+        loginMsg.textContent = '';
+      } else {
+        loginMsg.textContent = 'Contraseña incorrecta';
+      }
+    });
 
-      uploadMsg.textContent = '✅ Canción subida con éxito!';
-      document.getElementById('uploadForm').reset();
-    } catch (err) {
-      console.error(err);
-      uploadMsg.textContent = '❌ ' + err.message;
-    } finally {
-      submitBtn.disabled = false;
-    }
+    // Permitir login con Enter
+    adminPass.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loginBtn.click();
+    });
+
+    // Manejar subida de archivos
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      const uploadMsg = document.getElementById('uploadMsg');
+      submitBtn.disabled = true;
+      uploadMsg.textContent = 'Subiendo archivos…';
+
+      const audioFile = document.getElementById('audioFile').files[0];
+      const imageFile = document.getElementById('imageFile').files[0];
+      const titulo = document.getElementById('titulo').value.trim();
+      const artista = document.getElementById('artista').value.trim();
+      const genero = document.getElementById('genero').value;
+      const popularidad = parseInt(document.getElementById('popularidad').value);
+      const energia = parseFloat(document.getElementById('energia').value);
+      const bailabilidad = parseFloat(document.getElementById('bailabilidad').value);
+
+      if (!audioFile || !imageFile || !titulo || !artista || !genero) {
+        uploadMsg.textContent = 'Completa todos los campos y selecciona ambos archivos.';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      try {
+        // Subir audio
+        const audioPath = `audios/${Date.now()}_${audioFile.name}`;
+        const { error: audioError } = await supabase.storage
+          .from('musica')
+          .upload(audioPath, audioFile);
+        if (audioError) throw new Error('Error al subir audio: ' + audioError.message);
+
+        // Subir imagen
+        const imagePath = `imagenes/${Date.now()}_${imageFile.name}`;
+        const { error: imageError } = await supabase.storage
+          .from('musica')
+          .upload(imagePath, imageFile);
+        if (imageError) throw new Error('Error al subir imagen: ' + imageError.message);
+
+        // Obtener URLs públicas
+        const audioUrl = supabase.storage.from('musica').getPublicUrl(audioPath).data.publicUrl;
+        const imageUrl = supabase.storage.from('musica').getPublicUrl(imagePath).data.publicUrl;
+
+        // Insertar en tabla canciones
+        const { error: insertError } = await supabase
+          .from('canciones')
+          .insert({
+            titulo,
+            artista,
+            genero,
+            popularidad,
+            energia,
+            bailabilidad,
+            url_preview: audioUrl,
+            url_imagen: imageUrl
+          });
+        if (insertError) throw new Error('Error al guardar canción: ' + insertError.message);
+
+        uploadMsg.textContent = '✅ Canción subida con éxito!';
+        document.getElementById('uploadForm').reset();
+      } catch (err) {
+        console.error(err);
+        uploadMsg.textContent = '❌ ' + err.message;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
   });
 </script>
 </body>
