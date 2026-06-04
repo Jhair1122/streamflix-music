@@ -1,7 +1,8 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v9 Flask API)
-   - Todas las operaciones de BD e IA se hacen en backend.
-   - El frontend solo consume la API REST.
+   SoundMind — script.js (v10 final corregido)
+   - Soluciona todos los fallos reportados.
+   - Reproducción, progreso, panel expandido, logout,
+     auto‑siguiente, contexto, cola, etc.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -10,7 +11,6 @@ const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu
 let currentUser  = null;
 let allSongs     = [];
 let myInter      = [];
-let allInter     = [];   // no se usa globalmente
 let nowPlayingId = null;
 let activeGenre  = null;
 let searchQuery  = '';
@@ -25,7 +25,7 @@ let visRaf       = null;
 let recognition  = null;
 let isListening  = false;
 
-// ── Variables de nuevas funciones ──
+// ── Variables de las funciones extra ──
 let sleepTimer = null;
 let queue = [];
 
@@ -96,12 +96,10 @@ async function bootApp(){
     ]);
     allSongs = songsRes.data || [];
     myInter = myRes.data || [];
-    allInter = [];   // no se usa
   } catch (err) {
     console.error('Error cargando datos:', err);
     toast('⚠️ Error de conexión. Algunos datos pueden no estar actualizados.');
     myInter = [];
-    allInter = [];
   }
   buildGenrePills();
   renderAll();
@@ -111,9 +109,9 @@ async function bootApp(){
   initVoiceSearch();
 }
 
-/* ═══════════════════ LOGOUT ══════════════════ */
+/* ═══════════════════ LOGOUT (corregido) ══════════════════ */
 async function doLogout(){
-  currentUser=null; myInter=[]; allInter=[]; nowPlayingId=null;
+  currentUser=null; myInter=[]; allSongs=[]; nowPlayingId=null;
   clearSession();
   stopVisRaf();
   const audio=$('audioEl');
@@ -188,8 +186,42 @@ function toggleVoice(){
   }
 }
 
-function levenshtein(a, b) { /* igual que antes */ }
-function findBestMatch(query, songs) { /* igual que antes */ }
+function levenshtein(a, b) {
+  const an = a.length, bn = b.length;
+  const matrix = Array.from({ length: an + 1 }, () => Array(bn + 1).fill(0));
+  for (let i = 0; i <= an; i++) matrix[i][0] = i;
+  for (let j = 0; j <= bn; j++) matrix[0][j] = j;
+  for (let i = 1; i <= an; i++) {
+    for (let j = 1; j <= bn; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[an][bn];
+}
+
+function findBestMatch(query, songs) {
+  const lowerQuery = query.toLowerCase();
+  let bestMatch = null;
+  let bestDistance = Infinity;
+  for (const song of songs) {
+    const title = song.titulo.toLowerCase();
+    const artist = song.artista.toLowerCase();
+    const distTitle = levenshtein(lowerQuery, title);
+    const distArtist = levenshtein(lowerQuery, artist);
+    const minDist = Math.min(distTitle, distArtist);
+    const maxAllowed = Math.max(title.length, artist.length, lowerQuery.length) * 0.4;
+    if (minDist <= maxAllowed && minDist < bestDistance) {
+      bestDistance = minDist;
+      bestMatch = distTitle < distArtist ? song.titulo : song.artista;
+    }
+  }
+  return bestMatch;
+}
 
 /* ═══════════════════ RENDER ALL ══════════════════ */
 function renderAll(){
@@ -377,7 +409,7 @@ async function toggleFav(e, songId) {
   checkAchievements();
 }
 
-/* ═══════════════════ PLAYER (sin cambios) ══════════════════ */
+/* ═══════════════════ PLAYER (corregido) ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs(){
   if (playlistContext === 'favorites') return getFavoriteSongs();
@@ -418,8 +450,13 @@ async function playSong(e, songId, context = null){
       ensureAudioContext(audio);
       toast('▶ ' + song.titulo);
     }).catch(err => {
-      console.warn('play error:', err);
-      toast('⚠️ No se pudo reproducir');
+      // El audio se reprodujo a pesar del error (problema de autoplay)
+      if (audio.currentTime > 0 || audio.duration > 0) {
+        // ya está sonando, no mostrar error
+      } else {
+        console.warn('play error:', err);
+        toast('⚠️ No se pudo reproducir');
+      }
     });
   } else {
     audio.pause();
@@ -433,18 +470,190 @@ async function playSong(e, songId, context = null){
   updateQueue();
 }
 
-function updateDiscCover(coverEl, song) { /* igual que antes */ }
-function playPrevInContext(){ /* igual que antes */ }
-function playNextInContext(){ /* igual que antes */ }
-function skipBackward() { /* igual que antes */ }
-function skipForward() { /* igual que antes */ }
-function ensureAudioContext(audioEl){ /* igual que antes */ }
-function refreshCardHighlight(){ /* igual que antes */ }
-function togglePlayPause(){ /* igual que antes */ }
-function updatePlayPauseBtn(playing){ /* igual que antes */ }
-/* Visualizer, Progress, Volumen (igual) */
+function updateDiscCover(coverEl, song) {
+  coverEl.innerHTML = '';
+  coverEl.style.background = genreGradient(song.genero);
+  if (song.url_imagen) {
+    const img = document.createElement('img');
+    img.src = song.url_imagen;
+    img.alt = song.titulo;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    img.style.borderRadius = '50%';
+    coverEl.appendChild(img);
+  } else {
+    coverEl.textContent = genreEmoji(song.genero);
+  }
+}
 
-/* ── onAudioEnded con stats y logros ── */
+function playPrevInContext(){
+  const list = getContextSongs();
+  if (!nowPlayingId || list.length === 0) return;
+  const idx = list.findIndex(s => s.id === nowPlayingId);
+  const prevIdx = idx > 0 ? idx - 1 : list.length - 1;
+  playSong(null, list[prevIdx].id, playlistContext);
+}
+
+function playNextInContext(){
+  const list = getContextSongs();
+  if (!nowPlayingId || list.length === 0) return;
+  const idx = list.findIndex(s => s.id === nowPlayingId);
+  const nextIdx = idx < list.length - 1 ? idx + 1 : 0;
+  playSong(null, list[nextIdx].id, playlistContext);
+}
+
+function skipBackward() {
+  const audio = $('audioEl');
+  if (!audio || !audio.src || audio.src === window.location.href) return;
+  audio.currentTime = Math.max(0, audio.currentTime - 15);
+  updateProgress();
+}
+
+function skipForward() {
+  const audio = $('audioEl');
+  if (!audio || !audio.src || audio.src === window.location.href) return;
+  audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15);
+  updateProgress();
+}
+
+function ensureAudioContext(audioEl){
+  if(sourceLinked) return;
+  try{
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtx.createAnalyser();
+    analyser.fftSize=64;
+    sourceNode=audioCtx.createMediaElementSource(audioEl);
+    sourceNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    sourceLinked=true;
+    startVisRaf();
+  }catch(err){
+    console.warn('AudioContext no disponible:',err);
+    startIdleVisualizer();
+  }
+}
+function refreshCardHighlight(){
+  document.querySelectorAll('.song-card').forEach(card=>{
+    const id=parseInt(card.dataset.id);
+    card.classList.toggle('playing',id===nowPlayingId);
+    const badge=card.querySelector('.now-playing-badge');
+    if(id===nowPlayingId&&!badge){
+      const cover=card.querySelector('.card-cover');
+      const b=document.createElement('div');
+      b.className='now-playing-badge'; b.textContent='Reproduciendo';
+      cover.appendChild(b);
+    } else if(id!==nowPlayingId&&badge){
+      badge.remove();
+    }
+  });
+}
+
+function togglePlayPause(){
+  const audio=$('audioEl');
+  if(!audio.src||audio.src===window.location.href) return;
+  if(audio.paused){
+    if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
+    audio.play().then(()=>{
+      $('plDisc').classList.add('spinning');
+      updatePlayPauseBtn(true);
+      if (sourceLinked) startVisRaf(); else startIdleVisualizer();
+      $('expPlayPauseBtn').textContent = '⏸';
+      $('expDisc')?.classList.add('spinning');
+    });
+  } else {
+    audio.pause();
+    $('plDisc').classList.remove('spinning');
+    updatePlayPauseBtn(false);
+    $('expPlayPauseBtn').textContent = '▶';
+    $('expDisc')?.classList.remove('spinning');
+    startIdleVisualizer();
+  }
+}
+function updatePlayPauseBtn(playing){
+  const btn=$('playPauseBtn');
+  if(btn) btn.textContent=playing?'⏸':'▶';
+  const expBtn=$('expPlayPauseBtn');
+  if(expBtn) expBtn.textContent=playing?'⏸':'▶';
+}
+
+/* Visualizer */
+function startVisRaf(){
+  stopVisRaf();
+  if(!analyser) return;
+  const bars=document.querySelectorAll('.vis-bar');
+  if(!bars.length) return;
+  const bufLen=analyser.frequencyBinCount;
+  const dataArr=new Uint8Array(bufLen);
+  function draw(){
+    analyser.getByteFrequencyData(dataArr);
+    bars.forEach((bar,i)=>{
+      const idx=Math.floor(i*(bufLen/bars.length));
+      const h=Math.max(3,(dataArr[idx]/255)*26);
+      bar.style.height=h+'px';
+      bar.classList.remove('idle');
+    });
+    visRaf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+function stopVisRaf(){
+  if(visRaf){ cancelAnimationFrame(visRaf); visRaf=null }
+}
+function startIdleVisualizer(){
+  stopVisRaf();
+  document.querySelectorAll('.vis-bar').forEach((bar,i)=>{
+    bar.style.setProperty('--d',(i*0.06)+'s');
+    bar.classList.add('idle');
+    bar.style.height='';
+  });
+}
+
+/* Progress */
+function updateProgress(){
+  const audio=$('audioEl');
+  if(!audio.duration) return;
+  const pct=(audio.currentTime/audio.duration)*100;
+  const fill=$('progressFill'); if(fill) fill.style.width=pct+'%';
+  txt('currentTime',fmtTime(audio.currentTime));
+  txt('totalTime',fmtTime(audio.duration));
+  const expFill=$('expProgressFill'); if(expFill) expFill.style.width=pct+'%';
+  txt('expCurrentTime',fmtTime(audio.currentTime));
+  txt('expTotalTime',fmtTime(audio.duration));
+}
+function seekProgress(e){
+  const audio=$('audioEl'); if(!audio.duration) return;
+  const bar=$('progressBar');
+  const rect=bar.getBoundingClientRect();
+  const pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  audio.currentTime=pct*audio.duration;
+}
+function seekProgressExpanded(e){
+  const audio=$('audioEl'); if(!audio.duration) return;
+  const bar=$('expProgressBar');
+  const rect=bar.getBoundingClientRect();
+  const pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  audio.currentTime=pct*audio.duration;
+}
+function fmtTime(s){
+  if(isNaN(s)||!isFinite(s)) return '0:00';
+  const m=Math.floor(s/60),sec=Math.floor(s%60);
+  return m+':'+(sec<10?'0':'')+sec;
+}
+
+/* Volumen */
+function setVolume(val){
+  const audio=$('audioEl'); if(audio) audio.volume=parseFloat(val);
+  const pct = Math.round(val*100);
+  txt('volPercent', pct+'%');
+  txt('expVolPercent', pct+'%');
+  $('volumeRange').value=val;
+  $('expVolumeRange').value=val;
+  const icon=$('volIcon');
+  if(icon) icon.textContent=val==0?'🔇':val<0.5?'🔉':'🔊';
+}
+
+/* ── onAudioEnded (corregido) ── */
 function onAudioEnded(){
   $('plDisc').classList.remove('spinning');
   updatePlayPauseBtn(false);
@@ -456,6 +665,7 @@ function onAudioEnded(){
     updateStats(nowPlayingId, duration);
     checkAchievements();
 
+    // Intentar cola local primero
     if (queue.length > 0) {
       const nextSong = queue.shift();
       renderQueueUI();
@@ -466,22 +676,235 @@ function onAudioEnded(){
   }
 }
 
-/* ═══════════════════ NUEVAS FUNCIONES (Discover Weekly, Estadísticas, Logros, Sleep Timer, Efectos, Cola) ══════════════════ */
-// (Se mantienen exactamente igual que en la v8 anterior, solo que Discover Weekly ahora llama a /api/weekly)
+/* ═══════════════════ NUEVAS FUNCIONES ══════════════════ */
 
+// ── Discover Weekly ──
 async function generateWeekly() {
   const res = await fetch(`${API_BASE}/api/weekly?user_id=${currentUser.id}`);
   const data = await res.json();
   return data.weekly || [];
 }
-// getWeeklyData, saveWeeklyData, renderWeekly, getStats, updateStats, renderProfile, ACHIEVEMENTS, checkAchievements,
-// toggleSleepMenu, setSleepTimer, clearSleepTimer, applyEnergyEffect, resetEnergyEffect,
-// recursivePlaylistLocal, updateQueue, renderQueueUI, clearQueue, openQueueModal, closeQueue
-// (todo este bloque se copia igual de la versión anterior)
+function getWeeklyData() {
+  try { return JSON.parse(localStorage.getItem('weeklyData')) || null; } catch { return null; }
+}
+function saveWeeklyData(data) {
+  localStorage.setItem('weeklyData', JSON.stringify(data));
+}
+async function renderWeekly() {
+  const weeklyDiv = $('weeklyCards');
+  if (!weeklyDiv) return;
+  const data = getWeeklyData();
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  monday.setHours(0,0,0,0);
 
-/* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
-function openExpandedPlayer() { /* igual */ }
-function closeExpandedPlayer() { /* igual */ }
+  if (!data || new Date(data.weekStart) < monday) {
+    const songs = await generateWeekly();
+    if (songs.length > 0) {
+      saveWeeklyData({ weekStart: monday.toISOString(), songs: songs.map(s => s.id) });
+      renderCards(songs, 'weeklyCards', 'Aún no hay suficientes datos.');
+    } else {
+      weeklyDiv.innerHTML = '<div class="empty-state"><p>Dale like a más canciones para activar Discover Weekly.</p></div>';
+    }
+  } else {
+    const songs = data.songs.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+    renderCards(songs, 'weeklyCards', 'Lista semanal vacía.');
+  }
+}
+
+// ── Estadísticas y logros ──
+function getStats() {
+  try { return JSON.parse(localStorage.getItem('playStats')) || {}; } catch { return {}; }
+}
+function saveStats(stats) {
+  localStorage.setItem('playStats', JSON.stringify(stats));
+}
+function updateStats(songId, duration) {
+  const stats = getStats();
+  const key = songId.toString();
+  stats[key] = stats[key] || { plays: 0, totalTime: 0 };
+  stats[key].plays++;
+  stats[key].totalTime += duration || 0;
+  saveStats(stats);
+}
+function renderProfile() {
+  const stats = getStats();
+  const totalPlays = Object.values(stats).reduce((a,b) => a + b.plays, 0);
+  const totalTimeMin = Math.round(Object.values(stats).reduce((a,b) => a + b.totalTime, 0) / 60);
+  txt('profilePlays', totalPlays);
+  txt('profileTime', totalTimeMin + ' min');
+
+  const artistCount = {};
+  myInter.forEach(inter => {
+    const song = allSongs.find(s => s.id === inter.cancion_id);
+    if (song) artistCount[song.artista] = (artistCount[song.artista] || 0) + 1;
+  });
+  const favArtist = Object.entries(artistCount).sort((a,b) => b[1] - a[1])[0];
+  txt('profileArtist', favArtist ? favArtist[0] : '—');
+
+  const achievements = getAchievements();
+  const logrosDiv = $('achievementsList');
+  if (logrosDiv) logrosDiv.innerHTML = achievements.map(a => `<span class="achievement-badge">${a.icon} ${a.name}</span>`).join('');
+}
+
+const ACHIEVEMENTS = [
+  { id: 'first_like', name: 'Primer like', icon: '❤️', condition: (ctx) => ctx.likes >= 1 },
+  { id: 'ten_likes', name: '10 likes', icon: '💘', condition: (ctx) => ctx.likes >= 10 },
+  { id: 'first_fav', name: 'Primer favorito', icon: '⭐', condition: (ctx) => ctx.favs >= 1 },
+  { id: 'explorer', name: 'Explorador', icon: '🗺️', condition: (ctx) => ctx.genres >= 5 },
+  { id: 'marathon', name: 'Maratonista', icon: '🏃', condition: (ctx) => ctx.totalPlays >= 50 },
+];
+function getAchievements() {
+  try { return JSON.parse(localStorage.getItem('achievements')) || []; } catch { return []; }
+}
+function saveAchievements(achieved) {
+  localStorage.setItem('achievements', JSON.stringify(achieved));
+}
+function checkAchievements() {
+  const likes = myInter.filter(i => i.es_like).length;
+  const favs = myInter.filter(i => i.es_favorito).length;
+  const genres = new Set(allSongs.filter(s => myInter.some(i => i.cancion_id === s.id)).map(s => s.genero)).size;
+  const stats = getStats();
+  const totalPlays = Object.values(stats).reduce((a,b) => a + b.plays, 0);
+  const ctx = { likes, favs, genres, totalPlays };
+  const achieved = getAchievements();
+  ACHIEVEMENTS.forEach(ach => {
+    if (!achieved.some(a => a.id === ach.id) && ach.condition(ctx)) {
+      achieved.push(ach);
+      toast(`🏆 ¡Logro desbloqueado! ${ach.icon} ${ach.name}`);
+    }
+  });
+  saveAchievements(achieved);
+}
+
+// ── Sleep Timer ──
+function toggleSleepMenu() {
+  const menu = $('sleepMenu');
+  if (menu) menu.classList.toggle('hidden');
+}
+function setSleepTimer(minutes) {
+  clearSleepTimer();
+  const countdownEl = $('sleepCountdown');
+  const expCountdownEl = $('expSleepCountdown');
+  let remaining = minutes * 60;
+  const updateCountdown = () => {
+    const min = Math.floor(remaining / 60);
+    const sec = remaining % 60;
+    const text = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+    if (countdownEl) { countdownEl.textContent = text; countdownEl.classList.remove('hidden'); }
+    if (expCountdownEl) { expCountdownEl.textContent = text; expCountdownEl.classList.remove('hidden'); }
+  };
+  updateCountdown();
+  $('sleepMenu')?.classList.add('hidden');
+  sleepTimer = setInterval(() => {
+    remaining--;
+    updateCountdown();
+    if (remaining <= 0) {
+      clearSleepTimer();
+      togglePlayPause();
+      if (countdownEl) countdownEl.classList.add('hidden');
+      if (expCountdownEl) expCountdownEl.classList.add('hidden');
+      toast('⏰ Temporizador finalizado');
+    }
+  }, 1000);
+}
+function clearSleepTimer() {
+  if (sleepTimer) { clearInterval(sleepTimer); sleepTimer = null; }
+  $('sleepCountdown')?.classList.add('hidden');
+  $('expSleepCountdown')?.classList.add('hidden');
+}
+
+// ── Efectos visuales por energía ──
+function applyEnergyEffect(song) {
+  if (!song) return;
+  const energy = song.energia || 0.5;
+  const hue = 260 + (energy * 40);
+  document.body.style.transition = 'background 1s';
+  document.body.style.background = `linear-gradient(135deg, hsl(${hue}, 80%, 5%) 0%, hsl(${hue-40}, 60%, 12%) 100%)`;
+}
+function resetEnergyEffect() {
+  document.body.style.background = '';
+  document.body.style.transition = '';
+}
+
+// ── Cola de reproducción (local) ──
+function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
+  if (depth === 0 || !seedId) return [];
+  const seed = allSongs.find(s => s.id === seedId);
+  if (!seed || visited.has(seedId)) return [];
+  visited.add(seedId);
+  const next = allSongs
+    .filter(s => !visited.has(s.id))
+    .map(s => ({
+      s,
+      score: (s.genero === seed.genero ? 3 : 0) +
+        (1 - Math.abs(s.energia - seed.energia)) * 2 +
+        (1 - Math.abs(s.bailabilidad - seed.bailabilidad)) * 2 +
+        (1 - Math.abs(s.popularidad - seed.popularidad) / 100)
+    }))
+    .sort((a, b) => b.score - a.score)[0];
+  if (!next) return [];
+  return [next.s, ...recursivePlaylistLocal(next.s.id, depth - 1, visited)];
+}
+function updateQueue() {
+  if (playlistContext === 'favorites') {
+    queue = getFavoriteSongs().filter(s => s.id !== nowPlayingId);
+  } else if (playlistContext === 'likes') {
+    queue = getLikedSongs().filter(s => s.id !== nowPlayingId);
+  } else {
+    if (nowPlayingId) {
+      queue = recursivePlaylistLocal(nowPlayingId, 10, new Set([nowPlayingId]));
+    } else {
+      queue = allSongs.slice(0, 20);
+    }
+  }
+  renderQueueUI();
+}
+function renderQueueUI() {
+  const list = $('queueList');
+  if (!list) return;
+  list.innerHTML = queue.map(s => `<li onclick="playSong(null, ${s.id}, '${playlistContext}')" class="queue-item">
+    <img src="${s.url_imagen || ''}" style="width:30px;height:30px;border-radius:4px;" onerror="this.style.display='none'">
+    ${esc(s.titulo)} — ${esc(s.artista)}
+  </li>`).join('');
+}
+function clearQueue() {
+  queue = [];
+  renderQueueUI();
+  toast('Cola vaciada');
+}
+function openQueueModal() {
+  $('queueModal')?.classList.remove('hidden');
+}
+function closeQueue() {
+  $('queueModal')?.classList.add('hidden');
+}
+
+/* ═══════════════════ PANEL EXPANDIDO (CORREGIDO) ══════════════════ */
+function openExpandedPlayer() {
+  if (!nowPlayingId) return;
+  const song = allSongs.find(s => s.id === nowPlayingId);
+  if (!song) return;
+  txt('expTitle', song.titulo);
+  txt('expArtist', song.artista);
+  const disc = $('expDisc');
+  updateDiscCover($('expDiscCover'), song);
+  const audio = $('audioEl');
+  if (audio && !audio.paused) {
+    disc.classList.add('spinning');
+    $('expPlayPauseBtn').textContent = '⏸';
+  } else {
+    disc.classList.remove('spinning');
+    $('expPlayPauseBtn').textContent = '▶';
+  }
+  $('expVolumeRange').value = audio ? audio.volume : 0.8;
+  txt('expVolPercent', Math.round((audio?.volume || 0.8)*100)+'%');
+  $('expandedPlayer').classList.remove('hidden');
+}
+function closeExpandedPlayer() {
+  $('expandedPlayer').classList.add('hidden');
+}
 
 /* ═══════════════════ NAVEGACIÓN Y PANEL IA (API) ══════════════════ */
 function showPage(name){
@@ -508,8 +931,8 @@ async function renderAnalysis() {
     txt('mLikes', data.metrics.likes);
     txt('mAcc', data.metrics.accuracy);
     txt('mAvg', data.metrics.avg_likes_per_user);
-    // gráfico de géneros
-    const sorted = Object.entries(data.genre_chart).sort((a,b) => b[1] - a[1]);
+    const genreChart = data.genre_chart || {};
+    const sorted = Object.entries(genreChart).sort((a,b) => b[1] - a[1]);
     const maxVal = Math.max(1, ...sorted.map(e => e[1]));
     let html = '';
     sorted.forEach(([genre, count]) => {
@@ -548,8 +971,34 @@ window.addEventListener('load', async ()=>{
   } catch(e) {
     allSongs = [];
   }
-  // visualizer, audio events, etc. (igual que antes)
-  // ...
+
+  const vizEl = $('audioVisualizer');
+  if (vizEl) vizEl.innerHTML = Array.from({ length: 14 }, (_, i) => `<div class="vis-bar idle" style="--d:${i * 0.06}s"></div>`).join('');
+
+  const audio = $('audioEl');
+  if (audio) {
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', onAudioEnded);
+    audio.addEventListener('play', () => {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      $('plDisc')?.classList.add('spinning');
+      updatePlayPauseBtn(true);
+      $('expDisc')?.classList.add('spinning');
+      $('expPlayPauseBtn').textContent = '⏸';
+      if (sourceLinked) startVisRaf(); else startIdleVisualizer();
+    });
+    audio.addEventListener('pause', () => {
+      $('plDisc')?.classList.remove('spinning');
+      updatePlayPauseBtn(false);
+      $('expDisc')?.classList.remove('spinning');
+      $('expPlayPauseBtn').textContent = '▶';
+      startIdleVisualizer();
+    });
+  }
+
+  const volRange = $('volumeRange');
+  if (volRange) { volRange.value = 0.8; setVolume(0.8); }
+
   await bootApp();
 });
 
