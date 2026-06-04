@@ -441,6 +441,7 @@ async function playSong(e, songId, context = null){
   const audio = $('audioEl');
   if (song.url_preview) {
     audio.src = song.url_preview;
+    audio.crossOrigin = "anonymous";
     audio.load();
     if (audioCtx && audioCtx.state === 'suspended') {
       try { await audioCtx.resume(); } catch(e) {}
