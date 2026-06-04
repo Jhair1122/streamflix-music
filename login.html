@@ -84,7 +84,7 @@
   </div>
 
   <script>
-    const API_BASE = 'https://streamflix-music.onrender.com';   // ← cambia por tu URL
+    const API_BASE = 'https://streamflix-music.onrender.com';   // ← cambia por tu URL real
 
     function saveSession(user) {
       localStorage.setItem('soundmind_user', JSON.stringify(user));
@@ -106,18 +106,24 @@
         return;
       }
       document.getElementById('authMsg').textContent = 'Verificando…';
-      const res = await fetch(`${API_BASE}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        document.getElementById('authMsg').textContent = data.error || 'Error de conexión';
-        return;
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        // Si la respuesta no es OK, lanzamos un error para capturarlo
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Error de conexión');
+        }
+        const data = await res.json();
+        saveSession(data.user);
+        window.location.href = 'index.html';
+      } catch (err) {
+        console.error('Error en login:', err);
+        document.getElementById('authMsg').textContent = err.message || 'Error de conexión. Intenta de nuevo.';
       }
-      saveSession(data.user);
-      window.location.href = 'index.html';
     }
 
     async function doRegister() {
@@ -137,18 +143,23 @@
         return;
       }
       document.getElementById('authMsg').textContent = 'Creando cuenta…';
-      const res = await fetch(`${API_BASE}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, username, password })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        document.getElementById('authMsg').textContent = data.error || 'Error al crear cuenta';
-        return;
+      try {
+        const res = await fetch(`${API_BASE}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, username, password })
+        });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Error al crear cuenta');
+        }
+        const data = await res.json();
+        saveSession(data.user);
+        window.location.href = 'index.html';
+      } catch (err) {
+        console.error('Error en registro:', err);
+        document.getElementById('authMsg').textContent = err.message || 'Error de conexión. Intenta de nuevo.';
       }
-      saveSession(data.user);
-      window.location.href = 'index.html';
     }
   </script>
 </body>
