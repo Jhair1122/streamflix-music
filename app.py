@@ -132,6 +132,46 @@ def register():
         return jsonify({"error": "Error al crear usuario"}), 500
     return jsonify({"user": res.data[0]})
 
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+    if not username or not password:
+        return jsonify({"error": "Usuario y contraseña requeridos"}), 400
+    try:
+        res = supabase.table("usuarios").select("*").eq("username", username).eq("password", password).maybe_single().execute()
+        if not res.data:
+            return jsonify({"error": "Credenciales inválidas"}), 401
+        return jsonify({"user": res.data})
+    except Exception as e:
+        print(f"Error en login: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+@app.route("/api/register", methods=["POST"])
+def register():
+    data = request.json
+    nombre = data.get("nombre")
+    username = data.get("username")
+    password = data.get("password")
+    if not nombre or not username or not password:
+        return jsonify({"error": "Todos los campos son obligatorios"}), 400
+    try:
+        existing = supabase.table("usuarios").select("id").eq("username", username).maybe_single().execute()
+        if existing.data:
+            return jsonify({"error": "El usuario ya existe"}), 409
+        res = supabase.table("usuarios").insert({
+            "nombre": nombre,
+            "username": username,
+            "password": password
+        }).execute()
+        if not res.data:
+            return jsonify({"error": "Error al crear usuario"}), 500
+        return jsonify({"user": res.data[0]})
+    except Exception as e:
+        print(f"Error en registro: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
 @app.route("/api/weekly")
 def discover_weekly():
     user_id = request.args.get("user_id")
