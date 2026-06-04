@@ -954,8 +954,13 @@ function addMessageToUI(msg) {
   const container = document.getElementById('chatMessagesPanel');
   if (!container) return;
   const div = document.createElement('div');
-  div.className = 'msg-bubble';
-  div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
+  const isMine = currentUser && msg.user_id === currentUser.id;
+  div.className = 'msg-bubble' + (isMine ? ' my-msg' : '');
+  if (isMine) {
+    div.innerHTML = esc(msg.mensaje);   // sin nombre de usuario
+  } else {
+    div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
+  }
   container.appendChild(div);
 }
 
