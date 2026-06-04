@@ -268,9 +268,7 @@ function songCard(s, context = 'global'){
       <div class="card-title" title="${esc(s.titulo)}">${esc(s.titulo)}</div>
       <div class="card-artist" title="${esc(s.artista)}">${esc(s.artista)}</div>
       <div class="card-genre">${esc(s.genero)}</div>
-      <div class="card-attrs">
-
-      </div>
+      <!-- Eliminamos card-attrs por completo -->
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="cta${liked?' liked-btn':''}" onclick="toggleLike(event,${s.id})">${liked?'❤️':'🤍'}</button>
         <button class="cta${faved?' faved-btn':''}" onclick="toggleFav(event,${s.id})">${faved?'⭐':'☆'}</button>
