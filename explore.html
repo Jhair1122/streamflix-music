@@ -35,7 +35,6 @@
 </head>
 <body>
 
-<!-- HERO -->
 <div class="hero" style="margin: 20px;">
   <div class="hero-content">
     <div>
@@ -52,7 +51,6 @@
   </div>
 </div>
 
-<!-- BARRA DE BÚSQUEDA Y GÉNEROS -->
 <div class="top-bar-public">
   <div class="search-wrap" style="max-width:460px; flex:1;">
     <span class="search-icon">🔍</span>
@@ -63,13 +61,11 @@
 </div>
 <div class="genre-pills" id="genrePills" style="margin: 0 20px 18px;"></div>
 
-<!-- CATÁLOGO -->
 <div class="cards-grid" id="catalogCards" style="padding: 0 20px;">
   <div class="loading"><div class="spin"></div> Cargando…</div>
 </div>
 
-<!-- PLAYER BAR -->
-<div id="playerBar" class="hidden">
+<div id="playerBar">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
     <div class="pl-disc" id="plDisc">
       <div class="pl-disc-cover" id="plDiscCover">🎵</div>
@@ -84,11 +80,11 @@
 
   <div class="pl-center">
     <div class="pl-controls-btns">
-      <button class="pl-btn" onclick="skipBackward()" title="Retroceder 15s">⏪</button>
-      <button class="pl-btn" onclick="playPrevSong()" title="Anterior">⏮</button>
+      <button class="pl-btn" onclick="skipBackward()">⏪</button>
+      <button class="pl-btn" onclick="playPrevSong()">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
-      <button class="pl-btn" onclick="playNextSong()" title="Siguiente">⏭</button>
-      <button class="pl-btn" onclick="skipForward()" title="Adelantar 15s">⏩</button>
+      <button class="pl-btn" onclick="playNextSong()">⏭</button>
+      <button class="pl-btn" onclick="skipForward()">⏩</button>
     </div>
 
     <div class="pl-progress-wrap">
@@ -112,7 +108,6 @@
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- EXPANDED PLAYER OVERLAY -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
@@ -150,7 +145,6 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script src="explore.js"></script>
