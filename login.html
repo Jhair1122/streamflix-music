@@ -1,0 +1,61 @@
+<!-- Solo cambian las funciones doLogin() y doRegister() -->
+<script>
+  const API_BASE = 'https://streamflix-music.onrender.com';   // ← Tu URL
+
+  function saveSession(user) {
+    localStorage.setItem('soundmind_user', JSON.stringify(user));
+  }
+
+  async function doLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    if (!username || !password) {
+      document.getElementById('authMsg').textContent = 'Completa todos los campos';
+      return;
+    }
+    document.getElementById('authMsg').textContent = 'Verificando…';
+    const res = await fetch(`${API_BASE}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('authMsg').textContent = data.error || 'Error de conexión';
+      return;
+    }
+    saveSession(data.user);
+    window.location.href = 'index.html';
+  }
+
+  async function doRegister() {
+    const nombre = document.getElementById('regName').value.trim();
+    const username = document.getElementById('regUser').value.trim();
+    const password = document.getElementById('regPass').value.trim();
+    if (!nombre || !username || !password) {
+      document.getElementById('authMsg').textContent = 'Completa todos los campos';
+      return;
+    }
+    if (username.length < 3) {
+      document.getElementById('authMsg').textContent = 'El usuario debe tener al menos 3 caracteres';
+      return;
+    }
+    if (password.length < 6) {
+      document.getElementById('authMsg').textContent = 'La contraseña debe tener al menos 6 caracteres';
+      return;
+    }
+    document.getElementById('authMsg').textContent = 'Creando cuenta…';
+    const res = await fetch(`${API_BASE}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('authMsg').textContent = data.error || 'Error al crear cuenta';
+      return;
+    }
+    saveSession(data.user);
+    window.location.href = 'index.html';
+  }
+</script>
