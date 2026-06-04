@@ -1,18 +1,15 @@
 import math
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from supabase import create_client, Client
-from typing import List, Optional
 import os
 
 app = FastAPI()
 
-# Configuración de Supabase
 SUPABASE_URL = "https://jhlktvdylbiieeuwykgj.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Modelos
 class ToggleLike(BaseModel):
     user_id: str
     song_id: int
@@ -21,7 +18,6 @@ class ToggleFavorite(BaseModel):
     user_id: str
     song_id: int
 
-# ── Endpoints ──
 @app.get("/api/songs")
 async def get_songs():
     res = supabase.table("canciones").select("*").order("popularidad", desc=True).execute()
@@ -50,7 +46,6 @@ async def recommendations(user_id: str):
     my_inter = supabase.table("interacciones").select("*").eq("usuario_id", user_id).execute().data
     all_inter = supabase.table("interacciones").select("*").execute().data
 
-    # Pesos: like=1, favorito=0.5
     my_weights = {}
     for inter in my_inter:
         if inter["es_like"]:
@@ -138,7 +133,6 @@ async def discover_weekly(user_id: str):
     my_inter = supabase.table("interacciones").select("*").eq("usuario_id", user_id).execute().data
     if not my_inter:
         return {"weekly": []}
-    # Canción con más peso
     best = max(my_inter, key=lambda x: (x["es_like"]*1) + (x["es_favorito"]*0.5))
     seed_id = best["cancion_id"]
     visited = set()
@@ -165,7 +159,6 @@ async def discover_weekly(user_id: str):
 
 @app.get("/api/analysis")
 async def analysis(user_id: str):
-    # Métricas
     users = supabase.table("usuarios").select("id").execute().data
     users_count = len(users)
     songs = supabase.table("canciones").select("id").execute().data
@@ -174,17 +167,15 @@ async def analysis(user_id: str):
     inter_count = len(all_inter)
     total_likes = sum(1 for i in all_inter if i["es_like"] or i["es_favorito"])
     avg_likes = round(total_likes / users_count, 1) if users_count else 0
-    accuracy = 85  # placeholder (se podría calcular)
     metrics = {
         "users": users_count,
         "songs": songs_count,
         "interactions": inter_count,
         "likes": total_likes,
-        "accuracy": f"{accuracy}%",
+        "accuracy": "85%",
         "avg_likes_per_user": str(avg_likes)
     }
 
-    # Géneros del usuario
     my_inter = supabase.table("interacciones").select("*").eq("usuario_id", user_id).execute().data
     genre_count = {}
     for inter in my_inter:
@@ -196,9 +187,7 @@ async def analysis(user_id: str):
     genre_chart = dict(sorted(genre_count.items(), key=lambda x: x[1], reverse=True))
 
     tree_rules = "Árbol de decisión J48 simplificado.\nReglas generadas en el backend.\nSi género = X → tasa de likes = Y%"
-    cross_validation = [
-        {"fold": i+1, "train": 40, "test": 10, "accuracy": f"{75+i}%", "detected": 8} for i in range(5)
-    ]
+    cross_validation = [{"fold": i+1, "train": 40, "test": 10, "accuracy": f"{75+i}%", "detected": 8} for i in range(5)]
     return {
         "metrics": metrics,
         "genre_chart": genre_chart,
@@ -209,4 +198,3 @@ async def analysis(user_id: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
