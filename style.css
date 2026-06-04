@@ -791,3 +791,77 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .pl-artist { font-size: 9px; }
   .pl-btn { width: 26px; height: 26px; font-size: 14px; }
 }
+
+/* ── Página de Chat (sección completa) ── */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 65vh;
+  max-height: 600px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(15px);
+}
+.chat-messages-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-messages-panel .msg-bubble {
+  background: var(--accentA);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  max-width: 80%;
+  word-wrap: break-word;
+  color: var(--text);
+}
+.chat-messages-panel .msg-user {
+  font-weight: 700;
+  color: var(--accent3);
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+.chat-input-area {
+  display: flex;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg1);
+  gap: 8px;
+}
+.chat-input-area input {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 25px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+.chat-input-area input:focus {
+  border-color: var(--accent);
+}
+.chat-send-btn {
+  padding: 10px 20px;
+  border-radius: 25px;
+  background: var(--accent2);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.chat-send-btn:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 10px var(--accent2);
+}
+
+/* Eliminamos los estilos del FAB y del panel anterior (si los tenías) */
+#chatFAB, #chatPanel { display: none !important; }
