@@ -269,9 +269,7 @@ function songCard(s, context = 'global'){
       <div class="card-artist" title="${esc(s.artista)}">${esc(s.artista)}</div>
       <div class="card-genre">${esc(s.genero)}</div>
       <div class="card-attrs">
-        <span class="card-attr">⚡${(s.energia*100).toFixed(0)}%</span>
-        <span class="card-attr">💃${(s.bailabilidad*100).toFixed(0)}%</span>
-        <span class="card-attr">🔥${s.popularidad}</span>
+
       </div>
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="cta${liked?' liked-btn':''}" onclick="toggleLike(event,${s.id})">${liked?'❤️':'🤍'}</button>
