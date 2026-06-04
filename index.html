@@ -8,11 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* Ajustes mínimos para el chat */
-    .skip-btn { font-size: 13px; font-weight: 700; background: var(--bg3); border: 1px solid var(--border); width: auto; padding: 0 12px; border-radius: 20px; }
-    .skip-btn:hover { background: var(--accentA); color: var(--accent3); }
-  </style>
 </head>
 <body>
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
@@ -37,6 +32,8 @@
       <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')">⭐ Favoritos <span class="nav-badge hidden" id="badge-fav">0</span></button>
       <button class="nav-item" id="nav-likes" onclick="showPage('likes')">❤️ Mis likes <span class="nav-badge hidden" id="badge-like">0</span></button>
       <button class="nav-item" id="nav-queue" onclick="showPage('queue'); openQueueModal()">🔀 Cola de reproducción</button>
+      <div class="nav-section">Comunidad</div>
+      <button class="nav-item" id="nav-chat" onclick="showPage('chat')">💬 Chat</button>
       <div class="nav-section">Mi cuenta</div>
       <button class="nav-item" id="nav-profile" onclick="showPage('profile')">👤 Mi perfil</button>
       <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">📊 Panel IA</button>
@@ -45,6 +42,7 @@
 
   <!-- MAIN CONTENT -->
   <main class="main">
+
     <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="hero">
@@ -118,6 +116,19 @@
         <ul id="queueList"></ul>
         <button class="btn-auth" onclick="clearQueue()" style="margin-top:10px;">Limpiar cola</button>
         <button class="btn-auth" onclick="closeQueue()">Cerrar</button>
+      </div>
+    </div>
+
+    <!-- CHAT (página completa) -->
+    <div class="page" id="page-chat">
+      <div class="page-title">💬 Chat de la comunidad</div>
+      <div class="page-sub">Conéctate con otros usuarios en tiempo real. Comparte tus gustos y pide recomendaciones.</div>
+      <div class="chat-container">
+        <div class="chat-messages-panel" id="chatMessagesPanel"></div>
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" placeholder="Escribe un mensaje…" onkeypress="if(event.key==='Enter') sendMessage()">
+          <button class="chat-send-btn" onclick="sendMessage()">Enviar</button>
+        </div>
       </div>
     </div>
 
@@ -205,10 +216,11 @@
         </div>
       </div>
     </div>
+
   </main>
 </div>
 
-<!-- PLAYER BAR (con sleep timer y botones -15/+15) -->
+<!-- PLAYER BAR -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
     <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
@@ -218,20 +230,20 @@
   </div>
   <div class="pl-center">
     <div class="pl-controls-btns">
-      <button class="pl-btn skip-btn" onclick="skipBackward()" title="Retroceder 15s">-15</button>
-      <button class="pl-btn" onclick="playPrevInContext()" title="Anterior">⏮</button>
+      <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
+      <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
-      <button class="pl-btn" onclick="playNextInContext()" title="Siguiente">⏭</button>
-      <button class="pl-btn skip-btn" onclick="skipForward()" title="Adelantar 15s">+15</button>
+      <button class="pl-btn" onclick="playNextInContext()">⏭</button>
+      <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
       <div class="sleep-timer-wrap" id="sleepTimerWrap">
-        <button class="pl-btn" onclick="toggleSleepMenu()" title="Temporizador">⏰</button>
+        <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
         <div class="sleep-menu hidden" id="sleepMenu">
           <input type="number" id="sleepMinutesInput" placeholder="Minutos" min="1" max="180" value="15" style="width:80px;padding:4px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text);text-align:center;">
           <button onclick="startCustomSleepTimer()">Iniciar</button>
           <button onclick="cancelSleepMenu()">Cancelar</button>
         </div>
         <span class="sleep-countdown hidden" id="sleepCountdown"></span>
-        <button class="pl-btn hidden" id="cancelSleepBtn" onclick="clearSleepTimer()" title="Cancelar temporizador">⏹️</button>
+        <button class="pl-btn hidden" id="cancelSleepBtn" onclick="clearSleepTimer()">⏹️</button>
       </div>
     </div>
     <div class="pl-progress-wrap">
@@ -264,11 +276,7 @@
       <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextInContext()">⏭</button>
       <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
-      <div class="sleep-timer-wrap">
-        <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
-        <span class="sleep-countdown hidden" id="expSleepCountdown"></span>
-        <button class="pl-btn hidden" id="expCancelSleepBtn" onclick="clearSleepTimer()">⏹️</button>
-      </div>
+      <div class="sleep-timer-wrap"><button class="pl-btn" onclick="toggleSleepMenu()">⏰</button><span class="sleep-countdown hidden" id="expSleepCountdown"></span><button class="pl-btn hidden" id="expCancelSleepBtn" onclick="clearSleepTimer()">⏹️</button></div>
     </div>
     <div class="expanded-progress">
       <span id="expCurrentTime">0:00</span>
@@ -283,22 +291,10 @@
   </div>
 </div>
 
-<!-- CHAT COMUNITARIO -->
-<div id="chatFAB" onclick="toggleChat()">💬</div>
-<div id="chatPanel" class="hidden">
-  <div class="chat-header">
-    <h3>💬 Chat de la comunidad</h3>
-    <button class="chat-close" onclick="toggleChat()">✕</button>
-  </div>
-  <div class="chat-messages" id="chatMessages"></div>
-  <div class="chat-input-wrap">
-    <input type="text" id="chatInput" placeholder="Escribe un mensaje…" onkeypress="if(event.key==='Enter') sendMessage()">
-    <button onclick="sendMessage()">Enviar</button>
-  </div>
-</div>
-
+<!-- TOAST -->
 <div id="toast"></div>
 
+<!-- VOICE OVERLAY -->
 <div id="voiceOverlay">
   <div class="voice-modal">
     <div class="voice-waves">
