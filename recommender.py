@@ -115,21 +115,19 @@ def recursive_playlist(seed_id, depth, visited, all_songs):
     if not seed or seed_id in visited:
         return []
     visited.add(seed_id)
+    # Solo puntuamos por coincidencia de género (3 puntos si es igual, 0 si no)
     candidates = [
         {
             "s": s,
-            "score": (3 if s["genero"] == seed["genero"] else 0) +
-                     (1 - abs(s["energia"] - seed["energia"])) * 2 +
-                     (1 - abs(s["bailabilidad"] - seed["bailabilidad"])) * 2 +
-                     (1 - abs(s["popularidad"] - seed["popularidad"]) / 100)
+            "score": 3 if s["genero"] == seed["genero"] else 0
         }
         for s in all_songs if s["id"] not in visited
     ]
     if not candidates:
         return []
-    best = max(candidates, key=lambda x: x["score"])
+    # Ordenamos por puntuación descendente y luego por popularidad (opcional)
+    best = max(candidates, key=lambda x: (x["score"], x["s"]["popularidad"]))
     return [best["s"]] + recursive_playlist(best["s"]["id"], depth - 1, visited, all_songs)
-
 
 # ── Validación cruzada k=5 ──
 def cross_validation(all_inter, all_songs, k=5):
