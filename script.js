@@ -7,7 +7,7 @@
    - Búsqueda por voz, catálogo, recomendaciones, etc.
 ════════════════════════════════════════════════════ */
 
-const API_BASE = 'http://localhost:9999';   // ← Cambia por tu URL real
+const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
 
 /* ── State ── */
 let currentUser  = null;
