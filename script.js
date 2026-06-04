@@ -1,7 +1,8 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v13 FINAL COMPLETO)
-   - Chat en página dedicada, envío corregido, sin FAB.
-   - Todas las funciones previas intactas.
+   SoundMind — script.js (v14 FINAL)
+   - Tarjetas sin atributos numéricos
+   - Chat alineado (propio derecha, otros izquierda)
+   - Recomendaciones vía API, sleep timer, etc.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -240,7 +241,7 @@ function updateBadges(){
   if(favs>0) {bf.textContent=favs; bf.classList.remove('hidden')}else bf.classList.add('hidden');
 }
 
-/* ── Song Card (con imagen) ── */
+/* ── Song Card (sin atributos numéricos) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
@@ -268,7 +269,6 @@ function songCard(s, context = 'global'){
       <div class="card-title" title="${esc(s.titulo)}">${esc(s.titulo)}</div>
       <div class="card-artist" title="${esc(s.artista)}">${esc(s.artista)}</div>
       <div class="card-genre">${esc(s.genero)}</div>
-      <!-- Eliminamos card-attrs por completo -->
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="cta${liked?' liked-btn':''}" onclick="toggleLike(event,${s.id})">${liked?'❤️':'🤍'}</button>
         <button class="cta${faved?' faved-btn':''}" onclick="toggleFav(event,${s.id})">${faved?'⭐':'☆'}</button>
@@ -836,14 +836,12 @@ function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
   const seed = allSongs.find(s => s.id === seedId);
   if (!seed || visited.has(seedId)) return [];
   visited.add(seedId);
+  // Solo por género (para la cola del frontend, no afecta recomendaciones del backend)
   const next = allSongs
     .filter(s => !visited.has(s.id))
     .map(s => ({
       s,
-      score: (s.genero === seed.genero ? 3 : 0) +
-        (1 - Math.abs(s.energia - seed.energia)) * 2 +
-        (1 - Math.abs(s.bailabilidad - seed.bailabilidad)) * 2 +
-        (1 - Math.abs(s.popularidad - seed.popularidad) / 100)
+      score: s.genero === seed.genero ? 3 : 0
     }))
     .sort((a, b) => b.score - a.score)[0];
   if (!next) return [];
