@@ -96,24 +96,28 @@
       </div>
     </div>
 
+    <!-- Descubre semanalmente -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
       <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas. ¡Dale like para que sea más precisa!</div>
       <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando tu lista semanal…</div></div>
     </div>
 
+    <!-- Favoritos -->
     <div class="page" id="page-favorites">
       <div class="page-title">⭐ Favoritos</div>
       <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
       <div class="cards-grid" id="favCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
+    <!-- Likes -->
     <div class="page" id="page-likes">
       <div class="page-title">❤️ Mis likes</div>
       <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
       <div class="cards-grid" id="likeCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
+    <!-- Cola de reproducción (modal) -->
     <div id="queueModal" class="hidden">
       <div class="queue-overlay" onclick="closeQueue()"></div>
       <div class="queue-panel">
@@ -124,6 +128,7 @@
       </div>
     </div>
 
+    <!-- Perfil -->
     <div class="page" id="page-profile">
       <div class="page-title">👤 Mi perfil</div>
       <div class="page-sub">Estadísticas de escucha y logros.</div>
@@ -139,6 +144,7 @@
       </div>
     </div>
 
+    <!-- Panel IA -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
@@ -213,6 +219,7 @@
   </main>
 </div>
 
+<!-- Reproductor normal -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
     <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
@@ -222,21 +229,20 @@
   </div>
   <div class="pl-center">
     <div class="pl-controls-btns">
-      <button class="pl-btn" onclick="skipBackward()">⏪</button>
-      <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
+      <button class="pl-btn skip-btn" onclick="skipBackward()" title="Retroceder 15s">-15</button>
+      <button class="pl-btn" onclick="playPrevInContext()" title="Anterior">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
-      <button class="pl-btn" onclick="playNextInContext()">⏭</button>
-      <button class="pl-btn" onclick="skipForward()">⏩</button>
-      <div class="sleep-timer-wrap">
-        <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
+      <button class="pl-btn" onclick="playNextInContext()" title="Siguiente">⏭</button>
+      <button class="pl-btn skip-btn" onclick="skipForward()" title="Adelantar 15s">+15</button>
+      <div class="sleep-timer-wrap" id="sleepTimerWrap">
+        <button class="pl-btn" onclick="toggleSleepMenu()" title="Temporizador">⏰</button>
         <div class="sleep-menu hidden" id="sleepMenu">
-          <button onclick="setSleepTimer(15)">15 min</button>
-          <button onclick="setSleepTimer(30)">30 min</button>
-          <button onclick="setSleepTimer(45)">45 min</button>
-          <button onclick="setSleepTimer(60)">60 min</button>
-          <button onclick="clearSleepTimer()">Cancelar</button>
+          <input type="number" id="sleepMinutesInput" placeholder="Minutos" min="1" max="180" value="15" style="width:80px;padding:4px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text);text-align:center;">
+          <button onclick="startCustomSleepTimer()">Iniciar</button>
+          <button onclick="cancelSleepMenu()">Cancelar</button>
         </div>
         <span class="sleep-countdown hidden" id="sleepCountdown"></span>
+        <button class="pl-btn hidden" id="cancelSleepBtn" onclick="clearSleepTimer()" title="Cancelar temporizador">⏹️</button>
       </div>
     </div>
     <div class="pl-progress-wrap">
@@ -254,6 +260,7 @@
   <audio id="audioEl" preload="none"></audio>
 </div>
 
+<!-- Reproductor expandido -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
@@ -263,12 +270,16 @@
     </div>
     <div class="expanded-info"><h2 id="expTitle">Sin reproducción</h2><p id="expArtist"></p></div>
     <div class="expanded-controls">
-      <button class="pl-btn" onclick="skipBackward()">⏪</button>
+      <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
       <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextInContext()">⏭</button>
-      <button class="pl-btn" onclick="skipForward()">⏩</button>
-      <div class="sleep-timer-wrap"><button class="pl-btn" onclick="toggleSleepMenu()">⏰</button><span class="sleep-countdown hidden" id="expSleepCountdown"></span></div>
+      <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
+      <div class="sleep-timer-wrap">
+        <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
+        <span class="sleep-countdown hidden" id="expSleepCountdown"></span>
+        <button class="pl-btn hidden" id="expCancelSleepBtn" onclick="clearSleepTimer()">⏹️</button>
+      </div>
     </div>
     <div class="expanded-progress">
       <span id="expCurrentTime">0:00</span>
