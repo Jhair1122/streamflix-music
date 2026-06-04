@@ -2,7 +2,7 @@
    explore.js — Página pública (API Python)
 ════════════════════════════════════════════════════ */
 
-const API_BASE = 'http://localhost:8000';   // ← Cambiar por URL de tu backend
+const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambiar por URL de tu backend
 
 let allSongs     = [];
 let nowPlayingId = null;
