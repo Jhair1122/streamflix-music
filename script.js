@@ -4,7 +4,7 @@
    - Todas las funciones completas y sin conflictos.
 ════════════════════════════════════════════════════ */
 
-const API_BASE = 'http://localhost:8000';   // ← Cambia por tu URL pública
+const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL pública
 
 /* ── State ── */
 let currentUser  = null;
