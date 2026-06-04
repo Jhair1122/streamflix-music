@@ -1,10 +1,6 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v11 final)
-   - API_BASE apuntando a backend Python (Render)
-   - Sleep timer con entrada manual de minutos
-   - Botones de salto -15 / +15
-   - Corrección de logout, progreso, panel expandido
-   - Búsqueda por voz, catálogo, recomendaciones, etc.
+   SoundMind — script.js (v12 final)
+   - Incluye chat en tiempo real, CORS, sleep timer, etc.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -52,17 +48,10 @@ const GENRE_EMOJI = {
   'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻','J-Pop':'🎌','Phonk':'💜','default':'🎵'
 };
 const GENRE_COLORS = {
-  'Pop':['#ec4899','#f472b6'],
-  'Electrónica':['#6366f1','#a78bfa'],
-  'Anime':['#f59e0b','#fbbf24'],
-  'Rock':['#ef4444','#f87171'],
-  'Latino':['#10b981','#34d399'],
-  'Alternativo':['#0ea5e9','#38bdf8'],
-  'Trap':['#8b5cf6','#a78bfa'],
-  'Balada':['#f97316','#fb923c'],
-  'J-Pop':['#ec4899','#f472b6'],
-  'Phonk':['#8b5cf6','#a78bfa'],
-  'default':['#6b7280','#9ca3af']
+  'Pop':['#ec4899','#f472b6'], 'Electrónica':['#6366f1','#a78bfa'], 'Anime':['#f59e0b','#fbbf24'],
+  'Rock':['#ef4444','#f87171'], 'Latino':['#10b981','#34d399'], 'Alternativo':['#0ea5e9','#38bdf8'],
+  'Trap':['#8b5cf6','#a78bfa'], 'Balada':['#f97316','#fb923c'], 'J-Pop':['#ec4899','#f472b6'],
+  'Phonk':['#8b5cf6','#a78bfa'], 'default':['#6b7280','#9ca3af']
 };
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
@@ -109,6 +98,7 @@ async function bootApp(){
   updateQueue();
   showPage('home');
   initVoiceSearch();
+  initChat();           // ← chat
 }
 
 /* ═══════════════════ LOGOUT (corregido) ══════════════════ */
@@ -461,8 +451,7 @@ async function playSong(e, songId, context = null){
       }
     });
   } else {
-    audio.pause();
-    audio.removeAttribute('src');
+    audio.pause(); audio.removeAttribute('src');
     $('plDisc').classList.remove('spinning');
     updatePlayPauseBtn(false);
     toast('⚠️ Sin archivo de audio');
@@ -479,14 +468,10 @@ function updateDiscCover(coverEl, song) {
     const img = document.createElement('img');
     img.src = song.url_imagen;
     img.alt = song.titulo;
-    img.style.width = '100%';
-    img.style.height = '100%';
-    img.style.objectFit = 'cover';
-    img.style.borderRadius = '50%';
+    img.style.width = '100%'; img.style.height = '100%';
+    img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
     coverEl.appendChild(img);
-  } else {
-    coverEl.textContent = genreEmoji(song.genero);
-  }
+  } else { coverEl.textContent = genreEmoji(song.genero); }
 }
 
 function playPrevInContext(){
@@ -784,11 +769,9 @@ function toggleSleepMenu() {
   const menu = $('sleepMenu');
   if (menu) menu.classList.toggle('hidden');
 }
-
 function cancelSleepMenu() {
   $('sleepMenu')?.classList.add('hidden');
 }
-
 function startCustomSleepTimer() {
   const input = $('sleepMinutesInput');
   if (!input) return;
@@ -800,7 +783,6 @@ function startCustomSleepTimer() {
   setSleepTimer(minutes);
   $('sleepMenu')?.classList.add('hidden');
 }
-
 function setSleepTimer(minutes) {
   clearSleepTimer();
   const countdownEl = $('sleepCountdown');
@@ -830,12 +812,8 @@ function setSleepTimer(minutes) {
     }
   }, 1000);
 }
-
 function clearSleepTimer() {
-  if (sleepTimer) {
-    clearInterval(sleepTimer);
-    sleepTimer = null;
-  }
+  if (sleepTimer) { clearInterval(sleepTimer); sleepTimer = null; }
   $('sleepCountdown')?.classList.add('hidden');
   $('expSleepCountdown')?.classList.add('hidden');
   $('cancelSleepBtn')?.classList.add('hidden');
@@ -931,6 +909,70 @@ function openExpandedPlayer() {
 }
 function closeExpandedPlayer() {
   $('expandedPlayer').classList.add('hidden');
+}
+
+/* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
+let chatSubscription = null;
+
+function initChat() {
+  fetch(`${API_BASE}/api/messages`)
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById('chatMessages');
+      if (container) {
+        container.innerHTML = '';
+        (data.messages || []).forEach(msg => addMessageToUI(msg));
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+
+  if (!window.supabase) return;
+  const supabaseClient = window.supabase.createClient(
+    'https://jhlktvdylbiieeuwykgj.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s'
+  );
+  chatSubscription = supabaseClient
+    .channel('table-db-changes')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, payload => {
+      addMessageToUI(payload.new);
+      const container = document.getElementById('chatMessages');
+      if (container) container.scrollTop = container.scrollHeight;
+    })
+    .subscribe();
+}
+
+function addMessageToUI(msg) {
+  const container = document.getElementById('chatMessages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'msg-bubble';
+  div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
+  container.appendChild(div);
+}
+
+function toggleChat() {
+  const panel = document.getElementById('chatPanel');
+  if (panel) panel.classList.toggle('hidden');
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const mensaje = input.value.trim();
+  if (!mensaje || !currentUser) return;
+  input.value = '';
+  try {
+    await fetch(`${API_BASE}/api/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: currentUser.id,
+        username: currentUser.nombre || currentUser.username,
+        mensaje
+      })
+    });
+  } catch (e) {
+    toast('Error al enviar mensaje');
+  }
 }
 
 /* ═══════════════════ NAVEGACIÓN Y PANEL IA (API) ══════════════════ */
