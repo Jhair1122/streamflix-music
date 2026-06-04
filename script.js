@@ -957,7 +957,7 @@ function addMessageToUI(msg) {
   const isMine = currentUser && msg.user_id === currentUser.id;
   div.className = 'msg-bubble' + (isMine ? ' my-msg' : '');
   if (isMine) {
-    div.innerHTML = esc(msg.mensaje);   // sin nombre de usuario
+    div.innerHTML = esc(msg.mensaje);
   } else {
     div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
   }
