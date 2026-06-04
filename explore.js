@@ -1,4 +1,4 @@
-const API_BASE = '';   // ← Cambia por tu URL real
+const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
 
 let allSongs     = [];
 let nowPlayingId = null;
