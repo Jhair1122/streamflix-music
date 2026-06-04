@@ -6,12 +6,19 @@
   <title>SoundMind — Recomendaciones Musicales IA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Ajustes mínimos para el chat */
+    .skip-btn { font-size: 13px; font-weight: 700; background: var(--bg3); border: 1px solid var(--border); width: auto; padding: 0 12px; border-radius: 20px; }
+    .skip-btn:hover { background: var(--accentA); color: var(--accent3); }
+  </style>
 </head>
 <body>
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
 <div id="app" class="hidden">
+  <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <h1>SoundMind</h1>
@@ -24,33 +31,21 @@
     </div>
     <div class="sidebar-nav">
       <div class="nav-section">Principal</div>
-      <button class="nav-item active" id="nav-home" onclick="showPage('home')">
-        <span class="nav-icon">🏠</span>Inicio
-      </button>
-      <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">
-        <span class="nav-icon">📅</span>Discover Weekly
-      </button>
+      <button class="nav-item active" id="nav-home" onclick="showPage('home')">🏠 Inicio</button>
+      <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">📅 Discover Weekly</button>
       <div class="nav-section">Mi Biblioteca</div>
-      <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')">
-        <span class="nav-icon">⭐</span>Favoritos <span class="nav-badge hidden" id="badge-fav">0</span>
-      </button>
-      <button class="nav-item" id="nav-likes" onclick="showPage('likes')">
-        <span class="nav-icon">❤️</span>Mis likes <span class="nav-badge hidden" id="badge-like">0</span>
-      </button>
-      <button class="nav-item" id="nav-queue" onclick="showPage('queue'); openQueueModal()">
-        <span class="nav-icon">🔀</span>Cola de reproducción
-      </button>
+      <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')">⭐ Favoritos <span class="nav-badge hidden" id="badge-fav">0</span></button>
+      <button class="nav-item" id="nav-likes" onclick="showPage('likes')">❤️ Mis likes <span class="nav-badge hidden" id="badge-like">0</span></button>
+      <button class="nav-item" id="nav-queue" onclick="showPage('queue'); openQueueModal()">🔀 Cola de reproducción</button>
       <div class="nav-section">Mi cuenta</div>
-      <button class="nav-item" id="nav-profile" onclick="showPage('profile')">
-        <span class="nav-icon">👤</span>Mi perfil
-      </button>
-      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">
-        <span class="nav-icon">📊</span>Panel IA
-      </button>
+      <button class="nav-item" id="nav-profile" onclick="showPage('profile')">👤 Mi perfil</button>
+      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">📊 Panel IA</button>
     </div>
   </nav>
 
+  <!-- MAIN CONTENT -->
   <main class="main">
+    <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
@@ -75,9 +70,7 @@
       </div>
 
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">🔥 Más populares</div><span class="ai-badge">Según la comunidad</span>
-        </div>
+        <div class="section-head"><div class="section-title">🔥 Más populares</div><span class="ai-badge">Según la comunidad</span></div>
         <div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
 
@@ -96,28 +89,28 @@
       </div>
     </div>
 
-    <!-- Descubre semanalmente -->
+    <!-- DISCOVER WEEKLY -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
       <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas. ¡Dale like para que sea más precisa!</div>
       <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando tu lista semanal…</div></div>
     </div>
 
-    <!-- Favoritos -->
+    <!-- FAVORITES -->
     <div class="page" id="page-favorites">
       <div class="page-title">⭐ Favoritos</div>
       <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
       <div class="cards-grid" id="favCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
-    <!-- Likes -->
+    <!-- LIKES -->
     <div class="page" id="page-likes">
       <div class="page-title">❤️ Mis likes</div>
       <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
       <div class="cards-grid" id="likeCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
-    <!-- Cola de reproducción (modal) -->
+    <!-- QUEUE MODAL -->
     <div id="queueModal" class="hidden">
       <div class="queue-overlay" onclick="closeQueue()"></div>
       <div class="queue-panel">
@@ -128,7 +121,7 @@
       </div>
     </div>
 
-    <!-- Perfil -->
+    <!-- PROFILE -->
     <div class="page" id="page-profile">
       <div class="page-title">👤 Mi perfil</div>
       <div class="page-sub">Estadísticas de escucha y logros.</div>
@@ -144,7 +137,7 @@
       </div>
     </div>
 
-    <!-- Panel IA -->
+    <!-- ANALYSIS (Panel IA) -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
@@ -165,15 +158,11 @@
         <div class="bar-chart" id="genreBar"></div>
       </div>
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div><span class="ai-badge">J48 simplificado</span>
-        </div>
+        <div class="section-head"><div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div><span class="ai-badge">J48 simplificado</span></div>
         <div class="tree-viz" id="treeViz">Calculando…</div>
       </div>
       <div class="section">
-        <div class="section-head">
-          <div class="section-title">🔬 Validación cruzada k=5</div><span class="ai-badge">Cross-Validation</span>
-        </div>
+        <div class="section-head"><div class="section-title">🔬 Validación cruzada k=5</div><span class="ai-badge">Cross-Validation</span></div>
         <div class="page-sub" style="margin-bottom:0">Las interacciones se dividen en 5 partes. En cada iteración se entrena con 4 y se evalúa con 1.</div>
         <table class="cv-table">
           <thead><tr><th>Fold</th><th>Entrenamiento</th><th>Prueba</th><th>Precisión</th><th>Likes detectados</th></tr></thead>
@@ -219,7 +208,7 @@
   </main>
 </div>
 
-<!-- Reproductor normal -->
+<!-- PLAYER BAR (con sleep timer y botones -15/+15) -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
     <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
@@ -260,7 +249,7 @@
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- Reproductor expandido -->
+<!-- EXPANDED PLAYER -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
@@ -291,6 +280,20 @@
       <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
       <span class="vol-percent" id="expVolPercent">80%</span>
     </div>
+  </div>
+</div>
+
+<!-- CHAT COMUNITARIO -->
+<div id="chatFAB" onclick="toggleChat()">💬</div>
+<div id="chatPanel" class="hidden">
+  <div class="chat-header">
+    <h3>💬 Chat de la comunidad</h3>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-wrap">
+    <input type="text" id="chatInput" placeholder="Escribe un mensaje…" onkeypress="if(event.key==='Enter') sendMessage()">
+    <button onclick="sendMessage()">Enviar</button>
   </div>
 </div>
 
