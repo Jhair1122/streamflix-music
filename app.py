@@ -15,9 +15,8 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # -------------------------------------------------------------------
-# Endpoints
+# Canciones
 # -------------------------------------------------------------------
-
 @app.route("/api/songs")
 def get_songs():
     try:
@@ -148,12 +147,10 @@ def register():
         if not nombre or not username or not password:
             return jsonify({"error": "Todos los campos son obligatorios"}), 400
 
-        # Verificar si el usuario existe
         existing = supabase.table("usuarios").select("id").eq("username", username).execute()
         if existing.data:
             return jsonify({"error": "El usuario ya existe"}), 409
 
-        # Insertar nuevo usuario
         res = supabase.table("usuarios").insert({
             "nombre": nombre,
             "username": username,
@@ -237,6 +234,35 @@ def analysis():
             "tree_rules": tree_rules,
             "cross_validation": cv
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# -------------------------------------------------------------------
+# CHAT
+# -------------------------------------------------------------------
+@app.route("/api/messages", methods=["GET"])
+def get_messages():
+    try:
+        res = supabase.table("mensajes").select("*").order("created_at", desc=False).limit(100).execute()
+        return jsonify({"messages": res.data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/messages", methods=["POST"])
+def post_message():
+    try:
+        data = request.json
+        user_id = data.get("user_id")
+        username = data.get("username")
+        mensaje = data.get("mensaje")
+        if not user_id or not username or not mensaje:
+            return jsonify({"error": "Faltan datos"}), 400
+        supabase.table("mensajes").insert({
+            "user_id": user_id,
+            "username": username,
+            "mensaje": mensaje
+        }).execute()
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
