@@ -146,6 +146,7 @@ function playSong(e, songId) {
   const audio = $('audioEl');
   if (song.url_preview) {
     audio.src = song.url_preview;
+    audio.crossOrigin = "anonymous";
     audio.load();
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume().catch(()=>{});
