@@ -373,15 +373,40 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   display: flex !important;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   border-radius: 50%;
-  background: none;
-  border: none;
-  color: var(--text2);
-  font-size: 18px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--text) !important;
+  font-size: 16px;
   cursor: pointer;
   transition: var(--transition-fast);
+}
+.pl-controls-btns .pl-btn:hover {
+  background: rgba(167,139,250,.25);
+  border-color: var(--accent);
+  color: #fff !important;
+  transform: scale(1.08);
+}
+.pl-btn.play-pause {
+  width: 42px; height: 42px;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-radius: 50%;
+  font-size: 16px;
+  box-shadow: 0 4px 20px rgba(255,255,255,0.3);
+  border: none !important;
+}
+.pl-btn.play-pause:hover { transform: scale(1.06); }
+.pl-btn.skip-btn {
+  font-size: 11px; font-weight: 700;
+  color: var(--text2) !important;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.pl-btn.skip-btn:hover {
+  background: rgba(167,139,250,.2);
+  color: var(--accent3) !important;
 }
 .pl-btn.play-pause {
   width: 40px; height: 40px;
@@ -449,6 +474,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 }
 
 /* ────────── EXPANDED PLAYER ────────── */
+/* ────────── EXPANDED PLAYER ────────── */
 #expandedPlayer {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
@@ -457,27 +483,158 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 }
 #expandedPlayer:not(.hidden) { opacity: 1; pointer-events: auto; }
 .expanded-bg { position: absolute; inset: 0; }
+
 .expanded-card {
-  position: relative; z-index: 1; background: var(--glass-bg);
-  border: 1px solid var(--glass-border); border-radius: 32px; padding: 40px;
-  max-width: 420px; width: 90%; text-align: center; box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(30px);
+  position: relative; z-index: 1;
+  background: linear-gradient(160deg, #16162a 0%, #0d0d1f 100%);
+  border: 1px solid rgba(167,139,250,.25);
+  border-radius: 32px; padding: 36px 32px 28px;
+  max-width: 440px; width: 92%; text-align: center;
+  box-shadow: 0 24px 80px rgba(0,0,0,.8), 0 0 40px rgba(124,58,237,.15);
+  backdrop-filter: blur(40px);
 }
-.expanded-close { position: absolute; top: 15px; right: 20px; background: none; border: none; color: var(--text2); font-size: 24px; cursor: pointer; }
-.expanded-disc { display: flex; justify-content: center; margin-bottom: 20px; }
+
+.expanded-close {
+  position: absolute; top: 16px; right: 20px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 50%; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); font-size: 16px; cursor: pointer;
+  transition: var(--transition-fast);
+}
+.expanded-close:hover { background: rgba(248,113,113,.2); color: var(--red); border-color: var(--red); }
+
+.expanded-disc { display: flex; justify-content: center; margin-bottom: 22px; }
 .expanded-disc-img {
-  width: 140px; height: 140px; border-radius: 50%;
-  box-shadow: 0 0 40px rgba(167,139,250,.4);
+  width: 150px; height: 150px; border-radius: 50%;
+  box-shadow: 0 0 50px rgba(167,139,250,.45), 0 0 20px rgba(0,0,0,.6);
   animation: discSpin 3s linear infinite paused;
+  overflow: hidden; position: relative;
+  flex-shrink: 0;
 }
 .expanded-disc-img.spinning { animation-play-state: running; }
-.expanded-info h2 { font-family: var(--font-h); font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-.expanded-info p { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
-.expanded-controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
-.expanded-progress { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-.expanded-progress .pl-progress { flex: 1; }
-.expanded-volume { display: flex; align-items: center; justify-content: center; gap: 8px; }
-.expanded-volume input[type=range] { flex: 1; max-width: 200px; accent-color: var(--accent); }
+
+.expanded-info h2 {
+  font-family: var(--font-h); font-size: 20px; font-weight: 800;
+  margin-bottom: 4px; letter-spacing: -.3px;
+}
+.expanded-info p { color: var(--text2); font-size: 13px; margin-bottom: 8px; }
+
+/* Fila de acciones (like, fav, +, más) */
+.expanded-like-row {
+  display: flex; justify-content: center;
+  gap: 12px; margin: 10px 0 18px;
+}
+.exp-action-btn {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 50%; width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; cursor: pointer; transition: var(--transition-fast); color: var(--text);
+}
+.exp-action-btn:hover { background: rgba(167,139,250,.25); border-color: var(--accent); }
+
+/* Controles expandidos */
+.expanded-controls {
+  display: flex; justify-content: center; align-items: center;
+  gap: 10px; margin-bottom: 18px; flex-wrap: nowrap;
+}
+.expanded-controls .pl-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  color: var(--text) !important;
+  font-size: 15px; font-weight: 700;
+  display: flex !important; align-items: center; justify-content: center;
+  cursor: pointer; transition: var(--transition-fast);
+}
+.expanded-controls .pl-btn:hover {
+  background: rgba(167,139,250,.25);
+  border-color: var(--accent);
+  color: #fff !important;
+  transform: scale(1.08);
+}
+.expanded-controls .pl-btn.play-pause {
+  width: 52px; height: 52px;
+  background: #ffffff !important;
+  color: #000 !important;
+  border: none !important;
+  font-size: 18px;
+  box-shadow: 0 6px 24px rgba(255,255,255,.25);
+}
+.expanded-controls .pl-btn.play-pause:hover {
+  transform: scale(1.07);
+  box-shadow: 0 8px 32px rgba(255,255,255,.35);
+}
+.expanded-controls .pl-btn.skip-btn {
+  font-size: 11px; font-weight: 700;
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,.06);
+  color: var(--text2) !important;
+}
+.expanded-controls .pl-btn.skip-btn:hover {
+  background: rgba(167,139,250,.2);
+  color: var(--accent3) !important;
+}
+
+/* Barra de progreso expandida */
+.expanded-progress {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.expanded-progress .pl-time { font-size: 11px; color: var(--text3); width: 34px; flex-shrink: 0; }
+.expanded-progress .pl-progress { flex: 1; height: 5px; background: rgba(255,255,255,.12); border-radius: 4px; cursor: pointer; overflow: hidden; }
+.expanded-progress .pl-progress:hover { height: 7px; }
+.expanded-progress .pl-progress-fill { height: 100%; background: linear-gradient(90deg, #1db954, #1ed760); border-radius: 4px; }
+
+/* Volumen expandido */
+.expanded-volume {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-bottom: 14px;
+}
+.expanded-volume input[type=range] {
+  flex: 1; max-width: 180px;
+  accent-color: var(--accent);
+}
+
+/* Siguiente en cola */
+.expanded-next-up {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.07);
+  max-height: 150px; overflow-y: auto;
+  width: 100%; text-align: left;
+}
+
+/* ── Móvil: expanded player ── */
+@media (max-width: 768px) {
+  .expanded-card {
+    padding: 24px 16px 20px;
+    max-height: 94vh; overflow-y: auto;
+    border-radius: 24px; width: 96%;
+  }
+  .expanded-disc-img { width: 120px; height: 120px; }
+  .expanded-info h2 { font-size: 17px; }
+  .expanded-info p { font-size: 12px; }
+  .expanded-like-row { gap: 10px; margin: 8px 0 14px; }
+  .exp-action-btn { width: 40px; height: 40px; font-size: 16px; }
+  .expanded-controls { gap: 8px; }
+  .expanded-controls .pl-btn { width: 36px; height: 36px; font-size: 13px; }
+  .expanded-controls .pl-btn.play-pause { width: 46px; height: 46px; font-size: 16px; }
+  /* MOSTRAR -15/+15 en móvil */
+  .expanded-controls .pl-btn.skip-btn {
+    display: flex !important;
+    width: 34px; height: 34px; font-size: 10px;
+  }
+  .expanded-next-up { max-height: 100px; }
+}
+
+@media (max-width: 420px) {
+  .expanded-card { padding: 20px 12px 16px; }
+  .expanded-disc-img { width: 100px; height: 100px; }
+  .expanded-controls { gap: 6px; }
+  .expanded-controls .pl-btn { width: 32px; height: 32px; font-size: 12px; }
+  .expanded-controls .pl-btn.play-pause { width: 42px; height: 42px; }
+  .expanded-controls .pl-btn.skip-btn { width: 30px; height: 30px; font-size: 9px; }
+}
 
 /* ────────── SLEEP TIMER ────────── */
 .sleep-timer-wrap { position: relative; display: flex; align-items: center; gap: 4px; }
