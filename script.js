@@ -7,6 +7,7 @@
    - Todas las funciones previas intactas
    - Sidebar colapsable añadido
    - Portadas de moods mejoradas
+   - Navegación robusta (no se bloquea al fallar una página)
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -1795,34 +1796,39 @@ function updateRightQueue() {
 
 /* ═══════════════════ NAVEGACIÓN Y PANEL IA ══════════════════ */
 function showPage(name){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pg=$('page-'+name), nv=$('nav-'+name);
-  if(pg) pg.classList.add('active');
-  if(nv) nv.classList.add('active');
-  if(window.innerWidth<=768) $('sidebar').classList.remove('open');
+  try {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    const pg=$('page-'+name), nv=$('nav-'+name);
+    if(pg) pg.classList.add('active');
+    if(nv) nv.classList.add('active');
+    if(window.innerWidth<=768) $('sidebar').classList.remove('open');
 
-  document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
-  const mobileActive = document.querySelector(`.mobile-nav-item[onclick="showPage('${name}')"]`);
-  if (mobileActive) mobileActive.classList.add('active');
+    document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
+    const mobileActive = document.querySelector(`.mobile-nav-item[onclick="showPage('${name}')"]`);
+    if (mobileActive) mobileActive.classList.add('active');
 
-  if (name === 'weekly') renderWeekly();
-  else if (name === 'profile') renderProfile();
-  else if (name === 'analysis') renderAnalysis();
-  else if (name === 'chat') {
-    if (!chatSubscription) initChat();
-    loadChatMessages();
-  }
-  else if (name === 'playlist') {
-    renderPlaylist();
-  }
-  else if (name === 'search') {
-    document.getElementById('searchInputBig').value = '';
-    searchQuery = '';
-    renderCatalog();
-  }
-  else if (name === 'recomendaciones') {
-    renderHomeRec();
+    if (name === 'weekly') renderWeekly();
+    else if (name === 'profile') renderProfile();
+    else if (name === 'analysis') renderAnalysis();
+    else if (name === 'chat') {
+      if (!chatSubscription) initChat();
+      loadChatMessages();
+    }
+    else if (name === 'playlist') {
+      renderPlaylist();
+    }
+    else if (name === 'search') {
+      document.getElementById('searchInputBig').value = '';
+      searchQuery = '';
+      renderCatalog();
+    }
+    else if (name === 'recomendaciones') {
+      renderHomeRec();
+    }
+  } catch (e) {
+    console.error('Error al mostrar la página ' + name, e);
+    toast('⚠️ No se pudo cargar la sección. Intenta de nuevo.');
   }
 }
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
