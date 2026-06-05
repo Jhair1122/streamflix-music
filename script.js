@@ -88,6 +88,55 @@ function checkSession(){
   return true;
 }
 
+/* ═══════ FLECHAS DE SECCIÓN HORIZONTAL ═══════ */
+function _attachSectionArrows(scrollId) {
+  const scroll = document.getElementById(scrollId);
+  if (!scroll) return;
+
+  // Buscar el section-head más cercano (hermano anterior o padre)
+  const section = scroll.closest('.section');
+  if (!section) return;
+  const head = section.querySelector('.section-head');
+  if (!head) return;
+
+  // Evitar duplicar
+  if (head.querySelector('.section-arrows')) return;
+
+  const arrows = document.createElement('div');
+  arrows.className = 'section-arrows';
+
+  const btnL = document.createElement('button');
+  btnL.className = 'section-arrow-btn';
+  btnL.innerHTML = '◀';
+  btnL.setAttribute('aria-label', 'Desplazar izquierda');
+
+  const btnR = document.createElement('button');
+  btnR.className = 'section-arrow-btn';
+  btnR.innerHTML = '▶';
+  btnR.setAttribute('aria-label', 'Desplazar derecha');
+
+  arrows.appendChild(btnL);
+  arrows.appendChild(btnR);
+  head.appendChild(arrows);
+
+  const update = () => {
+    btnL.disabled = scroll.scrollLeft <= 0;
+    btnR.disabled = scroll.scrollLeft + scroll.clientWidth >= scroll.scrollWidth - 2;
+  };
+
+  btnL.addEventListener('click', () => { scroll.scrollBy({ left: -280, behavior: 'smooth' }); setTimeout(update, 320); });
+  btnR.addEventListener('click', () => { scroll.scrollBy({ left: 280, behavior: 'smooth' }); setTimeout(update, 320); });
+  scroll.addEventListener('scroll', update, { passive: true });
+  // Esperar a que el contenido esté renderizado
+  setTimeout(update, 100);
+}
+
+/* Llamar al arrancar y al cargar ranking */
+function initSectionArrows() {
+  _attachSectionArrows('ranking-lo-mas-escuchado');
+  _attachSectionArrows('genero-cards-row');
+}
+
 /* ═══════════════════ BOOT ══════════════════ */
 async function bootApp(){
   if (!checkSession()) return;
@@ -138,9 +187,11 @@ async function bootApp(){
   } catch(e) {
     console.error('Error al inicializar secciones estáticas:', e);
   }
+  setTimeout(() => _attachSectionArrows('genero-cards-row'), 50);
 
   // Asegurar que el scroll horizontal del ranking funcione también si el ranking se cargó exitosamente
   enableRankingScroll();
+  initSectionArrows();
   initSidebarToggle();
 
   await actualizarContadoresHeader();
@@ -436,12 +487,54 @@ function onSearchBig(){
   searchQuery=$('searchInputBig').value.toLowerCase();
   renderCatalog();
 }
-function renderCatalog(){
+function renderCatalog() {
   let songs = allSongs;
   if (activeGenre) songs = songs.filter(s => s.genero === activeGenre);
-  if (searchQuery) songs = songs.filter(s => s.titulo.toLowerCase().includes(searchQuery) || s.artista.toLowerCase().includes(searchQuery));
-  txt('catalogCount', songs.length + ' canciones');
-  renderCards(songs, 'catalogCards', 'No se encontraron canciones.', 'global');
+  if (searchQuery) songs = songs.filter(s =>
+    s.titulo.toLowerCase().includes(searchQuery) ||
+    s.artista.toLowerCase().includes(searchQuery)
+  );
+  const count = songs.length;
+  txt('catalogCount', count + ' canciones');
+
+  const el = $('catalogCards');
+  if (!el) return;
+
+  if (!songs || !songs.length) {
+    el.className = 'cards-grid';
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🎵</div><p>No se encontraron canciones.</p></div>`;
+    return;
+  }
+
+  // Siempre horizontal (scroll) — compacto en cualquier pantalla
+  el.className = 'catalog-hscroll';
+  el.innerHTML = songs.map(s => {
+    const inter = interaccionesMap[s.id] || {};
+    const liked = inter.es_like;
+    const faved = inter.es_favorito;
+    const playing = nowPlayingId === s.id;
+    const inPlaylist = userPlaylist.includes(s.id);
+    const coverHTML = s.url_imagen
+      ? `<img src="${s.url_imagen}" alt="${esc(s.titulo)}" onerror="this.style.display='none'">`
+      : genreEmoji(s.genero);
+
+    return `<div class="song-card-h${playing ? ' playing' : ''}" data-id="${s.id}" onclick="playSong(event, ${s.id})">
+      <div class="shcover" style="background:${genreGradient(s.genero)}">
+        ${coverHTML}
+        ${playing ? `<div class="now-playing-badge">▶</div>` : ''}
+      </div>
+      <div class="shbody">
+        <div class="shtitle" title="${esc(s.titulo)}">${esc(s.titulo)}</div>
+        <div class="shartist">${esc(s.artista)}</div>
+        <div class="shactions" onclick="event.stopPropagation()">
+          <button class="shbtn${liked ? ' liked-btn' : ''}" onclick="toggleLike(event,${s.id})">${liked ? '❤️' : '🤍'}</button>
+          <button class="shbtn${faved ? ' faved-btn' : ''}" onclick="toggleFav(event,${s.id})">${faved ? '⭐' : '☆'}</button>
+          <button class="shbtn${inPlaylist ? ' liked-btn' : ''}" onclick="toggleAddToPlaylist(event,${s.id})">${inPlaylist ? '➖' : '➕'}</button>
+          <button class="shbtn" onclick="event.stopPropagation();openContextMenu(event,${s.id})">⋮</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 /* ── Playlist (Supabase) ── */
@@ -587,31 +680,32 @@ async function renderizarRankingGlobal() {
     const ranking = await calcularRankingGlobal();
 
     if (ranking.length === 0) {
-      contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">🎵</span><p>Aún no hay suficientes interacciones en la comunidad para mostrar populares.</p></div>`;
+      contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">🎵</span><p>Aún no hay suficientes interacciones.</p></div>`;
       return;
     }
 
-    // Formato horizontal (tarjetas deslizables)
-    contenedor.innerHTML = ranking.map((item, i) => {
+    contenedor.innerHTML = ranking.map((item) => {
       const c = item.cancion;
+      const imgHTML = c.url_imagen
+        ? `<img src="${c.url_imagen}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;margin-bottom:6px" onerror="this.onerror=null;this.style.display='none'">`
+        : `<div style="width:80px;height:80px;border-radius:8px;background:${genreGradient(c.genero)};display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:6px">${genreEmoji(c.genero)}</div>`;
       return `
-        <div style="min-width:140px;background:rgba(11,11,22,.8);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;cursor:pointer;flex-shrink:0;transition:var(--transition-fast)"
+        <div style="min-width:130px;background:rgba(11,11,22,.8);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;cursor:pointer;flex-shrink:0;transition:var(--transition-fast)"
              onclick="playSong(null, ${c.id})"
-             onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <img src="${c.url_imagen || ''}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;margin-bottom:6px">
-          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titulo}</div>
-          <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.artista}</div>
-          <div style="color:#f59e0b;font-size:11px;margin-top:4px">★ ${item.score.toFixed(1)}</div>
-          <button onclick="event.stopPropagation();playSong(null,${c.id})" style="margin-top:6px;background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:12px">▶</button>
+             onmouseover="this.style.borderColor='var(--accent)';this.style.transform='translateY(-3px)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.transform=''">
+          ${imgHTML}
+          <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.titulo)}</div>
+          <div style="font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.artista)}</div>
+          <div style="color:#f59e0b;font-size:10px;margin-top:4px">★ ${item.score.toFixed(1)}</div>
         </div>`;
     }).join('');
   } catch (error) {
-    console.error('Error al cargar el ranking global:', error);
-    contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">⚠️</span><p>No se pudo cargar el ranking. Intenta recargar la página.</p></div>`;
+    contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0">⚠️ No se pudo cargar el ranking.</div>`;
   }
 
-  // Habilitar la navegación con flechas (escritorio) y rueda de ratón
-  enableRankingScroll();
+  // Añadir flechas al section-head del ranking
+  _attachSectionArrows('ranking-lo-mas-escuchado');
 }
 
 /* ═══════ Scroll horizontal con flechas (PC) ═══════ */
@@ -935,98 +1029,123 @@ function renderizarTusMixes() {
 /* ═══════════════════ PÁGINA ÁLBUM ══════════════════ */
 function abrirPaginaAlbum(tipo, valor) {
   paginaAnterior = document.querySelector('.page.active')?.id || 'page-home';
-  let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '';
+  let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '', tipoLabel = '';
 
   if (tipo === 'genero') {
     const generoNormalizado = valor.trim();
     cancionesAlbum = allSongs.filter(s => s.genero && s.genero.trim() === generoNormalizado);
     tituloAlbum = generoNormalizado;
-    subtituloAlbum = 'Género · ' + cancionesAlbum.length + ' canciones';
+    subtituloAlbum = cancionesAlbum.length + ' canciones';
+    tipoLabel = 'GÉNERO';
   } else if (tipo === 'mood') {
     const mood = MOODS.find(m => m.id === valor);
     if (mood) {
       cancionesAlbum = obtenerCancionesPorMood(mood);
       tituloAlbum = mood.nombre;
-      subtituloAlbum = mood.emoji + ' Estado de ánimo';
+      subtituloAlbum = mood.emoji + ' · ' + cancionesAlbum.length + ' canciones';
+      tipoLabel = 'ESTADO DE ÁNIMO';
     }
   } else if (tipo === 'artista') {
     cancionesAlbum = allSongs.filter(s => s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim() === valor.trim());
     tituloAlbum = 'Mix de ' + valor;
-    subtituloAlbum = 'Mix del artista';
+    subtituloAlbum = cancionesAlbum.length + ' canciones';
+    tipoLabel = 'MIX DEL ARTISTA';
   }
 
-  // Ocultar todas las páginas y activar page-album
+  // Ocultar todas las páginas
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
-    p.style.display = 'none';   // ← forzar ocultamiento aunque tengan style inline
+    p.style.display = '';
   });
 
   const pagina = document.getElementById('page-album');
-  pagina.style.display = 'block';   // ← forzar visibilidad
   pagina.classList.add('active');
+
+  // Portada: primera canción con imagen
+  const conImagen = cancionesAlbum.find(s => s.url_imagen);
+  const portadaUrl = conImagen?.url_imagen || null;
+
+  // Color de fondo de respaldo
+  const colorFondo = tipo === 'mood'
+    ? (MOODS.find(m => m.id === valor)?.color || 'linear-gradient(135deg,#4c1d95,#7c3aed)')
+    : (COLORES_GENERO[valor] || 'linear-gradient(135deg,#4c1d95,#7c3aed)');
+
+  const iconoPortada = tipo === 'mood'
+    ? (MOODS.find(m => m.id === valor)?.emoji || '🎵')
+    : genreEmoji(valor);
 
   if (cancionesAlbum.length === 0) {
     pagina.innerHTML = `
-      <div style="text-align:center;padding:40px;color:#a0aec0">
-        <div style="font-size:48px;margin-bottom:12px">${genreEmoji(valor)}</div>
-        <h2 style="margin-bottom:8px">${tituloAlbum || 'Álbum'}</h2>
-        <p>No se encontraron canciones.</p>
-        <button onclick="cerrarPaginaAlbum()" style="margin-top:20px;background:var(--accent2);color:#fff;border:none;border-radius:20px;padding:10px 24px;cursor:pointer">← Volver</button>
+      <div style="text-align:center;padding:60px 20px;color:#a0aec0">
+        <div style="font-size:56px;margin-bottom:16px">${iconoPortada}</div>
+        <h2 style="margin-bottom:8px;font-family:var(--font-h)">${tituloAlbum || 'Álbum'}</h2>
+        <p style="margin-bottom:24px">No se encontraron canciones en esta categoría.</p>
+        <button onclick="cerrarPaginaAlbum()" class="btn-shuffle-all" style="margin:0 auto">← Volver</button>
       </div>`;
     return;
   }
 
-  // Obtener la cover del mood si existe
-  const moodActual = tipo === 'mood' ? MOODS.find(m => m.id === valor) : null;
-  const coverUrl = moodActual?.cover || null;
-  const portadaBg = COLORES_GENERO[valor] || 'linear-gradient(135deg,#4c1d95,#7c3aed)';
-  const iconoPortada = tipo === 'mood'
-    ? (moodActual?.emoji || '🎵')
-    : genreEmoji(valor);
+  // Construir portada del hero
+  const heroBgStyle = portadaUrl
+    ? `background-image:url(${portadaUrl})`
+    : `background:${colorFondo}`;
+
+  const portadaHTML = portadaUrl
+    ? `<img class="album-cover-img" src="${portadaUrl}" alt="${esc(tituloAlbum)}" onerror="this.style.display='none'">`
+    : `<div class="album-cover-placeholder" style="background:${colorFondo}">${iconoPortada}</div>`;
+
+  // Construir lista de pistas
+  const pistasHTML = cancionesAlbum.map((c, i) => {
+    const inter = interaccionesMap[c.id] || {};
+    const liked = inter.es_like;
+    const thumbHTML = c.url_imagen
+      ? `<img class="album-track-thumb" src="${c.url_imagen}" alt="${esc(c.titulo)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      + `<div class="album-track-thumb-placeholder" style="display:none;background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`
+      : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
+
+    return `
+      <div class="album-track" onclick="playSong(null, ${c.id})">
+        <div class="album-track-num">${i + 1}</div>
+        ${thumbHTML}
+        <div class="album-track-info">
+          <div class="album-track-title">${esc(c.titulo)}</div>
+          <div class="album-track-artist">${esc(c.artista)}</div>
+        </div>
+        <span class="album-track-genre">${esc(c.genero)}</span>
+        <div class="album-track-actions" onclick="event.stopPropagation()">
+          <button class="album-track-btn${liked ? ' liked-btn' : ''}" onclick="toggleLike(event,${c.id})" title="Like">${liked ? '❤️' : '🤍'}</button>
+          <button class="album-track-btn" onclick="playSong(null,${c.id})" title="Reproducir">▶</button>
+          <button class="album-track-btn" onclick="openContextMenu(event,${c.id})" title="Más">⋮</button>
+        </div>
+      </div>`;
+  }).join('');
 
   pagina.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;padding:16px 16px 0">
-      <button onclick="cerrarPaginaAlbum()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">←</button>
-      <h2 style="font-size:18px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tituloAlbum}</h2>
-    </div>
-    <div style="position:relative;overflow:hidden;${coverUrl ? `background-image:url(${coverUrl});background-size:cover;background-position:center;` : ''}">
-      <!-- Capa de fade-out en la parte inferior -->
-      <div style="position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to bottom, transparent, rgba(5,5,12,1));z-index:2;pointer-events:none;"></div>
-      <!-- Capa semitransparente superior para mejorar legibilidad -->
-      <div style="position:absolute;top:0;left:0;right:0;height:60px;background:linear-gradient(to top, transparent, rgba(5,5,12,0.7));z-index:2;pointer-events:none;"></div>
-      <div style="padding:24px 16px 0;text-align:center;position:relative;z-index:1">
-        <div style="width:180px;height:180px;background:${coverUrl ? `url(${coverUrl}) center/cover` : portadaBg};border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:72px;box-shadow:0 8px 32px rgba(0,0,0,.4);${coverUrl ? '' : `background:${portadaBg}`}">
-          ${!coverUrl ? iconoPortada : ''}
+    <div class="album-hero">
+      <div class="album-hero-bg" style="${heroBgStyle}"></div>
+      <div class="album-hero-content">
+        ${portadaHTML}
+        <div class="album-meta">
+          <div class="album-type">${tipoLabel}</div>
+          <h2>${esc(tituloAlbum)}</h2>
+          <div class="album-sub">${subtituloAlbum} · Generado por IA</div>
         </div>
-        <div style="font-weight:700;font-size:22px;margin-bottom:4px">${tituloAlbum}</div>
-        <div style="color:#a0aec0;font-size:13px">${cancionesAlbum.length} canciones</div>
-        <div style="color:#a0aec0;font-size:11px;margin-top:4px">${subtituloAlbum} · Generado por IA</div>
       </div>
     </div>
-    <div style="display:flex;gap:12px;padding:20px 16px 0;justify-content:center">
-      <button onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})"
-        style="flex:1;max-width:140px;background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:24px;padding:10px;cursor:pointer;font-size:14px">⇌ Aleatorio</button>
-      <button onclick="reproducirDesde(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0)"
-        style="flex:1;max-width:140px;background:#7c3aed;border:none;color:#fff;border-radius:24px;padding:10px;cursor:pointer;font-weight:700;font-size:14px">▶ Reproducir todo</button>
-    </div>
-    <div style="padding:16px">
-      ${cancionesAlbum.map(c => `
-        <div data-cancion-id="${c.id}" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer"
-             onclick="playSong(null, ${c.id})">
-          ${c.url_imagen
-            ? `<img src="${c.url_imagen}" style="width:50px;height:50px;border-radius:8px;object-fit:cover;flex-shrink:0">`
-            : `<div style="width:50px;height:50px;border-radius:8px;background:${genreGradient(c.genero)};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${genreEmoji(c.genero)}</div>`
-          }
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.titulo)}</div>
-            <div style="font-size:12px;color:#a0aec0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.artista)}</div>
-            <span style="font-size:10px;background:rgba(124,58,237,0.3);color:#c4b5fd;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">${esc(c.genero)}</span>
-          </div>
-          <button onclick="event.stopPropagation();playSong(null,${c.id})"
-            style="background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px;flex-shrink:0">▶</button>
-          <button onclick="event.stopPropagation();openContextMenu(event,${c.id})"
-            style="background:none;border:none;color:#a0aec0;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">⋮</button>
-        </div>`).join('')}
+
+    <div style="padding:0 4px;margin-top:16px">
+      <div class="album-actions">
+        <button class="btn-play-all" onclick="reproducirDesde(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0)">
+          ▶ Reproducir todo
+        </button>
+        <button class="btn-shuffle-all" onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})">
+          ⇌ Aleatorio
+        </button>
+      </div>
+
+      <div style="margin-top:4px">
+        ${pistasHTML}
+      </div>
     </div>`;
 }
 
