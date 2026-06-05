@@ -51,6 +51,7 @@
       <option>J-Pop</option><option>Phonk</option><option>Otro</option>
     </select>
 
+    <!-- NUEVO CAMPO: Estado de ánimo -->
     <label>Estado de ánimo (opcional)</label>
     <select id="mood">
       <option value="">Ninguno</option>
@@ -116,7 +117,7 @@
       const titulo = document.getElementById('titulo').value.trim();
       const artista = document.getElementById('artista').value.trim();
       const genero = document.getElementById('genero').value;
-      const mood = document.getElementById('mood').value || null; // null si no se selecciona nada
+      const mood = document.getElementById('mood').value || null;
 
       if (!audioFile || !imageFile || !titulo || !artista || !genero) {
         uploadMsg.textContent = 'Completa todos los campos y selecciona ambos archivos.';
@@ -125,17 +126,14 @@
       }
 
       try {
-        // Función para limpiar nombres de archivo
         const cleanName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
-        // Subir audio
         const audioPath = `audios/${Date.now()}_${cleanName(audioFile.name)}`;
         const { error: audioError } = await supabase.storage
           .from('musica')
           .upload(audioPath, audioFile, { contentType: 'audio/mpeg' });
         if (audioError) throw new Error('Error al subir audio: ' + audioError.message);
 
-        // Subir imagen
         const imagePath = `imagenes/${Date.now()}_${cleanName(imageFile.name)}`;
         const { error: imageError } = await supabase.storage
           .from('musica')
@@ -145,7 +143,6 @@
         const audioUrl = supabase.storage.from('musica').getPublicUrl(audioPath).data.publicUrl;
         const imageUrl = supabase.storage.from('musica').getPublicUrl(imagePath).data.publicUrl;
 
-        // Insertar en la tabla (solo las columnas que existen)
         const { error: insertError } = await supabase
           .from('canciones')
           .insert({ titulo, artista, genero, mood, url_preview: audioUrl, url_imagen: imageUrl });
