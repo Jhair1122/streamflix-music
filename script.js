@@ -209,25 +209,21 @@ function initSidebarToggle() {
   function setCollapsed(collapsed) {
     if (collapsed) {
       sidebar.classList.add('collapsed');
-      toggleBtn.title = 'Abrir Tu biblioteca';
+      toggleBtn.textContent = '▶';
+      toggleBtn.title = 'Expandir menú';
     } else {
       sidebar.classList.remove('collapsed');
-      toggleBtn.title = 'Contraer Tu biblioteca';
+      toggleBtn.textContent = '◀';
+      toggleBtn.title = 'Contraer menú';
     }
     localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
   }
 
-  // Cargar estado guardado
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === '1') {
-    setCollapsed(true);
-  } else {
-    setCollapsed(false);
-  }
+  setCollapsed(saved === '1');
 
   toggleBtn.addEventListener('click', () => {
-    const isCollapsed = sidebar.classList.contains('collapsed');
-    setCollapsed(!isCollapsed);
+    setCollapsed(!sidebar.classList.contains('collapsed'));
   });
 }
 
@@ -540,18 +536,31 @@ function renderCatalog() {
 }
 
 /* ── Playlist (Supabase) ── */
+let userPlaylists = [];   // Array de { id, nombre, canciones: [ids] }
+
 async function loadUserPlaylist() {
   if (!currentUser) return;
   try {
-    const { data } = await supabase.from('playlists').select('id').eq('usuario_id', currentUser.id);
-    if (data && data.length > 0) {
-      const playlistId = data[0].id;
-      const { data: canciones } = await supabase.from('playlist_canciones').select('cancion_id').eq('playlist_id', playlistId);
+    const { data: playlists } = await supabase
+      .from('playlists').select('id, nombre').eq('usuario_id', currentUser.id);
+    
+    if (playlists && playlists.length > 0) {
+      // Cargar canciones de la primera playlist (para compatibilidad con userPlaylist)
+      const { data: canciones } = await supabase
+        .from('playlist_canciones').select('cancion_id').eq('playlist_id', playlists[0].id);
       userPlaylist = canciones ? canciones.map(c => c.cancion_id) : [];
+      
+      // Guardar todas las playlists con sus canciones
+      userPlaylists = await Promise.all(playlists.map(async pl => {
+        const { data: songs } = await supabase
+          .from('playlist_canciones').select('cancion_id').eq('playlist_id', pl.id);
+        return { ...pl, canciones: songs ? songs.map(s => s.cancion_id) : [] };
+      }));
     } else {
       userPlaylist = [];
+      userPlaylists = [];
     }
-  } catch(e) { userPlaylist = []; }
+  } catch(e) { userPlaylist = []; userPlaylists = []; }
 }
 
 async function toggleAddToPlaylist(e, songId) {
@@ -582,19 +591,68 @@ async function toggleAddToPlaylist(e, songId) {
 
 function renderPlaylist(filtro) {
   if (filtro !== undefined) currentPlaylistFilter = filtro;
-  let songs, emptyMsg;
+  
+  const container = document.getElementById('playlistCards');
+  if (!container) return;
+
   if (currentPlaylistFilter === 'favoritos') {
-    songs = getFavoriteSongs();
-    emptyMsg = 'No tienes favoritos todavía. Usa ⭐ en cualquier canción.';
+    const songs = getFavoriteSongs();
+    renderAlbumTrackList(songs, 'playlistCards',
+      'No tienes favoritos todavía. Usa ⭐ en cualquier canción.', 'global');
   } else if (currentPlaylistFilter === 'likes') {
-    songs = getLikedSongs();
-    emptyMsg = 'No tienes likes todavía. Usa ❤️ en cualquier canción.';
+    const songs = getLikedSongs();
+    renderAlbumTrackList(songs, 'playlistCards',
+      'No tienes likes todavía. Usa ❤️ en cualquier canción.', 'likes');
   } else {
-    songs = getPlaylistSongs();
-    emptyMsg = 'Tu playlist está vacía. Usa ➕ en cualquier canción para añadirla.';
+    // Mostrar todas las playlists
+    if (!userPlaylists || userPlaylists.length === 0) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">🎵</div>
+        <p>No tienes playlists. Pulsa <strong>+ Nueva Playlist</strong> para crear una.</p>
+      </div>`;
+      updateBadges();
+      return;
+    }
+
+    let html = '';
+    userPlaylists.forEach(pl => {
+      const songs = allSongs.filter(s => pl.canciones.includes(s.id));
+      html += `
+        <div style="margin-bottom:24px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <span style="font-family:var(--font-h);font-size:16px;font-weight:700">
+              🎵 ${esc(pl.nombre)}
+            </span>
+            <span style="font-size:11px;color:var(--text2)">${songs.length} canciones</span>
+            <button onclick="reproducirPlaylist(${pl.id})"
+              style="margin-left:auto;padding:5px 14px;border-radius:20px;background:var(--accent2);
+                     color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer">
+              ▶ Play
+            </button>
+          </div>
+          <div id="pl-songs-${pl.id}"></div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+
+    // Renderizar canciones de cada playlist
+    userPlaylists.forEach(pl => {
+      const songs = allSongs.filter(s => pl.canciones.includes(s.id));
+      renderAlbumTrackList(songs, `pl-songs-${pl.id}`,
+        'Esta playlist está vacía.', 'playlist');
+    });
   }
-  renderAlbumTrackList(songs, 'playlistCards', emptyMsg, currentPlaylistFilter === 'playlist' ? 'playlist' : 'global');
   updateBadges();
+}
+
+function reproducirPlaylist(playlistId) {
+  const pl = userPlaylists.find(p => p.id === playlistId);
+  if (!pl || pl.canciones.length === 0) { toast('La playlist está vacía'); return; }
+  playlistContext = 'playlist';
+  // Actualizar userPlaylist con esta playlist específica
+  userPlaylist = pl.canciones;
+  playSong(null, pl.canciones[0], 'playlist');
 }
 
 function filterPlaylist(tipo) {
@@ -607,10 +665,69 @@ function filterPlaylist(tipo) {
 
 // ── Función crearNuevaPlaylist (para los botones del HTML) ──
 async function crearNuevaPlaylist() {
-  const nombre = prompt('Nombre de la nueva playlist:');
-  if (!nombre) return;
-  await supabase.from('playlists').insert({ usuario_id: currentUser.id, nombre: nombre.trim() });
-  toast('Playlist creada');
+  // Crear modal bonito
+  const overlay = document.createElement('div');
+  overlay.id = 'newPlaylistOverlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,5,12,.85);backdrop-filter:blur(10px);
+  `;
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:24px;
+                padding:32px 28px;width:90%;max-width:380px;box-shadow:var(--shadow-lg)">
+      <h3 style="font-family:var(--font-h);font-size:20px;font-weight:800;margin-bottom:6px">
+        🎵 Nueva Playlist
+      </h3>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:20px">
+        Dale un nombre a tu nueva playlist
+      </p>
+      <input id="newPlaylistInput" type="text" placeholder="Ej: Mis favoritos, Workout..."
+        style="width:100%;padding:12px 18px;border-radius:50px;border:1px solid var(--border);
+               background:var(--bg3);color:var(--text);font-size:15px;outline:none;
+               font-family:var(--font-b);margin-bottom:16px"
+        maxlength="40"
+        onkeydown="if(event.key==='Enter') confirmNewPlaylist()"
+      >
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="document.getElementById('newPlaylistOverlay').remove()"
+          style="padding:10px 20px;border-radius:50px;border:1px solid var(--border);
+                 background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">
+          Cancelar
+        </button>
+        <button onclick="confirmNewPlaylist()"
+          style="padding:10px 24px;border-radius:50px;background:var(--accent2);
+                 color:#fff;font-size:13px;font-weight:700;cursor:pointer;border:none;
+                 box-shadow:0 4px 14px rgba(124,58,237,.4)">
+          Crear ✓
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(() => document.getElementById('newPlaylistInput')?.focus(), 100);
+  // Cerrar al hacer clic fuera
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+async function confirmNewPlaylist() {
+  const input = document.getElementById('newPlaylistInput');
+  if (!input) return;
+  const nombre = input.value.trim();
+  if (!nombre) { input.style.borderColor = 'var(--red)'; return; }
+
+  document.getElementById('newPlaylistOverlay')?.remove();
+
+  const { data, error } = await supabase
+    .from('playlists')
+    .insert({ usuario_id: currentUser.id, nombre })
+    .select()
+    .single();
+
+  if (error) { toast('❌ Error al crear la playlist'); return; }
+
+  toast(`✅ Playlist "${nombre}" creada`);
+  // Recargar playlists y mostrar la nueva
+  await loadUserPlaylist();
   renderPlaylist();
 }
 
@@ -1128,7 +1245,7 @@ function abrirPaginaAlbum(tipo, valor) {
       : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
 
     return `
-      <div class="album-track" onclick="playSong(null, ${c.id})">
+      <div class="album-track" onclick="reproducirDesdeAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, ${i}, '${tipo}_${encodeURIComponent(valor)}')">
         <div class="album-track-num">${i + 1}</div>
         ${thumbHTML}
         <div class="album-track-info">
@@ -1138,7 +1255,7 @@ function abrirPaginaAlbum(tipo, valor) {
         <span class="album-track-genre">${esc(c.genero)}</span>
         <div class="album-track-actions" onclick="event.stopPropagation()">
           <button class="album-track-btn${liked ? ' liked-btn' : ''}" onclick="toggleLike(event,${c.id})" title="Like">${liked ? '❤️' : '🤍'}</button>
-          <button class="album-track-btn" onclick="playSong(null,${c.id})" title="Reproducir">▶</button>
+          <button class="album-track-btn" onclick="reproducirDesdeAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, ${i}, '${tipo}_${encodeURIComponent(valor)}');event.stopPropagation()" title="Reproducir">▶</button>
           <button class="album-track-btn" onclick="openContextMenu(event,${c.id})" title="Más">⋮</button>
         </div>
       </div>`;
@@ -1159,11 +1276,29 @@ function abrirPaginaAlbum(tipo, valor) {
     <div style="padding:0 4px;margin-top:16px">
       <div class="album-actions">
         <button class="btn-back-album" onclick="cerrarPaginaAlbum()">← Volver</button>
-        <button class="btn-play-all" onclick="reproducirDesde(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0)">▶ Reproducir todo</button>
-        <button class="btn-shuffle-all" onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})">⇌ Aleatorio</button>
+        <button class="btn-play-all" onclick="reproducirDesdeAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0, '${tipo}_${valor}')">▶ Reproducir todo</button>
+        <button class="btn-shuffle-all" onclick="shuffleYReproducirAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, '${tipo}_${valor}')">⇌ Aleatorio</button>
       </div>
       <div style="margin-top:4px">${pistasHTML}</div>
     </div>`;
+}
+
+// Cola temporal para reproducción de álbum
+let albumQueue = [];
+let albumQueueContext = '';
+
+function reproducirDesdeAlbum(arrayIds, indice, ctxKey) {
+  albumQueue = arrayIds;
+  albumQueueContext = ctxKey;
+  // Guardar en playlistContext especial
+  playlistContext = 'album_' + ctxKey;
+  // Sobrescribir getContextSongs para este contexto
+  playSong(null, arrayIds[indice]);
+}
+
+function shuffleYReproducirAlbum(arrayIds, ctxKey) {
+  const mezclado = [...arrayIds].sort(() => Math.random() - 0.5);
+  reproducirDesdeAlbum(mezclado, 0, ctxKey);
 }
 
 function cerrarPaginaAlbum() {
@@ -1305,10 +1440,14 @@ async function actualizarContadoresHeader() {
 
 /* ═══════════════════ PLAYER ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
-function getContextSongs(){
+function getContextSongs() {
   if (playlistContext === 'favorites') return getFavoriteSongs();
   if (playlistContext === 'likes') return getLikedSongs();
   if (playlistContext === 'playlist') return getPlaylistSongs();
+  if (playlistContext.startsWith('album_')) {
+    // Retornar las canciones del álbum actual en orden
+    return albumQueue.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+  }
   return allSongs;
 }
 function getFavoriteSongs(){
@@ -1327,7 +1466,7 @@ async function playSong(e, songId, context = null){
   if (e && e.stopPropagation) e.stopPropagation();
   const song = allSongs.find(s => s.id === songId);
   if (!song) return;
-  if (context) setPlaylistContext(context);
+  if (context !== null) setPlaylistContext(context);
 
   nowPlayingId = songId;
   txt('plTitle', song.titulo);
@@ -1884,6 +2023,13 @@ function openExpandedPlayer() {
   $('expandedPlayer').classList.remove('hidden');
 }
 
+// REEMPLAZAR o AGREGAR después de openExpandedPlayer()
+function closeExpandedPlayer() {
+  document.getElementById('expandedPlayer').classList.add('hidden');
+  const disc = document.getElementById('expDisc');
+  if (disc) disc.classList.remove('spinning');
+}
+
 /* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
 let chatSubscription = null;
 let rankingSubscription = null;   // ← nueva
@@ -2070,18 +2216,10 @@ function updateMoreLikeSection(song) {
 
 /* ═══════════════════ PANEL DERECHO Y BARRA MÓVIL ══════════════════ */
 function updateRightPanel(song) {
-  const rightDisc = document.getElementById('rightDisc');
-  const rightCover = document.getElementById('rightDiscCover');
-  if (rightCover) updateDiscCover(rightCover, song);
   const rightTitle = document.getElementById('rightTitle');
   const rightArtist = document.getElementById('rightArtist');
   if (rightTitle) rightTitle.textContent = song.titulo;
   if (rightArtist) rightArtist.textContent = song.artista;
-  const audio = document.getElementById('audioEl');
-  if (rightDisc) {
-    if (audio && !audio.paused) rightDisc.classList.add('spinning');
-    else rightDisc.classList.remove('spinning');
-  }
   updateRightQueue();
 }
 
