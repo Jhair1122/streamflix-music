@@ -93,7 +93,6 @@ async function bootApp(){
 
   const initials=(currentUser.nombre||currentUser.username).slice(0,2).toUpperCase();
   txt('userAvatar',initials);
-  txt('userName',currentUser.nombre||currentUser.username);
   txt('heroName',currentUser.nombre||currentUser.username);
 
   try {
