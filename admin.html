@@ -51,17 +51,6 @@
       <option>J-Pop</option><option>Phonk</option><option>Otro</option>
     </select>
 
-    <!-- NUEVOS CAMPOS (faltaban) -->
-    <label>Popularidad (0-100)</label>
-    <input type="number" id="popularidad" value="80" min="0" max="100" required>
-
-    <label>Energía (0.0 - 1.0)</label>
-    <input type="number" id="energia" value="0.7" step="0.1" min="0" max="1" required>
-
-    <label>Bailabilidad (0.0 - 1.0)</label>
-    <input type="number" id="bailabilidad" value="0.7" step="0.1" min="0" max="1" required>
-    <!-- FIN NUEVOS CAMPOS -->
-
     <label>Archivo de audio (MP3)</label>
     <input type="file" id="audioFile" accept="audio/mpeg" required>
 
@@ -118,12 +107,7 @@
       const artista = document.getElementById('artista').value.trim();
       const genero = document.getElementById('genero').value;
 
-      // Ahora sí existen estos elementos
-      const popularidad = parseInt(document.getElementById('popularidad').value);
-      const energia = parseFloat(document.getElementById('energia').value);
-      const bailabilidad = parseFloat(document.getElementById('bailabilidad').value);
-
-      if (!audioFile || !imageFile || !titulo || !artista || !genero || isNaN(popularidad) || isNaN(energia) || isNaN(bailabilidad)) {
+      if (!audioFile || !imageFile || !titulo || !artista || !genero) {
         uploadMsg.textContent = 'Completa todos los campos y selecciona ambos archivos.';
         submitBtn.disabled = false;
         return;
@@ -133,7 +117,7 @@
         // Función para limpiar nombres de archivo
         const cleanName = (name) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
-        // Subir audio con tipo MIME explícito
+        // Subir audio
         const audioPath = `audios/${Date.now()}_${cleanName(audioFile.name)}`;
         const { error: audioError } = await supabase.storage
           .from('musica')
@@ -150,12 +134,10 @@
         const audioUrl = supabase.storage.from('musica').getPublicUrl(audioPath).data.publicUrl;
         const imageUrl = supabase.storage.from('musica').getPublicUrl(imagePath).data.publicUrl;
 
-        console.log('Audio URL:', audioUrl);
-        console.log('Image URL:', imageUrl);
-
+        // Insertar en la tabla (solo las columnas que existen)
         const { error: insertError } = await supabase
           .from('canciones')
-          .insert({ titulo, artista, genero, popularidad, energia, bailabilidad, url_preview: audioUrl, url_imagen: imageUrl });
+          .insert({ titulo, artista, genero, url_preview: audioUrl, url_imagen: imageUrl });
         if (insertError) throw new Error('Error al guardar canción: ' + insertError.message);
 
         uploadMsg.textContent = '✅ Canción subida con éxito!';
