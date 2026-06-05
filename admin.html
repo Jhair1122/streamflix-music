@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* (mismos estilos que antes) */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'DM Sans', sans-serif; background: linear-gradient(135deg, #05050c, #0f0f23); color: #f0f0fa; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .container { background: rgba(11,11,22,0.9); border: 1px solid rgba(167,139,250,.2); border-radius: 24px; padding: 32px; width: 100%; max-width: 480px; backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(124,58,237,.2); }
@@ -40,8 +39,10 @@
   <form id="uploadForm">
     <label>Título</label>
     <input type="text" id="titulo" placeholder="Nombre de la canción" required>
+
     <label>Artista</label>
     <input type="text" id="artista" placeholder="Nombre del artista" required>
+
     <label>Género</label>
     <select id="genero" required>
       <option value="">Selecciona un género</option>
@@ -49,10 +50,24 @@
       <option>Latino</option><option>Alternativo</option><option>Trap</option><option>Balada</option>
       <option>J-Pop</option><option>Phonk</option><option>Otro</option>
     </select>
+
+    <!-- NUEVOS CAMPOS (faltaban) -->
+    <label>Popularidad (0-100)</label>
+    <input type="number" id="popularidad" value="80" min="0" max="100" required>
+
+    <label>Energía (0.0 - 1.0)</label>
+    <input type="number" id="energia" value="0.7" step="0.1" min="0" max="1" required>
+
+    <label>Bailabilidad (0.0 - 1.0)</label>
+    <input type="number" id="bailabilidad" value="0.7" step="0.1" min="0" max="1" required>
+    <!-- FIN NUEVOS CAMPOS -->
+
     <label>Archivo de audio (MP3)</label>
     <input type="file" id="audioFile" accept="audio/mpeg" required>
+
     <label>Imagen de portada (JPG/PNG)</label>
     <input type="file" id="imageFile" accept="image/*" required>
+
     <button type="submit" class="btn" id="submitBtn">Subir canción</button>
     <div id="uploadMsg" class="msg"></div>
   </form>
@@ -102,11 +117,13 @@
       const titulo = document.getElementById('titulo').value.trim();
       const artista = document.getElementById('artista').value.trim();
       const genero = document.getElementById('genero').value;
+
+      // Ahora sí existen estos elementos
       const popularidad = parseInt(document.getElementById('popularidad').value);
       const energia = parseFloat(document.getElementById('energia').value);
       const bailabilidad = parseFloat(document.getElementById('bailabilidad').value);
 
-      if (!audioFile || !imageFile || !titulo || !artista || !genero) {
+      if (!audioFile || !imageFile || !titulo || !artista || !genero || isNaN(popularidad) || isNaN(energia) || isNaN(bailabilidad)) {
         uploadMsg.textContent = 'Completa todos los campos y selecciona ambos archivos.';
         submitBtn.disabled = false;
         return;
@@ -133,7 +150,6 @@
         const audioUrl = supabase.storage.from('musica').getPublicUrl(audioPath).data.publicUrl;
         const imageUrl = supabase.storage.from('musica').getPublicUrl(imagePath).data.publicUrl;
 
-        // Mostrar URLs en consola para depuración
         console.log('Audio URL:', audioUrl);
         console.log('Image URL:', imageUrl);
 
