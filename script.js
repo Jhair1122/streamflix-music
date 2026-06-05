@@ -164,6 +164,21 @@ async function bootApp(){
 
     // Cargar playlist del usuario desde Supabase
     await loadUserPlaylist();
+  // DEBUG TEMPORAL — borrar después
+  console.log('=== DEBUG PLAYLIST ===');
+  console.log('currentUser.id:', currentUser.id, typeof currentUser.id);
+  console.log('userPlaylists:', JSON.stringify(userPlaylists));
+  console.log('userPlaylist:', userPlaylist);
+  
+  // Test directo a Supabase
+  const testPl = await supabase.from('playlists').select('*').eq('usuario_id', currentUser.id);
+  console.log('TEST playlists query:', testPl.data, testPl.error);
+  
+  if (testPl.data && testPl.data.length > 0) {
+    const testPc = await supabase.from('playlist_canciones').select('*').in('playlist_id', testPl.data.map(p=>p.id));
+    console.log('TEST playlist_canciones:', testPc.data, testPc.error);
+  }
+  // FIN DEBUG
   } catch (err) {
     console.error('Error cargando datos desde Supabase:', err);
     toast('⚠️ Error de conexión. Algunas funciones pueden no estar disponibles.');
@@ -543,51 +558,61 @@ let userPlaylists = [];   // Array de { id, nombre, canciones: [ids] }
 
 async function loadUserPlaylist() {
   if (!currentUser) return;
+  
+  const uid = String(currentUser.id).trim();
+  console.log('[loadUserPlaylist] uid:', uid);
+  
   try {
-    // Cargar SOLO las playlists del usuario actual
     const { data: playlists, error: plErr } = await supabase
       .from('playlists')
-      .select('id, nombre')
-      .eq('usuario_id', currentUser.id)
-      .order('id', { ascending: true });
+      .select('id, nombre, usuario_id')
+      .eq('usuario_id', uid);
+
+    console.log('[loadUserPlaylist] playlists result:', playlists, 'error:', plErr);
 
     if (plErr || !playlists || playlists.length === 0) {
       userPlaylist = [];
       userPlaylists = [];
+      console.log('[loadUserPlaylist] Sin playlists para este usuario');
       return;
     }
 
-    // Cargar canciones de TODAS las playlists del usuario en una sola query
     const playlistIds = playlists.map(p => p.id);
-    const { data: allPcRows } = await supabase
+    console.log('[loadUserPlaylist] playlistIds:', playlistIds);
+
+    const { data: pcRows, error: pcErr } = await supabase
       .from('playlist_canciones')
       .select('playlist_id, cancion_id, posicion')
       .in('playlist_id', playlistIds)
       .order('posicion', { ascending: true });
 
-    // Agrupar por playlist_id
-    const songsByPlaylist = {};
-    playlistIds.forEach(pid => { songsByPlaylist[pid] = []; });
-    (allPcRows || []).forEach(row => {
-      if (songsByPlaylist[row.playlist_id] !== undefined) {
-        songsByPlaylist[row.playlist_id].push(row.cancion_id);
+    console.log('[loadUserPlaylist] playlist_canciones:', pcRows, 'error:', pcErr);
+
+    // Agrupar canciones por playlist
+    const songMap = {};
+    playlistIds.forEach(pid => { songMap[pid] = []; });
+    (pcRows || []).forEach(row => {
+      if (songMap[row.playlist_id] !== undefined) {
+        songMap[row.playlist_id].push(row.cancion_id);
       }
     });
 
-    // Construir userPlaylists con canciones ordenadas
     userPlaylists = playlists.map(pl => ({
-      ...pl,
-      canciones: songsByPlaylist[pl.id] || []
+      id: pl.id,
+      nombre: pl.nombre,
+      canciones: songMap[pl.id] || []
     }));
 
-    // userPlaylist = unión de todas las canciones (para compatibilidad con checks ➕/➖)
-    const allIds = new Set();
-    userPlaylists.forEach(pl => pl.canciones.forEach(id => allIds.add(id)));
-    userPlaylist = [...allIds];
+    // userPlaylist = todas las canciones en cualquier playlist (para ➕/➖)
+    const allCanciones = new Set();
+    userPlaylists.forEach(pl => pl.canciones.forEach(id => allCanciones.add(id)));
+    userPlaylist = [...allCanciones];
 
-    console.log('✅ Playlists cargadas:', userPlaylists.map(p => `${p.nombre}(${p.canciones.length})`));
+    console.log('[loadUserPlaylist] ✅ Final userPlaylists:', 
+      userPlaylists.map(p => `${p.nombre}[id=${p.id}](${p.canciones.length} canciones: ${p.canciones})`));
+
   } catch(e) {
-    console.error('Error loadUserPlaylist:', e);
+    console.error('[loadUserPlaylist] EXCEPCIÓN:', e);
     userPlaylist = [];
     userPlaylists = [];
   }
@@ -900,17 +925,25 @@ async function toggleSongInPlaylistModal(playlistId, songId, btn) {
 }
 
 function reproducirPlaylist(playlistId) {
-  // Recargar desde userPlaylists (siempre fresco)
+  console.log('[reproducirPlaylist] playlistId:', playlistId, 'userPlaylists:', userPlaylists);
+  
   const pl = userPlaylists.find(p => p.id === playlistId);
-  if (!pl) { toast('Playlist no encontrada'); return; }
-  if (pl.canciones.length === 0) { toast('La playlist "' + pl.nombre + '" está vacía'); return; }
+  if (!pl) {
+    toast('Playlist no encontrada (id=' + playlistId + ')');
+    console.error('[reproducirPlaylist] No se encontró playlist con id:', playlistId, 
+                  'disponibles:', userPlaylists.map(p=>p.id));
+    return;
+  }
+  if (pl.canciones.length === 0) {
+    toast('La playlist "' + pl.nombre + '" está vacía');
+    return;
+  }
 
-  const ctx = 'playlist_' + playlistId;
-  playlistContext = ctx;
-  _activePlaylistIds = pl.canciones.slice(); // copia independiente
-
-  console.log(`▶ Reproduciendo playlist "${pl.nombre}" [${ctx}]:`, pl.canciones);
-  playSong(null, pl.canciones[0], ctx);
+  playlistContext = 'playlist_' + playlistId;
+  _activePlaylistIds = pl.canciones.slice();
+  
+  console.log('[reproducirPlaylist] ctx:', playlistContext, 'canciones:', _activePlaylistIds);
+  playSong(null, pl.canciones[0], playlistContext);
 }
 
 function filterPlaylist(tipo) {
@@ -1711,21 +1744,23 @@ async function actualizarContadoresHeader() {
 /* ═══════════════════ PLAYER ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs() {
-  // ── Playlist específica por ID ──
   if (playlistContext && typeof playlistContext === 'string' && playlistContext.startsWith('playlist_')) {
     const plId = parseInt(playlistContext.replace('playlist_', ''), 10);
+    
     if (!isNaN(plId)) {
       const pl = userPlaylists.find(p => p.id === plId);
       if (pl && pl.canciones.length > 0) {
-        const ordered = pl.canciones
-          .map(id => allSongs.find(s => s.id === id))
-          .filter(Boolean);
-        console.log(`🎵 getContextSongs [${playlistContext}]:`, ordered.map(s => s.titulo));
-        return ordered;
+        const songs = pl.canciones.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+        console.log('[getContextSongs] playlist_' + plId, '→', songs.map(s=>s.titulo));
+        return songs;
       }
+      console.warn('[getContextSongs] playlist_' + plId + ' no encontrada en userPlaylists:', 
+                   userPlaylists.map(p=>p.id));
     }
-    // Fallback a _activePlaylistIds si la playlist fue eliminada
+
+    // Fallback _activePlaylistIds
     if (_activePlaylistIds.length > 0) {
+      console.log('[getContextSongs] fallback _activePlaylistIds:', _activePlaylistIds);
       return _activePlaylistIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
     }
     return [];
@@ -1733,7 +1768,6 @@ function getContextSongs() {
 
   if (playlistContext === 'favorites') return getFavoriteSongs();
   if (playlistContext === 'likes')     return getLikedSongs();
-
   if (playlistContext === 'playlist') {
     if (userPlaylists.length > 0) {
       const pl = userPlaylists[0];
@@ -1741,15 +1775,12 @@ function getContextSongs() {
     }
     return [];
   }
-
   if (playlistContext === 'catalog') {
     return currentCatalogIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
-
   if (typeof playlistContext === 'string' && playlistContext.startsWith('album_')) {
     return albumQueue.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
-
   return allSongs;
 }
 function getFavoriteSongs(){
