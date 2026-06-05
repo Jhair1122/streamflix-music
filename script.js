@@ -768,26 +768,63 @@ const COLORES_GENERO = {
 function renderizarExploraGeneros() {
   const contenedor = document.getElementById('seccion-explora-generos');
   if (!contenedor) return;
+
   const generosUnicos = [...new Set(allSongs.map(s => s.genero?.trim()).filter(Boolean))].sort();
-  contenedor.innerHTML = `<h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🌈 Explora tus géneros</h2><div id="genero-cards-row" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>`;
+
+  contenedor.innerHTML = `
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🌈 Explora tus géneros</h2>
+    <div id="genero-cards-row" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+  `;
+
   const row = document.getElementById('genero-cards-row');
+
   generosUnicos.forEach(genero => {
+    // Buscar canciones de este género
+    const cancionesDelGenero = allSongs.filter(s => s.genero?.trim() === genero);
+    const total = cancionesDelGenero.length;
+
+    // Elegir portada: primera canción que tenga imagen
+    const conImagen = cancionesDelGenero.find(s => s.url_imagen);
+    const portadaUrl = conImagen?.url_imagen || null;
+    const colorFondo = COLORES_GENERO[genero] || 'linear-gradient(135deg,#27272a,#52525b)';
+
     const card = document.createElement('div');
-    card.className = 'genre-card';
-    card.style.background = COLORES_GENERO[genero] || 'linear-gradient(135deg,#27272a,#52525b)';
-    // Estilos inline para garantizar visibilidad
-    card.style.minWidth = '140px';
-    card.style.height = '100px';
-    card.style.borderRadius = '12px';
-    card.style.display = 'flex';
-    card.style.alignItems = 'flex-end';
-    card.style.padding = '10px';
-    card.style.cursor = 'pointer';
-    card.style.flexShrink = '0';
-    card.innerHTML = `<span>#${genero}</span>`;
-    card.addEventListener('click', () => {
-        if (genero) abrirPaginaAlbum('genero', genero.trim());
+    card.style.cssText = `
+      min-width:140px; width:140px; height:100px; border-radius:12px;
+      display:flex; align-items:flex-end; padding:8px 10px;
+      cursor:pointer; flex-shrink:0; position:relative; overflow:hidden;
+      transition:transform 0.18s, box-shadow 0.18s;
+    `;
+
+    // Fondo: imagen si existe, sino gradiente de color
+    if (portadaUrl) {
+      card.style.backgroundImage = `url(${portadaUrl})`;
+      card.style.backgroundSize = 'cover';
+      card.style.backgroundPosition = 'center';
+    } else {
+      card.style.background = colorFondo;
+    }
+
+    card.innerHTML = `
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);border-radius:12px"></div>
+      <div style="position:relative;z-index:1;width:100%">
+        <div style="font-weight:700;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${genero}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:1px">${total} canciones</div>
+      </div>
+    `;
+
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = 'scale(1.04)';
+      card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
     });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+      card.style.boxShadow = '';
+    });
+    card.addEventListener('click', () => {
+      if (genero) abrirPaginaAlbum('genero', genero.trim());
+    });
+
     row.appendChild(card);
   });
 }
@@ -795,22 +832,102 @@ function renderizarExploraGeneros() {
 function renderizarTusMixes() {
   const contenedor = document.getElementById('seccion-tus-mixes');
   if (!contenedor) return;
-  const artistas = {};
+
+  // Obtener estadísticas de reproducción guardadas localmente
+  const stats = getStats(); // { cancion_id: { plays, totalTime } }
+
+  // Agrupar canciones por artista principal (antes de "ft." o ",")
+  const grupos = {};
   allSongs.forEach(s => {
-    const nombreArtista = s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim();
-    if (!artistas[nombreArtista]) artistas[nombreArtista] = [];
-    artistas[nombreArtista].push(s);
+    const artistaPrincipal = s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim();
+    if (!grupos[artistaPrincipal]) {
+      grupos[artistaPrincipal] = { canciones: [], tiempoTotal: 0, plays: 0 };
+    }
+    grupos[artistaPrincipal].canciones.push(s);
+
+    // Acumular estadísticas de escucha
+    const stat = stats[s.id.toString()];
+    if (stat) {
+      grupos[artistaPrincipal].tiempoTotal += stat.totalTime || 0;
+      grupos[artistaPrincipal].plays += stat.plays || 0;
+    }
   });
-  const mixesDisponibles = Object.entries(artistas).filter(([_, canciones]) => canciones.length >= 2).sort((a, b) => b[1].length - a[1].length).slice(0, 6);
-  if (mixesDisponibles.length === 0) return;
-  contenedor.innerHTML = `<h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🎲 Tus mixes más escuchados</h2><div id="mixes-row" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>`;
+
+  // Filtrar grupos con al menos 2 canciones y ordenar por tiempo escuchado (desc)
+  const mixesOrdenados = Object.entries(grupos)
+    .filter(([_, g]) => g.canciones.length >= 2)
+    .sort((a, b) => {
+      // Priorizar tiempo escuchado; si empatan, por cantidad de canciones
+      if (b[1].tiempoTotal !== a[1].tiempoTotal) return b[1].tiempoTotal - a[1].tiempoTotal;
+      return b[1].canciones.length - a[1].canciones.length;
+    })
+    .slice(0, 8);
+
+  if (mixesOrdenados.length === 0) return;
+
+  contenedor.innerHTML = `
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🎲 Tus mixes más escuchados</h2>
+    <div id="mixes-row" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+  `;
+
   const row = document.getElementById('mixes-row');
-  mixesDisponibles.forEach(([artista, canciones]) => {
+
+  mixesOrdenados.forEach(([artista, grupo]) => {
+    const canciones = grupo.canciones;
+
+    // Portada: primera canción del grupo que tenga imagen
+    const conImagen = canciones.find(s => s.url_imagen);
+    const portadaUrl = conImagen?.url_imagen || null;
+
+    // Genero predominante (el más frecuente en el grupo)
+    const conteoGeneros = {};
+    canciones.forEach(s => {
+      const g = s.genero || 'default';
+      conteoGeneros[g] = (conteoGeneros[g] || 0) + 1;
+    });
+    const generoPredominante = Object.entries(conteoGeneros).sort((a,b) => b[1]-a[1])[0][0];
+    const colorFondo = COLORES_GENERO[generoPredominante] || 'linear-gradient(135deg,#3730a3,#7c3aed)';
+
+    // Etiqueta de tiempo escuchado
+    const minutos = Math.round(grupo.tiempoTotal / 60);
+    const etiquetaTiempo = minutos > 0
+      ? (minutos >= 60 ? `${Math.floor(minutos/60)}h ${minutos%60}m` : `${minutos} min`)
+      : `${canciones.length} canciones`;
+
     const card = document.createElement('div');
-    card.className = 'mix-card';
-    card.style.background = 'linear-gradient(135deg,#3730a3,#7c3aed)';
-    card.innerHTML = `<div style="position:relative;z-index:1"><div style="font-weight:700;font-size:14px;color:#fff;line-height:1.2">Mix de ${artista}</div><div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px">${canciones.length} canciones</div></div>`;
+    card.style.cssText = `
+      min-width:140px; width:140px; height:100px; border-radius:12px;
+      display:flex; align-items:flex-end; padding:8px 10px;
+      cursor:pointer; flex-shrink:0; position:relative; overflow:hidden;
+      transition:transform 0.18s, box-shadow 0.18s;
+    `;
+
+    if (portadaUrl) {
+      card.style.backgroundImage = `url(${portadaUrl})`;
+      card.style.backgroundSize = 'cover';
+      card.style.backgroundPosition = 'center';
+    } else {
+      card.style.background = colorFondo;
+    }
+
+    card.innerHTML = `
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);border-radius:12px"></div>
+      <div style="position:relative;z-index:1;width:100%">
+        <div style="font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="Mix de ${artista}">Mix de ${artista}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:1px">${etiquetaTiempo}</div>
+      </div>
+    `;
+
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = 'scale(1.04)';
+      card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+      card.style.boxShadow = '';
+    });
     card.addEventListener('click', () => abrirPaginaAlbum('artista', artista));
+
     row.appendChild(card);
   });
 }
