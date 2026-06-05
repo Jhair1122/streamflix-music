@@ -1,8 +1,9 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v20 FINAL COMPLETO)
+   SoundMind — script.js (v20.1 CORREGIDO)
+   - Función renderPlaylist() añadida
+   - función crearNuevaPlaylist() añadida
    - IDs correctos: stat-canciones, stat-likes, stat-favoritos
-   - Migración a Supabase para likes, playlists, cola, historial
-   - Ranking global, moods, géneros, mixes, página álbum, menú contextual
+   - Migración a Supabase completa
    - Todas las funciones previas intactas
 ════════════════════════════════════════════════════ */
 
@@ -430,6 +431,22 @@ async function toggleAddToPlaylist(e, songId) {
   if (document.getElementById('page-playlist').classList.contains('active')) {
     renderPlaylist();
   }
+}
+
+// ── Función renderPlaylist (estaba faltando) ──
+function renderPlaylist() {
+  const songs = getPlaylistSongs();
+  renderCards(songs, 'playlistCards', 'Tu playlist está vacía. Usa el botón ➕ en cualquier canción para añadirla.', 'playlist');
+  updateBadges();
+}
+
+// ── Función crearNuevaPlaylist (para los botones del HTML) ──
+async function crearNuevaPlaylist() {
+  const nombre = prompt('Nombre de la nueva playlist:');
+  if (!nombre) return;
+  await supabase.from('playlists').insert({ usuario_id: currentUser.id, nombre: nombre.trim() });
+  toast('Playlist creada');
+  renderPlaylist();
 }
 
 /* ═══════════════════ INTERACTIONS (likes/favs con Supabase) ══════════════════ */
