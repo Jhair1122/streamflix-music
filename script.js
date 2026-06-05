@@ -722,7 +722,7 @@ const COLORES_GENERO = {
 function renderizarExploraGeneros() {
   const contenedor = document.getElementById('seccion-explora-generos');
   if (!contenedor) return;
-  const generosUnicos = [...new Set(allSongs.map(s => s.genero))].sort();
+  const generosUnicos = [...new Set(allSongs.map(s => s.genero.trim()))].sort();
   contenedor.innerHTML = `<h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🌈 Explora tus géneros</h2><div id="genero-cards-row" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>`;
   const row = document.getElementById('genero-cards-row');
   generosUnicos.forEach(genero => {
@@ -730,7 +730,7 @@ function renderizarExploraGeneros() {
     card.className = 'genre-card';
     card.style.background = COLORES_GENERO[genero] || 'linear-gradient(135deg,#27272a,#52525b)';
     card.innerHTML = `<span>#${genero}</span>`;
-    card.addEventListener('click', () => abrirPaginaAlbum('genero', genero));
+    card.addEventListener('click', () => abrirPaginaAlbum('genero', genero.trim()));
     row.appendChild(card);
   });
 }
@@ -762,17 +762,38 @@ function renderizarTusMixes() {
 function abrirPaginaAlbum(tipo, valor) {
   paginaAnterior = document.querySelector('.page.active')?.id || 'page-home';
   let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '';
+
   if (tipo === 'genero') {
-    cancionesAlbum = allSongs.filter(s => s.genero === valor);
-    tituloAlbum = valor; subtituloAlbum = 'Género';
+    const generoNormalizado = valor.trim();
+    cancionesAlbum = allSongs.filter(s => s.genero.trim() === generoNormalizado);
+    tituloAlbum = generoNormalizado;
+    subtituloAlbum = 'Género';
   } else if (tipo === 'mood') {
     const mood = MOODS.find(m => m.id === valor);
-    cancionesAlbum = obtenerCancionesPorMood(mood);
-    tituloAlbum = mood.nombre; subtituloAlbum = mood.emoji + ' Estado de ánimo';
+    if (mood) {
+      cancionesAlbum = obtenerCancionesPorMood(mood);
+      tituloAlbum = mood.nombre;
+      subtituloAlbum = mood.emoji + ' Estado de ánimo';
+    }
   } else if (tipo === 'artista') {
-    cancionesAlbum = allSongs.filter(s => s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim() === valor);
-    tituloAlbum = 'Mix de ' + valor; subtituloAlbum = 'Mix del artista';
+    cancionesAlbum = allSongs.filter(s => s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim() === valor.trim());
+    tituloAlbum = 'Mix de ' + valor;
+    subtituloAlbum = 'Mix del artista';
   }
+
+  // Verificar si hay canciones
+  if (cancionesAlbum.length === 0) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const pagina = document.getElementById('page-album');
+    pagina.classList.add('active');
+    pagina.innerHTML = `<div style="text-align:center;padding:40px;color:#a0aec0">
+      <h2>${tituloAlbum || 'Álbum'}</h2>
+      <p>No se encontraron canciones.</p>
+      <button onclick="cerrarPaginaAlbum()" style="margin-top:20px;background:var(--accent2);color:#fff;border:none;border-radius:20px;padding:10px 24px;cursor:pointer">Volver</button>
+    </div>`;
+    return;
+  }
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pagina = document.getElementById('page-album');
   pagina.classList.add('active');
