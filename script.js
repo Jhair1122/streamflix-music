@@ -877,13 +877,12 @@ function reproducirPlaylist(playlistId) {
   const pl = userPlaylists.find(p => p.id === playlistId);
   if (!pl || pl.canciones.length === 0) { toast('La playlist está vacía'); return; }
   
-  // Guardar las canciones de ESTA playlist como contexto exclusivo
-  playlistContext = 'playlist_' + playlistId;
-  
-  // Sobreescribir temporalmente el arreglo para getContextSongs
+  const ctx = 'playlist_' + playlistId;
+  playlistContext = ctx;
   _activePlaylistIds = pl.canciones.slice();
   
-  playSong(null, pl.canciones[0], 'playlist_' + playlistId);
+  // Forzar que getContextSongs use esta playlist específica
+  playSong(null, pl.canciones[0], ctx);
 }
 
 function filterPlaylist(tipo) {
@@ -1684,24 +1683,38 @@ async function actualizarContadoresHeader() {
 /* ═══════════════════ PLAYER ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs() {
-  if (playlistContext === 'favorites') return getFavoriteSongs();
-  if (playlistContext === 'likes') return getLikedSongs();
-  if (playlistContext === 'playlist') return getPlaylistSongs();
-  // Playlist específica por ID
+  // Playlist específica por ID — máxima prioridad
   if (playlistContext && playlistContext.startsWith('playlist_')) {
-    const plId = parseInt(playlistContext.replace('playlist_', ''));
+    const raw = playlistContext.replace('playlist_', '');
+    const plId = parseInt(raw);
     if (!isNaN(plId)) {
       const pl = userPlaylists.find(p => p.id === plId);
-      if (pl) return allSongs.filter(s => pl.canciones.includes(s.id));
+      if (pl && pl.canciones.length > 0) {
+        return allSongs.filter(s => pl.canciones.includes(s.id))
+                       .sort((a, b) => pl.canciones.indexOf(a.id) - pl.canciones.indexOf(b.id));
+      }
     }
-    // Fallback a _activePlaylistIds
-    if (_activePlaylistIds.length > 0)
-      return allSongs.filter(s => _activePlaylistIds.includes(s.id));
+    // Fallback: _activePlaylistIds si la playlist ya no existe
+    if (_activePlaylistIds.length > 0) {
+      return allSongs.filter(s => _activePlaylistIds.includes(s.id))
+                     .sort((a, b) => _activePlaylistIds.indexOf(a.id) - _activePlaylistIds.indexOf(b.id));
+    }
+  }
+  if (playlistContext === 'favorites') return getFavoriteSongs();
+  if (playlistContext === 'likes') return getLikedSongs();
+  if (playlistContext === 'playlist') {
+    // Contexto genérico 'playlist' → primera playlist disponible
+    if (userPlaylists.length > 0) {
+      const pl = userPlaylists[0];
+      return allSongs.filter(s => pl.canciones.includes(s.id))
+                     .sort((a, b) => pl.canciones.indexOf(a.id) - pl.canciones.indexOf(b.id));
+    }
+    return [];
   }
   if (playlistContext === 'catalog') {
     return currentCatalogIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
-  if (playlistContext.startsWith('album_')) {
+  if (typeof playlistContext === 'string' && playlistContext.startsWith('album_')) {
     return albumQueue.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
   return allSongs;
@@ -1722,7 +1735,17 @@ async function playSong(e, songId, context = null){
   if (e && e.stopPropagation) e.stopPropagation();
   const song = allSongs.find(s => s.id === songId);
   if (!song) return;
-  if (context !== null) setPlaylistContext(context);
+  if (context !== null) {
+    playlistContext = context;
+    // Si el nuevo contexto es una playlist específica, actualizar _activePlaylistIds
+    if (typeof context === 'string' && context.startsWith('playlist_')) {
+      const plId = parseInt(context.replace('playlist_', ''));
+      if (!isNaN(plId)) {
+        const pl = userPlaylists.find(p => p.id === plId);
+        if (pl) _activePlaylistIds = pl.canciones.slice();
+      }
+    }
+  }
 
   nowPlayingId = songId;
   txt('plTitle', song.titulo);
@@ -1786,18 +1809,21 @@ function updateDiscCover(coverEl, song) {
   } else { coverEl.textContent = genreEmoji(song.genero); }
 }
 function playPrevInContext(){
+  const savedCtx = playlistContext;
   const list = getContextSongs();
   if (!nowPlayingId || list.length === 0) return;
   const idx = list.findIndex(s => s.id === nowPlayingId);
   const prevIdx = idx > 0 ? idx - 1 : list.length - 1;
-  playSong(null, list[prevIdx].id, playlistContext);
+  playSong(null, list[prevIdx].id, savedCtx);
 }
+
 function playNextInContext(){
+  const savedCtx = playlistContext;
   const list = getContextSongs();
   if (!nowPlayingId || list.length === 0) return;
   const idx = list.findIndex(s => s.id === nowPlayingId);
   const nextIdx = idx < list.length - 1 ? idx + 1 : 0;
-  playSong(null, list[nextIdx].id, playlistContext);
+  playSong(null, list[nextIdx].id, savedCtx);
 }
 function skipBackward() {
   const audio = $('audioEl');
@@ -1975,12 +2001,15 @@ function onAudioEnded(){
     updateStats(nowPlayingId, duration);
     checkAchievements();
 
+    const savedCtx = playlistContext; // guardar antes de que playSong lo pueda mutar
     const list = getContextSongs();
+    if (list.length === 0) return;
     const idx = list.findIndex(s => s.id === nowPlayingId);
     if (idx >= 0 && idx < list.length - 1) {
-      playSong(null, list[idx + 1].id, playlistContext);
-    } else if (list.length > 0) {
-      playSong(null, list[0].id, playlistContext);
+      playSong(null, list[idx + 1].id, savedCtx);
+    } else {
+      // Llegó al final → volver al principio
+      playSong(null, list[0].id, savedCtx);
     }
   }
 }
