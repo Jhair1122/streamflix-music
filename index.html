@@ -3,17 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SoundMind — Recomendaciones Musicales IA</title>
+  <title>SoundMind — Plataforma Musical IA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- HAMBURGER (escritorio no se usa, solo existe por si acaso) -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
+<!-- CONTENEDOR PRINCIPAL -->
 <div id="app" class="hidden">
-  <!-- SIDEBAR -->
+
+  <!-- ═══════════ SIDEBAR IZQUIERDO (Escritorio) ═══════════ -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <h1>SoundMind</h1>
@@ -38,16 +42,16 @@
     </div>
   </nav>
 
-  <!-- MAIN CONTENT -->
-  <main class="main">
+  <!-- ═══════════ PANEL CENTRAL ═══════════ -->
+  <main class="main-content">
 
-    <!-- HOME (Inicio + Catálogo) -->
+    <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
           <div>
             <h2>Hola, <span id="heroName"></span> 👋</h2>
-            <p>SoundMind analiza tus gustos con <strong>IA</strong> para recomendarte canciones que realmente encajan contigo.</p>
+            <p>SoundMind analiza tus gustos con <strong>IA</strong>.</p>
           </div>
           <div class="hero-stats">
             <div class="hstat"><div class="hstat-val" id="hsSongs">—</div><div class="hstat-label">Canciones</div></div>
@@ -56,6 +60,16 @@
           </div>
         </div>
       </div>
+
+      <div class="top-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
+          <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
+        </div>
+        <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
+      </div>
+      <div class="genre-pills" id="genrePills"></div>
 
       <div class="section rec-highlight">
         <div class="section-head">
@@ -72,15 +86,6 @@
 
       <div class="section">
         <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
-        <div class="top-bar">
-          <div class="search-wrap">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
-            <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
-          </div>
-          <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
-        </div>
-        <div class="genre-pills" id="genrePills"></div>
         <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
     </div>
@@ -88,21 +93,21 @@
     <!-- DISCOVER WEEKLY -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
-      <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas. ¡Dale like para que sea más precisa!</div>
-      <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando tu lista semanal…</div></div>
+      <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas.</div>
+      <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando…</div></div>
     </div>
 
-    <!-- PLAYLIST (nueva) -->
+    <!-- PLAYLIST -->
     <div class="page" id="page-playlist">
       <div class="page-title">🎵 Mi Playlist</div>
-      <div class="page-sub">Tu selección personal. Añade canciones con el botón ➕ y ordénalas a tu gusto.</div>
+      <div class="page-sub">Tu selección personal. Añade canciones con el botón ➕.</div>
       <div class="cards-grid" id="playlistCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
-    <!-- CHAT (página completa) -->
+    <!-- CHAT -->
     <div class="page" id="page-chat">
       <div class="page-title">💬 Chat de la comunidad</div>
-      <div class="page-sub">Conéctate con otros usuarios en tiempo real. Comparte tus gustos y pide recomendaciones.</div>
+      <div class="page-sub">Conéctate con otros usuarios en tiempo real.</div>
       <div class="chat-container">
         <div class="chat-messages-panel" id="chatMessagesPanel"></div>
         <div class="chat-input-area">
@@ -118,17 +123,14 @@
       <div class="page-sub">Estadísticas de escucha y logros.</div>
       <div class="section">
         <div class="section-title">📊 Mis números</div>
-        <div class="profile-stat"><span>Total de reproducciones</span><strong id="profilePlays">0</strong></div>
+        <div class="profile-stat"><span>Total reproducciones</span><strong id="profilePlays">0</strong></div>
         <div class="profile-stat"><span>Tiempo escuchado</span><strong id="profileTime">0 min</strong></div>
         <div class="profile-stat"><span>Artista favorito</span><strong id="profileArtist">—</strong></div>
       </div>
-      <div class="section">
-        <div class="section-title">🏆 Logros</div>
-        <div id="achievementsList"></div>
-      </div>
+      <div class="section"><div class="section-title">🏆 Logros</div><div id="achievementsList"></div></div>
     </div>
 
-    <!-- ANALYSIS (Panel IA) -->
+    <!-- ANALYSIS -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
@@ -198,9 +200,30 @@
     </div>
 
   </main>
+
+  <!-- ═══════════ PANEL DERECHO (Escritorio) ═══════════ -->
+  <aside class="right-panel" id="rightPanel">
+    <div class="right-panel-content">
+      <div class="now-playing-art">
+        <div class="pl-disc expanded-disc-img" id="rightDisc">
+          <div class="pl-disc-cover" id="rightDiscCover">🎵</div>
+          <div class="pl-disc-center"></div>
+        </div>
+      </div>
+      <div class="now-playing-info">
+        <h2 id="rightTitle">Sin reproducción</h2>
+        <p id="rightArtist"></p>
+      </div>
+      <div class="queue-mini">
+        <h4>🔀 Siguiente</h4>
+        <ul id="rightQueueList"></ul>
+      </div>
+    </div>
+  </aside>
+
 </div>
 
-<!-- PLAYER BAR -->
+<!-- ═══════════ REPRODUCTOR INFERIOR (Fijo) ═══════════ -->
 <div id="playerBar" class="hidden">
   <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
     <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
@@ -218,7 +241,7 @@
       <div class="sleep-timer-wrap" id="sleepTimerWrap">
         <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
         <div class="sleep-menu hidden" id="sleepMenu">
-          <input type="number" id="sleepMinutesInput" placeholder="Minutos" min="1" max="180" value="15" style="width:80px;padding:4px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text);text-align:center;">
+          <input type="number" id="sleepMinutesInput" placeholder="Min" min="1" max="180" value="15" style="width:70px;padding:4px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text);text-align:center;">
           <button onclick="startCustomSleepTimer()">Iniciar</button>
           <button onclick="cancelSleepMenu()">Cancelar</button>
         </div>
@@ -287,6 +310,15 @@
     <button class="voice-cancel-btn" onclick="toggleVoice()">Cancelar</button>
   </div>
 </div>
+
+<!-- ═══════════ BARRA DE NAVEGACIÓN MÓVIL ═══════════ -->
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-item active" onclick="showPage('home')">🏠<span>Inicio</span></button>
+  <button class="mobile-nav-item" onclick="showPage('weekly')">📅<span>Semanal</span></button>
+  <button class="mobile-nav-item" onclick="showPage('playlist')">🎵<span>Playlist</span></button>
+  <button class="mobile-nav-item" onclick="showPage('chat')">💬<span>Chat</span></button>
+  <button class="mobile-nav-item" onclick="showPage('profile')">👤<span>Perfil</span></button>
+</nav>
 
 <script src="script.js"></script>
 </body>
