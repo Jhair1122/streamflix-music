@@ -1,7 +1,8 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v19 COMPLETO)
-   - Migración a Supabase para interacciones, playlists, cola, historial
-   - Ranking global, moods, géneros, mixes, página álbum
+   SoundMind — script.js (v20 FINAL COMPLETO)
+   - IDs correctos: stat-canciones, stat-likes, stat-favoritos
+   - Migración a Supabase para likes, playlists, cola, historial
+   - Ranking global, moods, géneros, mixes, página álbum, menú contextual
    - Todas las funciones previas intactas
 ════════════════════════════════════════════════════ */
 
@@ -88,23 +89,28 @@ async function bootApp(){
   txt('userName',currentUser.nombre||currentUser.username);
   txt('heroName',currentUser.nombre||currentUser.username);
 
-  // Cargar canciones desde Supabase
-  const { data: songsData } = await supabase.from('canciones').select('*').order('id', { ascending: true });
-  allSongs = songsData || [];
+  try {
+    // Cargar canciones desde Supabase
+    const { data: songsData } = await supabase.from('canciones').select('*').order('id', { ascending: true });
+    allSongs = songsData || [];
 
-  // Cargar interacciones del usuario
-  const { data: interData } = await supabase.from('interacciones')
-    .select('cancion_id, es_like, es_favorito')
-    .eq('usuario_id', currentUser.id);
-  myInter = interData || [];
-  interaccionesMap = {};
-  myInter.forEach(i => interaccionesMap[i.cancion_id] = i);
+    // Cargar interacciones del usuario
+    const { data: interData } = await supabase.from('interacciones')
+      .select('cancion_id, es_like, es_favorito')
+      .eq('usuario_id', currentUser.id);
+    myInter = interData || [];
+    interaccionesMap = {};
+    myInter.forEach(i => interaccionesMap[i.cancion_id] = i);
 
-  // Cargar playlist del usuario desde Supabase
-  await loadUserPlaylist();
-
-  // Actualizar contadores
-  await actualizarContadoresHeader();
+    // Cargar playlist del usuario desde Supabase
+    await loadUserPlaylist();
+  } catch (err) {
+    console.error('Error cargando datos desde Supabase:', err);
+    toast('⚠️ Error de conexión. Algunas funciones pueden no estar disponibles.');
+    allSongs = [];
+    myInter = [];
+    interaccionesMap = {};
+  }
 
   buildGenrePills();
   renderAll();
@@ -114,10 +120,14 @@ async function bootApp(){
   initChat();
 
   // Inicializar nuevas secciones estáticas
-  renderizarCancionesMood();
-  renderizarExploraGeneros();
-  renderizarTusMixes();
-  await renderizarRankingGlobal();
+  try {
+    renderizarCancionesMood();
+    renderizarExploraGeneros();
+    renderizarTusMixes();
+    await renderizarRankingGlobal();
+  } catch(e) { /* no crítico */ }
+
+  await actualizarContadoresHeader();
 }
 
 /* ═══════════════════ LOGOUT ══════════════════ */
@@ -245,12 +255,18 @@ function renderAll(){
 }
 
 async function updateHeroStats(){
-  const { count: totalCanciones } = await supabase.from('canciones').select('*', { count: 'exact', head: true });
-  const { count: totalLikes } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_like', true);
-  const { count: totalFavoritos } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_favorito', true);
-  txt('stat-canciones', totalCanciones || 0);
-  txt('stat-likes', totalLikes || 0);
-  txt('stat-favoritos', totalFavoritos || 0);
+  try {
+    const { count: totalCanciones } = await supabase.from('canciones').select('*', { count: 'exact', head: true });
+    const { count: totalLikes } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_like', true);
+    const { count: totalFavoritos } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_favorito', true);
+    txt('stat-canciones', totalCanciones || 0);
+    txt('stat-likes', totalLikes || 0);
+    txt('stat-favoritos', totalFavoritos || 0);
+  } catch(e) {
+    txt('stat-canciones', allSongs.length);
+    txt('stat-likes', myInter.filter(i=>i.es_like).length);
+    txt('stat-favoritos', myInter.filter(i=>i.es_favorito).length);
+  }
 }
 
 function updateBadges(){
@@ -371,24 +387,24 @@ function renderCatalog(){
 /* ── Playlist (Supabase) ── */
 async function loadUserPlaylist() {
   if (!currentUser) return;
-  const { data } = await supabase.from('playlists').select('id').eq('usuario_id', currentUser.id);
-  if (data && data.length > 0) {
-    const playlistId = data[0].id; // usamos la primera playlist como principal
-    const { data: canciones } = await supabase.from('playlist_canciones').select('cancion_id').eq('playlist_id', playlistId);
-    userPlaylist = canciones ? canciones.map(c => c.cancion_id) : [];
-  } else {
-    userPlaylist = [];
-  }
+  try {
+    const { data } = await supabase.from('playlists').select('id').eq('usuario_id', currentUser.id);
+    if (data && data.length > 0) {
+      const playlistId = data[0].id;
+      const { data: canciones } = await supabase.from('playlist_canciones').select('cancion_id').eq('playlist_id', playlistId);
+      userPlaylist = canciones ? canciones.map(c => c.cancion_id) : [];
+    } else {
+      userPlaylist = [];
+    }
+  } catch(e) { userPlaylist = []; }
 }
 
 async function toggleAddToPlaylist(e, songId) {
   e.stopPropagation();
   if (!currentUser) return;
-  // Buscar o crear playlist principal
   let { data: playlists } = await supabase.from('playlists').select('id,nombre').eq('usuario_id', currentUser.id).limit(1);
   let playlistId;
   if (!playlists || playlists.length === 0) {
-    // Crear playlist "Mi Playlist"
     const { data: newPlaylist } = await supabase.from('playlists').insert({ usuario_id: currentUser.id, nombre: 'Mi Playlist' }).select().single();
     playlistId = newPlaylist.id;
   } else {
@@ -397,12 +413,10 @@ async function toggleAddToPlaylist(e, songId) {
 
   const index = userPlaylist.indexOf(songId);
   if (index >= 0) {
-    // Quitar
     await supabase.from('playlist_canciones').delete().eq('playlist_id', playlistId).eq('cancion_id', songId);
     userPlaylist.splice(index, 1);
     toast('🗑️ Canción eliminada de tu Playlist');
   } else {
-    // Añadir
     const { count } = await supabase.from('playlist_canciones').select('*', { count: 'exact', head: true }).eq('playlist_id', playlistId);
     await supabase.from('playlist_canciones').upsert({
       playlist_id: playlistId,
@@ -612,7 +626,6 @@ function abrirPaginaAlbum(tipo, valor) {
     cancionesAlbum = allSongs.filter(s => s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim() === valor);
     tituloAlbum = 'Mix de ' + valor; subtituloAlbum = 'Mix del artista';
   }
-  // Mostrar página álbum
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const pagina = document.getElementById('page-album');
   pagina.classList.add('active');
@@ -659,14 +672,13 @@ function shuffleYReproducir(arrayIds) {
 function reproducirDesde(arrayIds, indice) {
   if (!arrayIds || arrayIds.length === 0) return;
   playSong(null, arrayIds[indice]);
-  // Limpiar cola y añadir el resto
   supabase.from('cola_reproduccion').delete().eq('usuario_id', currentUser.id).then(() => {
     const resto = arrayIds.filter((_, i) => i !== indice).map((cid, pos) => ({ usuario_id: currentUser.id, cancion_id: cid, posicion: pos }));
     if (resto.length > 0) supabase.from('cola_reproduccion').upsert(resto).then(() => actualizarPanelSiguiente());
   });
 }
 
-/* ═══════════════════ MENÚ CONTEXTUAL (actualizado) ══════════════════ */
+/* ═══════════════════ MENÚ CONTEXTUAL ══════════════════ */
 let contextSongId = null;
 function openContextMenu(e, songId) {
   e.stopPropagation();
@@ -681,7 +693,6 @@ function openContextMenu(e, songId) {
   } else {
     imgEl.innerHTML = genreEmoji(song.genero);
   }
-  // Llenar opciones (sin "Añadir a Mis Likes" porque ya tiene botón directo)
   const opciones = document.querySelector('.context-options');
   opciones.innerHTML = `
     <button onclick="contextAction('share')">🔗 Compartir</button>
@@ -749,22 +760,26 @@ async function actualizarPanelSiguiente() {
   `).join('');
 }
 
-/* ═══════════════════ HISTORIAL (se registra al reproducir) ══════════════════ */
+/* ═══════════════════ HISTORIAL ══════════════════ */
 async function registrarEnHistorial(usuarioId, cancionId) {
   await supabase.from('historial_reproduccion').insert({ usuario_id: usuarioId, cancion_id: cancionId });
 }
 
-// Llamada dentro de playSong: registrarEnHistorial(currentUser.id, songId);
-
 /* ═══════════════════ CONTADORES HEADER ══════════════════ */
 async function actualizarContadoresHeader() {
   if (!currentUser) return;
-  const { count: totalCanciones } = await supabase.from('canciones').select('*', { count: 'exact', head: true });
-  const { count: totalLikes } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_like', true);
-  const { count: totalFavoritos } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_favorito', true);
-  txt('stat-canciones', totalCanciones || 0);
-  txt('stat-likes', totalLikes || 0);
-  txt('stat-favoritos', totalFavoritos || 0);
+  try {
+    const { count: totalCanciones } = await supabase.from('canciones').select('*', { count: 'exact', head: true });
+    const { count: totalLikes } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_like', true);
+    const { count: totalFavoritos } = await supabase.from('interacciones').select('*', { count: 'exact', head: true }).eq('usuario_id', currentUser.id).eq('es_favorito', true);
+    txt('stat-canciones', totalCanciones || 0);
+    txt('stat-likes', totalLikes || 0);
+    txt('stat-favoritos', totalFavoritos || 0);
+  } catch(e) {
+    txt('stat-canciones', allSongs.length);
+    txt('stat-likes', myInter.filter(i=>i.es_like).length);
+    txt('stat-favoritos', myInter.filter(i=>i.es_favorito).length);
+  }
 }
 
 /* ═══════════════════ PLAYER ══════════════════ */
@@ -775,7 +790,6 @@ function getContextSongs(){
   if (playlistContext === 'playlist') return getPlaylistSongs();
   return allSongs;
 }
-
 function getFavoriteSongs(){
   const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
   return allSongs.filter(s=>ids.has(s.id));
@@ -807,11 +821,8 @@ async function playSong(e, songId, context = null){
     txt('expArtist', song.artista);
   }
 
-  // Actualizar panel derecho y sección "Más como..."
   updateRightPanel(song);
   updateMoreLikeSection(song);
-
-  // Registrar en historial
   registrarEnHistorial(currentUser.id, songId);
 
   const audio = $('audioEl');
@@ -829,9 +840,7 @@ async function playSong(e, songId, context = null){
       ensureAudioContext(audio);
       toast('▶ ' + song.titulo);
     }).catch(err => {
-      if (audio.currentTime > 0 || audio.duration > 0) {
-        // ya está sonando, no mostrar error
-      } else {
+      if (audio.currentTime > 0 || audio.duration > 0) {} else {
         console.warn('play error:', err);
         toast('⚠️ No se pudo reproducir');
       }
@@ -859,7 +868,6 @@ function updateDiscCover(coverEl, song) {
     coverEl.appendChild(img);
   } else { coverEl.textContent = genreEmoji(song.genero); }
 }
-
 function playPrevInContext(){
   const list = getContextSongs();
   if (!nowPlayingId || list.length === 0) return;
@@ -867,7 +875,6 @@ function playPrevInContext(){
   const prevIdx = idx > 0 ? idx - 1 : list.length - 1;
   playSong(null, list[prevIdx].id, playlistContext);
 }
-
 function playNextInContext(){
   const list = getContextSongs();
   if (!nowPlayingId || list.length === 0) return;
@@ -875,21 +882,18 @@ function playNextInContext(){
   const nextIdx = idx < list.length - 1 ? idx + 1 : 0;
   playSong(null, list[nextIdx].id, playlistContext);
 }
-
 function skipBackward() {
   const audio = $('audioEl');
   if (!audio || !audio.src || audio.src === window.location.href) return;
   audio.currentTime = Math.max(0, audio.currentTime - 15);
   updateProgress();
 }
-
 function skipForward() {
   const audio = $('audioEl');
   if (!audio || !audio.src || audio.src === window.location.href) return;
   audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15);
   updateProgress();
 }
-
 function ensureAudioContext(audioEl){
   if(sourceLinked) return;
   try{
@@ -921,7 +925,6 @@ function refreshCardHighlight(){
     }
   });
 }
-
 function togglePlayPause(){
   const audio=$('audioEl');
   if(!audio.src||audio.src===window.location.href) return;
@@ -948,7 +951,6 @@ function updatePlayPauseBtn(playing){
   if(btn) btn.textContent=playing?'⏸':'▶';
   const expBtn=$('expPlayPauseBtn');
   if(expBtn) expBtn.textContent=playing?'⏸':'▶';
-  // Sincronizar disco del panel derecho
   const rightDisc = document.getElementById('rightDisc');
   if (rightDisc) {
     if (playing) rightDisc.classList.add('spinning');
@@ -1052,7 +1054,9 @@ function onAudioEnded(){
   }
 }
 
-/* ═══════════════════ NUEVAS FUNCIONES (Discover Weekly, Estadísticas, Logros, Sleep Timer, Efectos, Cola) ══════════════════ */
+/* ═══════════════════ NUEVAS FUNCIONES ══════════════════ */
+
+// ── Discover Weekly ──
 async function generateWeekly() {
   const res = await fetch(`${API_BASE}/api/weekly?user_id=${currentUser.id}`);
   const data = await res.json();
@@ -1299,7 +1303,7 @@ function closeExpandedPlayer() {
   $('expandedPlayer').classList.add('hidden');
 }
 
-/* ═══════════════════ CHAT EN TIEMPO REAL (página dedicada) ══════════════════ */
+/* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
 let chatSubscription = null;
 
 function initChat() {
@@ -1407,6 +1411,36 @@ function updateMoreLikeSection(song) {
   }
 }
 
+/* ═══════════════════ PANEL DERECHO Y BARRA MÓVIL ══════════════════ */
+function updateRightPanel(song) {
+  const rightDisc = document.getElementById('rightDisc');
+  const rightCover = document.getElementById('rightDiscCover');
+  if (rightCover) updateDiscCover(rightCover, song);
+  const rightTitle = document.getElementById('rightTitle');
+  const rightArtist = document.getElementById('rightArtist');
+  if (rightTitle) rightTitle.textContent = song.titulo;
+  if (rightArtist) rightArtist.textContent = song.artista;
+  const audio = document.getElementById('audioEl');
+  if (rightDisc) {
+    if (audio && !audio.paused) rightDisc.classList.add('spinning');
+    else rightDisc.classList.remove('spinning');
+  }
+  updateRightQueue();
+}
+
+function updateRightQueue() {
+  const list = document.getElementById('rightQueueList');
+  if (!list) return;
+  const contextSongs = getContextSongs();
+  const upcoming = contextSongs.filter(s => s.id !== nowPlayingId).slice(0, 5);
+  list.innerHTML = upcoming.map(s => `
+    <li onclick="playSong(null, ${s.id}, '${playlistContext}')">
+      <img src="${s.url_imagen || ''}" onerror="this.style.display='none'">
+      ${esc(s.titulo)}
+    </li>
+  `).join('');
+}
+
 /* ═══════════════════ NAVEGACIÓN Y PANEL IA ══════════════════ */
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1416,7 +1450,6 @@ function showPage(name){
   if(nv) nv.classList.add('active');
   if(window.innerWidth<=768) $('sidebar').classList.remove('open');
 
-  // Actualizar barra móvil
   document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
   const mobileActive = document.querySelector(`.mobile-nav-item[onclick="showPage('${name}')"]`);
   if (mobileActive) mobileActive.classList.add('active');
@@ -1428,7 +1461,9 @@ function showPage(name){
     if (!chatSubscription) initChat();
     loadChatMessages();
   }
-  else if (name === 'playlist') renderPlaylist();
+  else if (name === 'playlist') {
+    renderPlaylist();
+  }
   else if (name === 'search') {
     document.getElementById('searchInputBig').value = '';
     searchQuery = '';
