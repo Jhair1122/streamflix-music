@@ -1,7 +1,6 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v16 con paneles)
-   - Incluye actualización del panel derecho y barra móvil.
-   - Todas las funciones previas intactas.
+   SoundMind — script.js (v16 FINAL)
+   - Incluye panel derecho, barra móvil, playlist, chat, etc.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -27,7 +26,7 @@ let isListening  = false;
 // ── Variables de funciones extra ──
 let sleepTimer = null;
 let queue = [];
-let userPlaylist = [];
+let userPlaylist = [];               // Array de IDs de canciones en la playlist del usuario
 
 /* ── Helpers DOM ── */
 const $ = id => document.getElementById(id);
@@ -68,6 +67,7 @@ function checkSession(){
   const saved = loadSession();
   if (!saved) { window.location.href = 'explore.html'; return false; }
   currentUser = saved;
+  // Cargar playlist del usuario desde localStorage
   const stored = localStorage.getItem(`playlist_${currentUser.id}`);
   userPlaylist = stored ? JSON.parse(stored) : [];
   return true;
@@ -602,7 +602,7 @@ function updatePlayPauseBtn(playing){
   }
 }
 
-/* Visualizer, Progress, Volumen (sin cambios) */
+/* Visualizer */
 function startVisRaf(){
   stopVisRaf();
   if(!analyser) return;
@@ -634,6 +634,7 @@ function startIdleVisualizer(){
   });
 }
 
+/* Progress */
 function updateProgress(){
   const audio=$('audioEl');
   if(!audio.duration) return;
@@ -868,7 +869,7 @@ function resetEnergyEffect() {
   document.body.style.transition = '';
 }
 
-// ── Cola de reproducción (se mantienen funciones por compatibilidad) ──
+// ── Cola de reproducción (local) ──
 function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
   if (depth === 0 || !seedId) return [];
   const seed = allSongs.find(s => s.id === seedId);
@@ -899,7 +900,7 @@ function updateQueue() {
     }
   }
   renderQueueUI();
-  updateRightQueue();   // Actualizar también el panel derecho
+  updateRightQueue();
 }
 function renderQueueUI() {
   const list = $('queueList');
@@ -994,7 +995,6 @@ function addMessageToUI(msg) {
     div.innerHTML = esc(msg.mensaje);
   } else {
     div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
-    // Asignar color único basado en el user_id
     const hue = hashCode(msg.user_id || msg.username) % 360;
     div.style.backgroundColor = `hsla(${hue}, 60%, 25%, 0.6)`;
   }
