@@ -20,27 +20,21 @@
   <!-- ═══════════ SIDEBAR IZQUIERDO (Escritorio) ═══════════ -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-content">
-        <h1>
-          <span class="brand-full">SoundMind</span>
-          <span class="brand-short">SM</span>
-        </h1>
-        <p>IA · RECOMENDACIÓN MUSICAL</p>
-      </div>
-      <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Contraer Tu biblioteca">📚</button>
+      <h1>SoundMind</h1>
+      <p>IA · RECOMENDACIÓN MUSICAL</p>
     </div>
     <div class="sidebar-nav">
       <div class="nav-section">PRINCIPAL</div>
-      <button class="nav-item active" id="nav-home" onclick="showPage('home')"><span class="nav-icon">🏠</span> Inicio</button>
-      <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')"><span class="nav-icon">📅</span> Discover Weekly</button>
-      <button class="nav-item" id="nav-recomendaciones" onclick="showPage('recomendaciones')"><span class="nav-icon">🎯</span> Recomendaciones</button>
+      <button class="nav-item active" id="nav-home" onclick="showPage('home')">🏠 Inicio</button>
+      <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">📅 Discover Weekly</button>
+      <button class="nav-item" id="nav-recomendaciones" onclick="showPage('recomendaciones')">🎯 Recomendaciones</button>
       <div class="nav-section">MI BIBLIOTECA</div>
-      <button class="nav-item" id="nav-playlist" onclick="showPage('playlist')"><span class="nav-icon">🎵</span> Playlist <span class="nav-badge hidden" id="badge-playlist">0</span></button>
+      <button class="nav-item" id="nav-playlist" onclick="showPage('playlist')">🎵 Playlist <span class="nav-badge hidden" id="badge-playlist">0</span></button>
       <div class="nav-section">COMUNIDAD</div>
-      <button class="nav-item" id="nav-chat" onclick="showPage('chat')"><span class="nav-icon">💬</span> Chat</button>
+      <button class="nav-item" id="nav-chat" onclick="showPage('chat')">💬 Chat</button>
       <div class="nav-section">MI CUENTA</div>
-      <button class="nav-item" id="nav-profile" onclick="showPage('profile')"><span class="nav-icon">👤</span> Mi perfil</button>
-      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')"><span class="nav-icon">🤖</span> Panel IA</button>
+      <button class="nav-item" id="nav-profile" onclick="showPage('profile')">👤 Mi perfil</button>
+      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">🤖 Panel IA</button>
     </div>
   </nav>
 
@@ -49,42 +43,52 @@
 
     <!-- HOME (Inicio) -->
     <div class="page active" id="page-home">
-      <div class="user-header">
+      <!-- CABECERA UNIFICADA (usuario + saludo + stats) -->
+       <div class="user-header">
         <div class="user-header-info">
-          <div class="user-avatar" id="userAvatar"></div>
-          <div>
-            <h2>Hola, <span id="heroName"></span> 👋</h2>
-            <p>SoundMind analiza tus gustos con <strong>IA</strong>.</p>
-          </div>
+            <div class="user-avatar" id="userAvatar"></div>
+            <div>
+                <h2>Hola, <span id="heroName"></span> 👋</h2>
+                <p>SoundMind analiza tus gustos con <strong>IA</strong>.</p>
+            </div>
         </div>
         <div class="user-header-stats">
-          <div class="hstat"><div class="hstat-val" id="stat-canciones">—</div><div class="hstat-label">Canciones</div></div>
-          <div class="hstat"><div class="hstat-val" id="stat-likes">—</div><div class="hstat-label">Mis likes</div></div>
-          <div class="hstat"><div class="hstat-val" id="stat-favoritos">—</div><div class="hstat-label">Favoritos</div></div>
-          <button class="btn-logout-header" onclick="doLogout()" title="Cerrar sesión">Salir</button>
+            <div class="hstat"><div class="hstat-val" id="stat-canciones">—</div><div class="hstat-label">Canciones</div></div>
+            <div class="hstat"><div class="hstat-val" id="stat-likes">—</div><div class="hstat-label">Mis likes</div></div>
+            <div class="hstat"><div class="hstat-val" id="stat-favoritos">—</div><div class="hstat-label">Favoritos</div></div>
+            <button class="btn-logout-header" onclick="doLogout()" title="Cerrar sesión">Salir</button>
         </div>
-      </div>
+    </div>
 
       <!-- 🎧 LO MÁS ESCUCHADO (horizontal) -->
-      <div class="section">
+       <div class="section">
         <div class="section-head">
-          <div class="section-title">🎧 ¡Lo más escuchado!</div>
-          <span class="ai-badge">Según la comunidad</span>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="section-title">🎧 ¡Lo más escuchado!</div>
+            <span class="ai-badge">Según la comunidad</span>
+          </div>
         </div>
         <div class="horizontal-scroll" id="ranking-lo-mas-escuchado">
           <div class="loading"><div class="spin"></div> Calculando ranking…</div>
         </div>
       </div>
 
+      <!-- NUEVO: Más como [artista] -->
       <div class="section" id="moreLikeSection" style="display:none;">
         <div class="section-head"><div class="section-title" id="moreLikeTitle">Más como </div></div>
         <div class="horizontal-scroll" id="moreLikeCards"></div>
       </div>
 
+      <!-- NUEVO: Canciones para tu estado de ánimo -->
       <div class="section" id="seccion-canciones-mood"></div>
+
+      <!-- NUEVO: Explora tus géneros -->
       <div class="section" id="seccion-explora-generos"></div>
+
+      <!-- NUEVO: Tus mixes más escuchados -->
       <div class="section" id="seccion-tus-mixes"></div>
 
+      <!-- 🎵 Catálogo completo + buscador y chips de género -->
       <div class="section">
         <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
         <div class="top-bar" style="margin-top:12px">
@@ -107,12 +111,14 @@
       <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Analizando tus gustos…</div></div>
     </div>
 
-    <!-- PÁGINA ÁLBUM (dinámica) -->
+    <!-- PÁGINA ÁLBUM (dinámica, controlada por JS) -->
     <div class="page" id="page-album"></div>
 
-    <!-- BUSCAR -->
+    <!-- BUSCAR (nueva página) -->
     <div class="page" id="page-search">
-      <div class="search-page-header"><h2>Buscar</h2></div>
+      <div class="search-page-header">
+        <h2>Buscar</h2>
+      </div>
       <div class="top-bar">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
@@ -137,29 +143,23 @@
     </div>
 
     <!-- PLAYLIST -->
-    <div class="page" id="page-playlist">
+     <div class="page" id="page-playlist">
       <div class="playlist-header">
         <button class="back-btn" onclick="showPage('home')">←</button>
-        <h2>Mi Playlist</h2>
+        <h2>Mi Biblioteca</h2>
+        <button class="btn-create-playlist" onclick="crearNuevaPlaylist()">+ Nueva Playlist</button>
       </div>
       <div class="playlist-tabs">
-        <button class="gpill active" onclick="filterPlaylist('todos')">Todos</button>
-        <button class="gpill" onclick="filterPlaylist('artistas')">Artistas</button>
-        <button class="gpill" onclick="filterPlaylist('recientes')">Recientes</button>
-      </div>
-      <div id="playlistArtistsView" class="hidden">
-        <div class="artist-list" id="playlistArtistsList"></div>
-        <div class="playlist-actions">
-          <button class="btn-outline" onclick="crearNuevaPlaylist()">+ Añadir artistas</button>
-          <button class="btn-outline" onclick="crearNuevaPlaylist()">+ Añadir Playlist</button>
-        </div>
+        <button class="gpill active" onclick="filterPlaylist('playlist')">🎵 Mi Playlist</button>
+        <button class="gpill" onclick="filterPlaylist('favoritos')">⭐ Favoritos</button>
+        <button class="gpill" onclick="filterPlaylist('likes')">❤️ Likes</button>
       </div>
       <div id="playlistSongsView">
-        <div class="cards-grid" id="playlistCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+        <div id="playlistCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
     </div>
 
-    <!-- CHAT (CORREGIDO) -->
+    <!-- CHAT -->
     <div class="page" id="page-chat">
       <div class="page-title">💬 Chat de la comunidad</div>
       <div class="page-sub">Conéctate con otros usuarios en tiempo real.</div>
@@ -172,8 +172,8 @@
       </div>
     </div>
 
-    <!-- PROFILE (CORREGIDO) -->
-    <div class="page" id="page-profile">
+    <!-- PROFILE -->
+     <div class="page" id="page-profile">
       <div class="page-title">👤 Mi perfil</div>
       <div class="page-sub">Estadísticas de escucha y logros.</div>
       <div class="section">
@@ -181,14 +181,23 @@
         <div class="profile-stat"><span>Total reproducciones</span><strong id="profilePlays">0</strong></div>
         <div class="profile-stat"><span>Tiempo escuchado</span><strong id="profileTime">0 min</strong></div>
         <div class="profile-stat"><span>Artista favorito</span><strong id="profileArtist">—</strong></div>
+        <div class="profile-stat"><span>Géneros favoritos</span><strong id="profileGenre">—</strong></div>
+        <div class="profile-stat"><span>Canciones con ❤️ like</span><strong id="profileLikeCount">0</strong></div>
+        <div class="profile-stat"><span>Canciones con ⭐ favorito</span><strong id="profileFavCount">0</strong></div>
       </div>
       <div class="section">
         <div class="section-title">🏆 Logros</div>
         <div id="achievementsList"></div>
       </div>
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">❤️ Canciones que me gustan</div>
+        </div>
+        <div id="profileLikedSongs"></div>
+      </div>
     </div>
 
-    <!-- ANALYSIS -->
+    <!-- ANALYSIS (Panel IA) -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
@@ -281,19 +290,15 @@
 
 </div>
 
-<!-- ═══════════ REPRODUCTOR INFERIOR (CORREGIDO) ═══════════ -->
+<!-- ═══════════ REPRODUCTOR INFERIOR (Fijo) ═══════════ -->
 <div id="playerBar" class="hidden">
-  <div class="player-left">
-    <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
-      <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
-    </div>
-    <div class="pl-info" onclick="openExpandedPlayer()">
-      <div class="pl-title" id="plTitle">Sin reproducción</div>
-      <div class="pl-artist" id="plArtist"></div>
-      <button class="player-like-btn" id="playerLikeBtn" onclick="if(nowPlayingId) toggleLike(event, nowPlayingId)" title="Me gusta">🤍</button>
-    </div>
+  <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
+    <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
   </div>
-  <div class="player-center">
+  <div class="pl-info" onclick="openExpandedPlayer()">
+    <div class="pl-title" id="plTitle">Sin reproducción</div><div class="pl-artist" id="plArtist"></div>
+  </div>
+  <div class="pl-center">
     <div class="pl-controls-btns">
       <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
       <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
@@ -318,37 +323,53 @@
     </div>
     <div class="pl-visualizer" id="audioVisualizer"></div>
   </div>
-  <div class="player-right">
-    <button class="player-queue-btn" onclick="openQueueModal()" title="Cola de reproducción">☰</button>
-    <div class="pl-volume">
-      <span class="pl-vol-icon" id="volIcon">🔊</span>
-      <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
-      <span class="vol-percent" id="volPercent">80%</span>
-    </div>
+  <div class="pl-volume">
+    <span class="pl-vol-icon" id="volIcon">🔊</span>
+    <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
+    <span class="vol-percent" id="volPercent">80%</span>
   </div>
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- EXPANDED PLAYER (CORREGIDO) -->
+<!-- EXPANDED PLAYER -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
     <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
     <div class="expanded-disc">
-      <div class="pl-disc expanded-disc-img" id="expDisc"><div class="pl-disc-cover" id="expDiscCover">🎵</div><div class="pl-disc-center"></div></div>
+      <div class="pl-disc expanded-disc-img" id="expDisc">
+        <div class="pl-disc-cover" id="expDiscCover">🎵</div>
+        <div class="pl-disc-center"></div>
+      </div>
     </div>
-    <div class="expanded-info"><h2 id="expTitle">Sin reproducción</h2><p id="expArtist"></p></div>
+    <div class="expanded-info">
+      <h2 id="expTitle">Sin reproducción</h2>
+      <p id="expArtist"></p>
+      <span id="expGenreBadge"></span>
+    </div>
+    <div class="expanded-like-row">
+      <button class="exp-action-btn" id="expLikeBtn" onclick="if(nowPlayingId){toggleLike(event,nowPlayingId)}" title="Like">🤍</button>
+      <button class="exp-action-btn" id="expFavBtn" onclick="if(nowPlayingId){toggleFav(event,nowPlayingId)}" title="Favorito">☆</button>
+      <button class="exp-action-btn" id="expPlaylistBtn" onclick="if(nowPlayingId){toggleAddToPlaylist(event,nowPlayingId)}" title="Playlist">➕</button>
+      <button class="exp-action-btn" onclick="if(nowPlayingId){openContextMenu(event,nowPlayingId)}" title="Más">⋮</button>
+    </div>
     <div class="expanded-controls">
       <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
       <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
       <button class="pl-btn" onclick="playNextInContext()">⏭</button>
       <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
-      <div class="sleep-timer-wrap"><button class="pl-btn" onclick="toggleSleepMenu()">⏰</button><span class="sleep-countdown hidden" id="expSleepCountdown"></span><button class="pl-btn hidden" id="expCancelSleepBtn" onclick="clearSleepTimer()">⏹️</button></div>
+      <div class="sleep-timer-wrap">
+        <button class="pl-btn" onclick="toggleSleepMenu()">⏰</button>
+        <span class="sleep-countdown hidden" id="expSleepCountdown"></span>
+        <button class="pl-btn hidden" id="expCancelSleepBtn" onclick="clearSleepTimer()">⏹️</button>
+      </div>
     </div>
     <div class="expanded-progress">
       <span id="expCurrentTime">0:00</span>
-      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)"><div class="pl-progress-fill" id="expProgressFill"></div></div>
+      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)">
+        <div class="pl-progress-fill" id="expProgressFill"></div>
+      </div>
       <span id="expTotalTime">0:00</span>
     </div>
     <div class="expanded-volume">
@@ -356,11 +377,14 @@
       <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
       <span class="vol-percent" id="expVolPercent">80%</span>
     </div>
+    <div class="expanded-next-up" id="expNextUp"></div>
   </div>
 </div>
 
-<!-- TOAST, VOICE OVERLAY, MENÚ CONTEXTUAL, BARRA DE NAVEGACIÓN MÓVIL (sin cambios) -->
+<!-- TOAST -->
 <div id="toast"></div>
+
+<!-- VOICE OVERLAY -->
 <div id="voiceOverlay">
   <div class="voice-modal">
     <div class="voice-waves">
@@ -373,6 +397,8 @@
     <button class="voice-cancel-btn" onclick="toggleVoice()">Cancelar</button>
   </div>
 </div>
+
+<!-- ═══════════ MENÚ CONTEXTUAL (Bottom Sheet / Dropdown) ═══════════ -->
 <div id="contextMenu" class="hidden">
   <div class="context-overlay" onclick="closeContextMenu()"></div>
   <div class="context-sheet" id="contextSheet">
@@ -384,9 +410,13 @@
         <div class="context-song-artist" id="ctxArtist"></div>
       </div>
     </div>
-    <div class="context-options"></div>
+    <div class="context-options">
+      <!-- Se llenan dinámicamente desde JS -->
+    </div>
   </div>
 </div>
+
+<!-- ═══════════ BARRA DE NAVEGACIÓN MÓVIL ═══════════ -->
 <nav class="mobile-nav" id="mobileNav">
   <button class="mobile-nav-item active" onclick="showPage('home')">🏠<span>Inicio</span></button>
   <button class="mobile-nav-item" onclick="showPage('weekly')">📅<span>Semanal</span></button>
