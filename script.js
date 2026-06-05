@@ -24,6 +24,7 @@ let nowPlayingId = null;
 let activeGenre  = null;
 let searchQuery  = '';
 let playlistContext = 'global';   // 'global', 'favorites', 'likes', 'playlist'
+let currentPlaylistFilter = 'playlist';
 
 /* Web Audio */
 let audioCtx     = null;
@@ -439,6 +440,46 @@ function renderCards(songs,containerId,emptyMsg='No hay canciones aquí aún.', 
   el.innerHTML=songs.map(s => songCard(s, context)).join('');
 }
 
+// ── Renderiza canciones en formato lista (igual que álbum) ──
+function renderAlbumTrackList(songs, containerId, emptyMsg = 'No hay canciones aquí aún.', context = 'global') {
+  const el = $(containerId);
+  if (!el) return;
+  if (!songs || !songs.length) {
+    el.className = '';
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🎵</div><p>${emptyMsg}</p></div>`;
+    return;
+  }
+  el.className = 'album-track-list';
+  const ctxStr = context === 'global' ? '' : `, '${context}'`;
+  el.innerHTML = songs.map((c, i) => {
+    const inter = interaccionesMap[c.id] || {};
+    const liked = inter.es_like;
+    const faved = inter.es_favorito;
+    const playing = nowPlayingId === c.id;
+    const inPlaylist = userPlaylist.includes(c.id);
+    const thumbHTML = c.url_imagen
+      ? `<img class="album-track-thumb" src="${c.url_imagen}" alt="${esc(c.titulo)}" onerror="this.style.display='none'">`
+      : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
+    return `
+      <div class="album-track${playing ? ' playing' : ''}" data-id="${c.id}" onclick="playSong(null,${c.id}${ctxStr})">
+        <div class="album-track-num">${playing ? '▶' : i + 1}</div>
+        ${thumbHTML}
+        <div class="album-track-info">
+          <div class="album-track-title">${esc(c.titulo)}</div>
+          <div class="album-track-artist">${esc(c.artista)}</div>
+        </div>
+        <span class="album-track-genre">${esc(c.genero)}</span>
+        <div class="album-track-actions" onclick="event.stopPropagation()">
+          <button class="album-track-btn${liked ? ' liked-btn' : ''}" onclick="toggleLike(event,${c.id})" title="Like">${liked ? '❤️' : '🤍'}</button>
+          <button class="album-track-btn${faved ? ' faved-btn' : ''}" onclick="toggleFav(event,${c.id})" title="Favorito">${faved ? '⭐' : '☆'}</button>
+          <button class="album-track-btn${inPlaylist ? ' active-btn' : ''}" onclick="toggleAddToPlaylist(event,${c.id})" title="${inPlaylist ? 'Quitar de Playlist' : 'Añadir a Playlist'}">${inPlaylist ? '➖' : '➕'}</button>
+          <button class="album-track-btn" onclick="playSong(null,${c.id}${ctxStr});event.stopPropagation()" title="Play">▶</button>
+          <button class="album-track-btn" onclick="openContextMenu(event,${c.id})" title="Más">⋮</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
 /* ── Populars (API) ── (ya no se usa, pero se mantiene por si acaso) */
 async function renderHomePopular() {
   try {
@@ -460,7 +501,7 @@ async function renderHomeRec() {
     const res = await fetch(`${API_BASE}/api/recommend?user_id=${currentUser.id}`);
     const data = await res.json();
     const recSongs = data.recommendations || [];
-    renderCards(recSongs, 'homeRecCards', 'Da likes a canciones para recibir recomendaciones personalizadas.', 'global');
+    renderAlbumTrackList(recSongs, 'homeRecCards', 'Da likes a canciones para recibir recomendaciones personalizadas.', 'global');
   } catch(e) {
     renderCards([], 'homeRecCards', 'Error al obtener recomendaciones.');
   }
@@ -494,47 +535,8 @@ function renderCatalog() {
     s.titulo.toLowerCase().includes(searchQuery) ||
     s.artista.toLowerCase().includes(searchQuery)
   );
-  const count = songs.length;
-  txt('catalogCount', count + ' canciones');
-
-  const el = $('catalogCards');
-  if (!el) return;
-
-  if (!songs || !songs.length) {
-    el.className = 'cards-grid';
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🎵</div><p>No se encontraron canciones.</p></div>`;
-    return;
-  }
-
-  // Siempre horizontal (scroll) — compacto en cualquier pantalla
-  el.className = 'catalog-hscroll';
-  el.innerHTML = songs.map(s => {
-    const inter = interaccionesMap[s.id] || {};
-    const liked = inter.es_like;
-    const faved = inter.es_favorito;
-    const playing = nowPlayingId === s.id;
-    const inPlaylist = userPlaylist.includes(s.id);
-    const coverHTML = s.url_imagen
-      ? `<img src="${s.url_imagen}" alt="${esc(s.titulo)}" onerror="this.style.display='none'">`
-      : genreEmoji(s.genero);
-
-    return `<div class="song-card-h${playing ? ' playing' : ''}" data-id="${s.id}" onclick="playSong(event, ${s.id})">
-      <div class="shcover" style="background:${genreGradient(s.genero)}">
-        ${coverHTML}
-        ${playing ? `<div class="now-playing-badge">▶</div>` : ''}
-      </div>
-      <div class="shbody">
-        <div class="shtitle" title="${esc(s.titulo)}">${esc(s.titulo)}</div>
-        <div class="shartist">${esc(s.artista)}</div>
-        <div class="shactions" onclick="event.stopPropagation()">
-          <button class="shbtn${liked ? ' liked-btn' : ''}" onclick="toggleLike(event,${s.id})">${liked ? '❤️' : '🤍'}</button>
-          <button class="shbtn${faved ? ' faved-btn' : ''}" onclick="toggleFav(event,${s.id})">${faved ? '⭐' : '☆'}</button>
-          <button class="shbtn${inPlaylist ? ' liked-btn' : ''}" onclick="toggleAddToPlaylist(event,${s.id})">${inPlaylist ? '➖' : '➕'}</button>
-          <button class="shbtn" onclick="event.stopPropagation();openContextMenu(event,${s.id})">⋮</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  txt('catalogCount', songs.length + ' canciones');
+  renderAlbumTrackList(songs, 'catalogCards', 'No se encontraron canciones.', 'global');
 }
 
 /* ── Playlist (Supabase) ── */
@@ -553,7 +555,7 @@ async function loadUserPlaylist() {
 }
 
 async function toggleAddToPlaylist(e, songId) {
-  e.stopPropagation();
+  if (e && e.stopPropagation) e.stopPropagation();
   if (!currentUser) return;
   let { data: playlists } = await supabase.from('playlists').select('id,nombre').eq('usuario_id', currentUser.id).limit(1);
   let playlistId;
@@ -563,7 +565,6 @@ async function toggleAddToPlaylist(e, songId) {
   } else {
     playlistId = playlists[0].id;
   }
-
   const index = userPlaylist.indexOf(songId);
   if (index >= 0) {
     await supabase.from('playlist_canciones').delete().eq('playlist_id', playlistId).eq('cancion_id', songId);
@@ -571,25 +572,37 @@ async function toggleAddToPlaylist(e, songId) {
     toast('🗑️ Canción eliminada de tu Playlist');
   } else {
     const { count } = await supabase.from('playlist_canciones').select('*', { count: 'exact', head: true }).eq('playlist_id', playlistId);
-    await supabase.from('playlist_canciones').upsert({
-      playlist_id: playlistId,
-      cancion_id: songId,
-      posicion: count || 0
-    }, { onConflict: 'playlist_id,cancion_id' });
+    await supabase.from('playlist_canciones').upsert({ playlist_id: playlistId, cancion_id: songId, posicion: count || 0 }, { onConflict: 'playlist_id,cancion_id' });
     userPlaylist.push(songId);
     toast('➕ Canción añadida a tu Playlist');
   }
   renderAll();
-  if (document.getElementById('page-playlist').classList.contains('active')) {
-    renderPlaylist();
-  }
+  if (document.getElementById('page-playlist').classList.contains('active')) renderPlaylist();
 }
 
-// ── Función renderPlaylist (estaba faltando) ──
-function renderPlaylist() {
-  const songs = getPlaylistSongs();
-  renderCards(songs, 'playlistCards', 'Tu playlist está vacía. Usa el botón ➕ en cualquier canción para añadirla.', 'playlist');
+function renderPlaylist(filtro) {
+  if (filtro !== undefined) currentPlaylistFilter = filtro;
+  let songs, emptyMsg;
+  if (currentPlaylistFilter === 'favoritos') {
+    songs = getFavoriteSongs();
+    emptyMsg = 'No tienes favoritos todavía. Usa ⭐ en cualquier canción.';
+  } else if (currentPlaylistFilter === 'likes') {
+    songs = getLikedSongs();
+    emptyMsg = 'No tienes likes todavía. Usa ❤️ en cualquier canción.';
+  } else {
+    songs = getPlaylistSongs();
+    emptyMsg = 'Tu playlist está vacía. Usa ➕ en cualquier canción para añadirla.';
+  }
+  renderAlbumTrackList(songs, 'playlistCards', emptyMsg, currentPlaylistFilter === 'playlist' ? 'playlist' : 'global');
   updateBadges();
+}
+
+function filterPlaylist(tipo) {
+  currentPlaylistFilter = tipo;
+  document.querySelectorAll('#page-playlist .gpill').forEach(b => b.classList.remove('active'));
+  const active = document.querySelector(`#page-playlist .gpill[onclick="filterPlaylist('${tipo}')"]`);
+  if (active) active.classList.add('active');
+  renderPlaylist(tipo);
 }
 
 // ── Función crearNuevaPlaylist (para los botones del HTML) ──
@@ -617,6 +630,7 @@ async function toggleLike(e, songId) {
     interaccionesMap[songId] = { ...actual, es_like: nuevoLike };
     toast(nuevoLike ? '❤️ Like añadido' : 'Like eliminado');
     renderAll();
+    updatePlayerLikeBtn();
     actualizarContadoresHeader();
     renderizarRankingGlobal();
     checkAchievements();
@@ -830,17 +844,20 @@ function obtenerCancionesPorMood(mood) {
 function renderizarCancionesMood() {
   const contenedor = document.getElementById('seccion-canciones-mood');
   if (!contenedor) return;
-  contenedor.innerHTML = `<h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🎭 Canciones para tu estado de ánimo</h2><div id="mood-cards-row" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>`;
+  contenedor.innerHTML = `
+    <div class="section-head">
+      <div class="section-title">🎭 Canciones para tu estado de ánimo</div>
+    </div>
+    <div id="mood-cards-row" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+  `;
   const row = document.getElementById('mood-cards-row');
   MOODS.forEach(mood => {
     const canciones = obtenerCancionesPorMood(mood);
     const card = document.createElement('div');
     card.className = 'mood-card';
-    // Usar la imagen de portada (si existe) o el color de respaldo
     card.style.backgroundImage = mood.cover ? `url(${mood.cover})` : mood.color;
     card.style.backgroundSize = 'cover';
     card.style.backgroundPosition = 'center';
-    // Degradado sutil sobre la imagen para que el texto sea legible
     card.innerHTML = `<div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,0.7), transparent)"></div>
                       <div style="position:relative;z-index:1">
                         <div style="font-size:18px">${mood.emoji}</div>
@@ -850,6 +867,7 @@ function renderizarCancionesMood() {
     card.addEventListener('click', () => abrirPaginaAlbum('mood', mood.id));
     row.appendChild(card);
   });
+  setTimeout(() => _attachSectionArrows('mood-cards-row'), 150);
 }
 
 const COLORES_GENERO = {
@@ -866,7 +884,9 @@ function renderizarExploraGeneros() {
   const generosUnicos = [...new Set(allSongs.map(s => s.genero?.trim()).filter(Boolean))].sort();
 
   contenedor.innerHTML = `
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🌈 Explora tus géneros</h2>
+    <div class="section-head">
+      <div class="section-title">🌈 Explora tus géneros</div>
+    </div>
     <div id="genero-cards-row" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
   `;
 
@@ -920,6 +940,7 @@ function renderizarExploraGeneros() {
     });
 
     row.appendChild(card);
+    setTimeout(() => _attachSectionArrows('genero-cards-row'), 150);
   });
 }
 
@@ -960,7 +981,9 @@ function renderizarTusMixes() {
   if (mixesOrdenados.length === 0) return;
 
   contenedor.innerHTML = `
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🎲 Tus mixes más escuchados</h2>
+    <div class="section-head">
+      <div class="section-title">🎲 Tus mixes más escuchados</div>
+    </div>
     <div id="mixes-row" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
   `;
 
@@ -1023,6 +1046,7 @@ function renderizarTusMixes() {
     card.addEventListener('click', () => abrirPaginaAlbum('artista', artista));
 
     row.appendChild(card);
+    setTimeout(() => _attachSectionArrows('mixes-row'), 150);
   });
 }
 
@@ -1132,20 +1156,13 @@ function abrirPaginaAlbum(tipo, valor) {
         </div>
       </div>
     </div>
-
     <div style="padding:0 4px;margin-top:16px">
       <div class="album-actions">
-        <button class="btn-play-all" onclick="reproducirDesde(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0)">
-          ▶ Reproducir todo
-        </button>
-        <button class="btn-shuffle-all" onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})">
-          ⇌ Aleatorio
-        </button>
+        <button class="btn-back-album" onclick="cerrarPaginaAlbum()">← Volver</button>
+        <button class="btn-play-all" onclick="reproducirDesde(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0)">▶ Reproducir todo</button>
+        <button class="btn-shuffle-all" onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})">⇌ Aleatorio</button>
       </div>
-
-      <div style="margin-top:4px">
-        ${pistasHTML}
-      </div>
+      <div style="margin-top:4px">${pistasHTML}</div>
     </div>`;
 }
 
@@ -1183,7 +1200,7 @@ function reproducirDesde(arrayIds, indice) {
 /* ═══════════════════ MENÚ CONTEXTUAL ══════════════════ */
 let contextSongId = null;
 function openContextMenu(e, songId) {
-  e.stopPropagation();
+  if (e && e.stopPropagation) e.stopPropagation();
   const song = allSongs.find(s => s.id === songId);
   if (!song) return;
   contextSongId = songId;
@@ -1195,14 +1212,16 @@ function openContextMenu(e, songId) {
   } else {
     imgEl.innerHTML = genreEmoji(song.genero);
   }
-  const opciones = document.querySelector('.context-options');
-  opciones.innerHTML = `
+  const inter = interaccionesMap[songId] || {};
+  const inPl = userPlaylist.includes(songId);
+  document.querySelector('.context-options').innerHTML = `
+    <button onclick="contextAction('like')">${inter.es_like ? '❤️ Quitar like' : '🤍 Dar like'}</button>
+    <button onclick="contextAction('fav')">${inter.es_favorito ? '⭐ Quitar favorito' : '☆ Añadir a favoritos'}</button>
     <button onclick="contextAction('share')">🔗 Compartir</button>
-    <button onclick="contextAction('playlist')">➕ Añadir a Playlist</button>
-    <button onclick="contextAction('hide')">✕ Ocultar en esta lista</button>
+    <button onclick="contextAction('playlist')">➕ ${inPl ? 'Quitar de Playlist' : 'Añadir a Playlist'}</button>
     <button onclick="contextAction('queue')">⬆️ Añadir a la cola</button>
-    <button onclick="contextAction('gotoqueue')">☰ Ir a la cola</button>
-    <button onclick="contextAction('album')">💿 Ir al álbum</button>
+    <button onclick="contextAction('album')">💿 Ver álbum del género</button>
+    <button onclick="contextAction('hide')">✕ Ocultar canción</button>
   `;
   document.getElementById('contextMenu').classList.remove('hidden');
 }
@@ -1356,6 +1375,7 @@ async function playSong(e, songId, context = null){
   refreshCardHighlight();
   applyEnergyEffect(song);
   updateQueue();
+  updatePlayerLikeBtn();
 }
 
 function updateDiscCover(coverEl, song) {
@@ -1419,12 +1439,15 @@ function refreshCardHighlight(){
     const badge=card.querySelector('.now-playing-badge');
     if(id===nowPlayingId&&!badge){
       const cover=card.querySelector('.card-cover');
-      const b=document.createElement('div');
-      b.className='now-playing-badge'; b.textContent='Reproduciendo';
-      cover.appendChild(b);
-    } else if(id!==nowPlayingId&&badge){
-      badge.remove();
-    }
+      if(cover){ const b=document.createElement('div'); b.className='now-playing-badge'; b.textContent='Reproduciendo'; cover.appendChild(b); }
+    } else if(id!==nowPlayingId&&badge){ badge.remove(); }
+  });
+  // Actualizar album-track items
+  document.querySelectorAll('.album-track').forEach((track, _, list) => {
+    const id = parseInt(track.dataset.id);
+    track.classList.toggle('playing', id === nowPlayingId);
+    const numEl = track.querySelector('.album-track-num');
+    if (numEl) numEl.textContent = (id === nowPlayingId) ? '▶' : (Array.from(list).indexOf(track) + 1);
   });
 }
 function togglePlayPause(){
@@ -1458,6 +1481,17 @@ function updatePlayPauseBtn(playing){
     if (playing) rightDisc.classList.add('spinning');
     else rightDisc.classList.remove('spinning');
   }
+}
+
+// ── Nuevo: actualiza el corazón del reproductor ──
+function updatePlayerLikeBtn() {
+  const btn = $('playerLikeBtn');
+  if (!btn) return;
+  if (!nowPlayingId) { btn.textContent = '🤍'; btn.style.color = ''; return; }
+  const inter = interaccionesMap[nowPlayingId] || {};
+  btn.textContent = inter.es_like ? '❤️' : '🤍';
+  btn.style.color = inter.es_like ? 'var(--red)' : '';
+  btn.style.fontSize = '18px';
 }
 
 /* Visualizer */
@@ -1583,13 +1617,13 @@ async function renderWeekly() {
     const songs = await generateWeekly();
     if (songs.length > 0) {
       saveWeeklyData({ weekStart: monday.toISOString(), songs: songs.map(s => s.id) });
-      renderCards(songs, 'weeklyCards', 'Aún no hay suficientes datos.');
+      renderAlbumTrackList(songs, 'weeklyCards', 'Aún no hay suficientes datos.', 'global');
     } else {
       weeklyDiv.innerHTML = '<div class="empty-state"><p>Dale like a más canciones para activar Discover Weekly.</p></div>';
     }
   } else {
     const songs = data.songs.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
-    renderCards(songs, 'weeklyCards', 'Lista semanal vacía.');
+    renderAlbumTrackList(songs, 'weeklyCards', 'Lista semanal vacía.', 'global');
   }
 }
 
@@ -1623,9 +1657,24 @@ function renderProfile() {
   const favArtist = Object.entries(artistCount).sort((a,b) => b[1] - a[1])[0];
   txt('profileArtist', favArtist ? favArtist[0] : '—');
 
+  // Géneros más escuchados
+  const genreCount = {};
+  myInter.filter(i => i.es_like || i.es_favorito).forEach(inter => {
+    const song = allSongs.find(s => s.id === inter.cancion_id);
+    if (song) genreCount[song.genero] = (genreCount[song.genero] || 0) + 1;
+  });
+  const topGenres = Object.entries(genreCount).sort((a,b) => b[1]-a[1]).slice(0,3).map(([g]) => g).join(', ');
+  txt('profileGenre', topGenres || '—');
+
+  txt('profileLikeCount', myInter.filter(i => i.es_like).length);
+  txt('profileFavCount', myInter.filter(i => i.es_favorito).length);
+
   const achievements = getAchievements();
   const logrosDiv = $('achievementsList');
   if (logrosDiv) logrosDiv.innerHTML = achievements.map(a => `<span class="achievement-badge">${a.icon} ${a.name}</span>`).join('');
+
+  // Canciones con like
+  renderAlbumTrackList(getLikedSongs(), 'profileLikedSongs', 'Aún no has dado like a ninguna canción.', 'likes');
 }
 
 const ACHIEVEMENTS = [
@@ -1787,22 +1836,52 @@ function openExpandedPlayer() {
   if (!song) return;
   txt('expTitle', song.titulo);
   txt('expArtist', song.artista);
-  const disc = $('expDisc');
+
+  // Genre badge
+  const genreBadge = $('expGenreBadge');
+  if (genreBadge) genreBadge.innerHTML = `<span class="album-track-genre" style="font-size:11px">${esc(song.genero)}</span>`;
+
+  // Botones like/fav/playlist
+  const inter = interaccionesMap[nowPlayingId] || {};
+  const likeBtn = $('expLikeBtn');
+  const favBtn = $('expFavBtn');
+  const plBtn = $('expPlaylistBtn');
+  if (likeBtn) { likeBtn.textContent = inter.es_like ? '❤️' : '🤍'; likeBtn.style.color = inter.es_like ? 'var(--red)' : ''; }
+  if (favBtn) { favBtn.textContent = inter.es_favorito ? '⭐' : '☆'; favBtn.style.color = inter.es_favorito ? 'var(--gold)' : ''; }
+  if (plBtn) plBtn.textContent = userPlaylist.includes(nowPlayingId) ? '➖' : '➕';
+
   updateDiscCover($('expDiscCover'), song);
   const audio = $('audioEl');
-  if (audio && !audio.paused) {
-    disc.classList.add('spinning');
-    $('expPlayPauseBtn').textContent = '⏸';
-  } else {
-    disc.classList.remove('spinning');
-    $('expPlayPauseBtn').textContent = '▶';
-  }
+  const disc = $('expDisc');
+  if (audio && !audio.paused) { disc.classList.add('spinning'); $('expPlayPauseBtn').textContent = '⏸'; }
+  else { disc.classList.remove('spinning'); $('expPlayPauseBtn').textContent = '▶'; }
   $('expVolumeRange').value = audio ? audio.volume : 0.8;
   txt('expVolPercent', Math.round((audio?.volume || 0.8)*100)+'%');
+
+  // Siguiente en cola
+  const nextUpDiv = $('expNextUp');
+  if (nextUpDiv) {
+    const ctxSongs = getContextSongs();
+    const idx = ctxSongs.findIndex(s => s.id === nowPlayingId);
+    const upcoming = ctxSongs.slice(idx + 1, idx + 4);
+    if (upcoming.length > 0) {
+      nextUpDiv.innerHTML = `
+        <div style="font-size:10px;color:var(--text2);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">▶ Siguiente</div>
+        ${upcoming.map(s => `
+          <div onclick="playSong(null,${s.id});closeExpandedPlayer()" style="display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;border-radius:8px;transition:.15s"
+               onmouseover="this.style.background='var(--accentA)'" onmouseout="this.style.background=''">
+            ${s.url_imagen
+              ? `<img src="${s.url_imagen}" style="width:34px;height:34px;border-radius:5px;object-fit:cover;flex-shrink:0">`
+              : `<div style="width:34px;height:34px;border-radius:5px;background:${genreGradient(s.genero)};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${genreEmoji(s.genero)}</div>`}
+            <div style="min-width:0">
+              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.titulo)}</div>
+              <div style="font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.artista)}</div>
+            </div>
+          </div>`).join('')}
+      `;
+    } else { nextUpDiv.innerHTML = ''; }
+  }
   $('expandedPlayer').classList.remove('hidden');
-}
-function closeExpandedPlayer() {
-  $('expandedPlayer').classList.add('hidden');
 }
 
 /* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
@@ -1984,24 +2063,9 @@ function hashCode(str) {
 
 /* ═══════════════════ MÁS COMO [ARTISTA] ══════════════════ */
 function updateMoreLikeSection(song) {
+  // Sección deshabilitada por petición del usuario
   const section = document.getElementById('moreLikeSection');
-  const title = document.getElementById('moreLikeTitle');
-  const container = document.getElementById('moreLikeCards');
-  if (!section || !song) return;
-  title.textContent = 'Más como ' + song.artista;
-  const similar = allSongs.filter(s => s.artista === song.artista && s.id !== song.id).slice(0, 5);
-  if (similar.length > 0) {
-    container.innerHTML = similar.map(s => `
-      <div style="text-align:center;cursor:pointer;min-width:80px;" onclick="playSong(null, ${s.id})">
-        <img src="${s.url_imagen || ''}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-bottom:4px;" onerror="this.style.display='none'">
-        <div style="font-size:12px;font-weight:600;">${s.artista}</div>
-        <div style="font-size:10px;color:var(--text2);">Artista</div>
-      </div>
-    `).join('');
-    section.style.display = 'block';
-  } else {
-    section.style.display = 'none';
-  }
+  if (section) section.style.display = 'none';
 }
 
 /* ═══════════════════ PANEL DERECHO Y BARRA MÓVIL ══════════════════ */
@@ -2146,6 +2210,11 @@ window.addEventListener('load', async ()=>{
   if (volRange) { volRange.value = 0.8; setVolume(0.8); }
 
   await bootApp();
+  // ── Prevenir que el botón "atrás" del navegador cierre sesión ──
+  history.pushState(null, '', window.location.href);
+  window.addEventListener('popstate', function() {
+    history.pushState(null, '', window.location.href);
+  });
 });
 
 document.addEventListener('keydown', e => {
