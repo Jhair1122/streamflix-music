@@ -152,7 +152,7 @@ async function bootApp(){
   try {
     // Cargar canciones desde Supabase
     const { data: songsData } = await supabase.from('canciones').select('*').order('id', { ascending: true });
-    allSongs = (songsRes.data || []).map(s => ({ ...s, id: Number(s.id) }));
+    allSongs = songsRes.data || [];
 
     // Cargar interacciones del usuario
     const { data: interData } = await supabase.from('interacciones')
@@ -609,22 +609,22 @@ async function loadUserPlaylist() {
     const songMap = {};
     playlistIds.forEach(pid => { songMap[pid] = []; }); // pid ya es Number
     pcRows.forEach(row => {
-      if (songMap[row.playlist_id] !== undefined) {
-        // Verificar que la canción existe en el catálogo cargado
-        const exists = allSongs.some(s => s.id === row.cancion_id);
+      const pid = Number(row.playlist_id);
+      const cid = Number(row.cancion_id);
+      if (songMap[pid] !== undefined) {
+        const exists = allSongs.some(s => Number(s.id) === cid);
         if (exists) {
-          songMap[row.playlist_id].push(row.cancion_id);
+          songMap[pid].push(cid);
         } else {
-          console.warn('[loadUserPlaylist] cancion_id', row.cancion_id, 
-                       'en playlist', row.playlist_id, '← NO existe en allSongs');
+          console.warn('[loadUserPlaylist] cancion_id', cid, 'NO existe en allSongs');
         }
       }
     });
 
     userPlaylists = playlists.map(pl => ({
-      id: pl.id,
+      id: Number(pl.id),
       nombre: pl.nombre,
-      canciones: songMap[pl.id] || []
+      canciones: (songMap[Number(pl.id)] || []).map(Number)
     }));
 
     // userPlaylist = todas las canciones en cualquier playlist (para ➕/➖)
