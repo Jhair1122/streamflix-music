@@ -1,8 +1,10 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v14 FINAL)
-   - Tarjetas sin atributos numéricos
-   - Chat alineado (propio derecha, otros izquierda)
-   - Recomendaciones vía API, sleep timer, etc.
+   SoundMind — script.js (v15 FINAL con Playlist unificada)
+   - Se eliminan páginas separadas de Favoritos, Likes y Cola.
+   - Nueva página "Playlist" con array local.
+   - Botón ➕/➖ en cada tarjeta para agregar/quitar.
+   - Contexto de reproducción 'playlist'.
+   - Likes/favoritos siguen funcionando para IA.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -14,7 +16,7 @@ let myInter      = [];
 let nowPlayingId = null;
 let activeGenre  = null;
 let searchQuery  = '';
-let playlistContext = 'global';   // 'global', 'favorites', 'likes'
+let playlistContext = 'global';   // 'global', 'favorites', 'likes', 'playlist'
 
 /* Web Audio */
 let audioCtx     = null;
@@ -27,7 +29,8 @@ let isListening  = false;
 
 // ── Variables de funciones extra ──
 let sleepTimer = null;
-let queue = [];
+let queue = [];                      // ya no se usa, pero se mantiene para no romper otras funciones (se reemplazará por playlist)
+let userPlaylist = [];               // Array de IDs de canciones en la playlist del usuario
 
 /* ── Helpers DOM ── */
 const $ = id => document.getElementById(id);
@@ -68,6 +71,9 @@ function checkSession(){
   const saved = loadSession();
   if (!saved) { window.location.href = 'explore.html'; return false; }
   currentUser = saved;
+  // Cargar playlist del usuario desde localStorage
+  const stored = localStorage.getItem(`playlist_${currentUser.id}`);
+  userPlaylist = stored ? JSON.parse(stored) : [];
   return true;
 }
 
@@ -97,10 +103,9 @@ async function bootApp(){
   buildGenrePills();
   renderAll();
   renderWeekly();
-  updateQueue();
   showPage('home');
   initVoiceSearch();
-  initChat();           // ← chat
+  initChat();
 }
 
 /* ═══════════════════ LOGOUT ══════════════════ */
@@ -224,8 +229,7 @@ function renderAll(){
   renderHomePopular();
   renderHomeRec();
   renderCatalog();
-  renderFavorites();
-  renderLikes();
+  renderPlaylist();
 }
 
 function updateHeroStats(){
@@ -234,20 +238,23 @@ function updateHeroStats(){
   txt('hsFavs', myInter.filter(i=>i.es_favorito).length);
 }
 function updateBadges(){
-  const likes=myInter.filter(i=>i.es_like).length;
-  const favs =myInter.filter(i=>i.es_favorito).length;
-  const bl=$('badge-like'),bf=$('badge-fav');
-  if(likes>0){bl.textContent=likes;bl.classList.remove('hidden')}else bl.classList.add('hidden');
-  if(favs>0) {bf.textContent=favs; bf.classList.remove('hidden')}else bf.classList.add('hidden');
+  const bp = $('badge-playlist');
+  if (bp) {
+    bp.textContent = userPlaylist.length;
+    if (userPlaylist.length > 0) bp.classList.remove('hidden');
+    else bp.classList.add('hidden');
+  }
 }
 
-/* ── Song Card (sin atributos numéricos) ── */
+/* ── Song Card (con botón de playlist) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
   const faved  =inter&&inter.es_favorito;
   const playing=nowPlayingId===s.id;
   const ctxParam = context === 'global' ? '' : `, '${context}'`;
+
+  const inPlaylist = userPlaylist.includes(s.id);
 
   let coverContent = '';
   if (s.url_imagen) {
@@ -272,6 +279,7 @@ function songCard(s, context = 'global'){
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="cta${liked?' liked-btn':''}" onclick="toggleLike(event,${s.id})">${liked?'❤️':'🤍'}</button>
         <button class="cta${faved?' faved-btn':''}" onclick="toggleFav(event,${s.id})">${faved?'⭐':'☆'}</button>
+        <button class="cta${inPlaylist?' playlist-btn':''}" onclick="toggleAddToPlaylist(event,${s.id})" title="${inPlaylist?'Quitar de Playlist':'Agregar a Playlist'}">${inPlaylist?'➖':'➕'}</button>
         <button class="cta play-btn" onclick="playSong(event,${s.id}${ctxParam}); event.stopPropagation()">▶ Play</button>
       </div>
     </div>
@@ -339,23 +347,41 @@ function renderCatalog(){
   renderCards(songs, 'catalogCards', 'No se encontraron canciones.', 'global');
 }
 
-/* ── Library ── */
-function getFavoriteSongs(){
-  const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
-  return allSongs.filter(s=>ids.has(s.id));
-}
-function getLikedSongs(){
-  const ids=new Set(myInter.filter(i=>i.es_like).map(i=>i.cancion_id));
-  return allSongs.filter(s=>ids.has(s.id));
-}
-function renderFavorites(){
-  renderCards(getFavoriteSongs(),'favCards','Aún no tienes favoritos. Haz clic en ☆ en cualquier canción.', 'favorites');
-}
-function renderLikes(){
-  renderCards(getLikedSongs(),'likeCards','Aún no tienes likes. Haz clic en 🤍 en cualquier canción.', 'likes');
+/* ── Playlist (nueva) ── */
+function getPlaylistSongs() {
+  return allSongs.filter(s => userPlaylist.includes(s.id));
 }
 
-/* ═══════════════════ INTERACTIONS (API) ══════════════════ */
+function renderPlaylist() {
+  const songs = getPlaylistSongs();
+  renderCards(songs, 'playlistCards', 'Tu playlist está vacía. Usa el botón ➕ en cualquier canción para añadirla.', 'playlist');
+  updateBadges();
+}
+
+function savePlaylist() {
+  if (currentUser) {
+    localStorage.setItem(`playlist_${currentUser.id}`, JSON.stringify(userPlaylist));
+  }
+}
+
+async function toggleAddToPlaylist(e, songId) {
+  e.stopPropagation();
+  const index = userPlaylist.indexOf(songId);
+  if (index >= 0) {
+    userPlaylist.splice(index, 1);
+    toast('🗑️ Canción eliminada de tu Playlist');
+  } else {
+    userPlaylist.push(songId);
+    toast('➕ Canción añadida a tu Playlist');
+  }
+  savePlaylist();
+  renderAll();
+  if (document.getElementById('page-playlist').classList.contains('active')) {
+    renderPlaylist();
+  }
+}
+
+/* ═══════════════════ INTERACTIONS (Likes/Favs) ══════════════════ */
 async function toggleLike(e, songId) {
   e.stopPropagation();
   const res = await fetch(`${API_BASE}/api/like`, {
@@ -403,7 +429,18 @@ function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs(){
   if (playlistContext === 'favorites') return getFavoriteSongs();
   if (playlistContext === 'likes') return getLikedSongs();
+  if (playlistContext === 'playlist') return getPlaylistSongs();
   return allSongs;
+}
+
+// Conservamos estas funciones por compatibilidad con otras partes del código (no se usan visualmente)
+function getFavoriteSongs(){
+  const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
+  return allSongs.filter(s=>ids.has(s.id));
+}
+function getLikedSongs(){
+  const ids=new Set(myInter.filter(i=>i.es_like).map(i=>i.cancion_id));
+  return allSongs.filter(s=>ids.has(s.id));
 }
 
 async function playSong(e, songId, context = null){
@@ -455,7 +492,6 @@ async function playSong(e, songId, context = null){
   }
   refreshCardHighlight();
   applyEnergyEffect(song);
-  updateQueue();
 }
 
 function updateDiscCover(coverEl, song) {
@@ -637,7 +673,7 @@ function setVolume(val){
   if(icon) icon.textContent=val==0?'🔇':val<0.5?'🔉':'🔊';
 }
 
-/* ── onAudioEnded (corregido) ── */
+/* ── onAudioEnded ── */
 function onAudioEnded(){
   $('plDisc').classList.remove('spinning');
   updatePlayPauseBtn(false);
@@ -649,17 +685,18 @@ function onAudioEnded(){
     updateStats(nowPlayingId, duration);
     checkAchievements();
 
-    if (queue.length > 0) {
-      const nextSong = queue.shift();
-      renderQueueUI();
-      playSong(null, nextSong.id, playlistContext);
-    } else {
-      playNextInContext();
+    // Siguiente canción en el contexto actual (playlist, global, etc.)
+    const list = getContextSongs();
+    const idx = list.findIndex(s => s.id === nowPlayingId);
+    if (idx >= 0 && idx < list.length - 1) {
+      playSong(null, list[idx + 1].id, playlistContext);
+    } else if (list.length > 0) {
+      playSong(null, list[0].id, playlistContext);
     }
   }
 }
 
-/* ═══════════════════ NUEVAS FUNCIONES ══════════════════ */
+/* ═══════════════════ NUEVAS FUNCIONES (Discover Weekly, Estadísticas, Logros, Sleep Timer, Efectos, Chat, Análisis) ══════════════════ */
 
 // ── Discover Weekly ──
 async function generateWeekly() {
@@ -830,55 +867,21 @@ function resetEnergyEffect() {
   document.body.style.transition = '';
 }
 
-// ── Cola de reproducción (local) ──
-function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
-  if (depth === 0 || !seedId) return [];
-  const seed = allSongs.find(s => s.id === seedId);
-  if (!seed || visited.has(seedId)) return [];
-  visited.add(seedId);
-  // Solo por género (para la cola del frontend, no afecta recomendaciones del backend)
-  const next = allSongs
-    .filter(s => !visited.has(s.id))
-    .map(s => ({
-      s,
-      score: s.genero === seed.genero ? 3 : 0
-    }))
-    .sort((a, b) => b.score - a.score)[0];
-  if (!next) return [];
-  return [next.s, ...recursivePlaylistLocal(next.s.id, depth - 1, visited)];
-}
+// ── Cola de reproducción (se mantienen funciones por compatibilidad, aunque ya no se usan visualmente) ──
 function updateQueue() {
-  if (playlistContext === 'favorites') {
-    queue = getFavoriteSongs().filter(s => s.id !== nowPlayingId);
-  } else if (playlistContext === 'likes') {
-    queue = getLikedSongs().filter(s => s.id !== nowPlayingId);
-  } else {
-    if (nowPlayingId) {
-      queue = recursivePlaylistLocal(nowPlayingId, 10, new Set([nowPlayingId]));
-    } else {
-      queue = allSongs.slice(0, 20);
-    }
-  }
-  renderQueueUI();
+  // No se usa, la playlist la reemplaza
 }
 function renderQueueUI() {
-  const list = $('queueList');
-  if (!list) return;
-  list.innerHTML = queue.map(s => `<li onclick="playSong(null, ${s.id}, '${playlistContext}')" class="queue-item">
-    <img src="${s.url_imagen || ''}" style="width:30px;height:30px;border-radius:4px;" onerror="this.style.display='none'">
-    ${esc(s.titulo)} — ${esc(s.artista)}
-  </li>`).join('');
+  // No se usa
 }
 function clearQueue() {
-  queue = [];
-  renderQueueUI();
-  toast('Cola vaciada');
+  // No se usa
 }
 function openQueueModal() {
-  $('queueModal')?.classList.remove('hidden');
+  // No se usa
 }
 function closeQueue() {
-  $('queueModal')?.classList.add('hidden');
+  // No se usa
 }
 
 /* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
@@ -998,6 +1001,9 @@ function showPage(name){
   else if (name === 'chat') {
     if (!chatSubscription) initChat();
     loadChatMessages();
+  }
+  else if (name === 'playlist') {
+    renderPlaylist();
   }
 }
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
