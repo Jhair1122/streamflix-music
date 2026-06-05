@@ -44,12 +44,20 @@
     <input type="text" id="artista" placeholder="Nombre del artista" required>
 
     <label>Género (principal)</label>
-    <select id="genero" required>
-      <option value="">Selecciona un género</option>
-      <option>Pop</option><option>Electrónica</option><option>Rock</option><option>Anime</option>
-      <option>Latino</option><option>Alternativo</option><option>Trap</option><option>Balada</option>
-      <option>J-Pop</option><option>Phonk</option><option>Otro</option>
-    </select>
+    <input type="text" id="genero" list="generos-list" placeholder="Elige o escribe un género" required autocomplete="off">
+    <datalist id="generos-list">
+      <option value="Pop">
+      <option value="Electrónica">
+      <option value="Rock">
+      <option value="Anime">
+      <option value="Latino">
+      <option value="Alternativo">
+      <option value="Trap">
+      <option value="Balada">
+      <option value="J-Pop">
+      <option value="Phonk">
+      <option value="Otro">
+    </datalist>
 
     <!-- Estados de ánimo (subgéneros) - hasta 5 opcionales -->
     <label>Estado de ánimo 1 (opcional)</label>
