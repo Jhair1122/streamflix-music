@@ -523,30 +523,36 @@ async function calcularRankingGlobal() {
 async function renderizarRankingGlobal() {
   const contenedor = document.getElementById('ranking-lo-mas-escuchado');
   if (!contenedor) return;
-  const ranking = await calcularRankingGlobal();
 
-  if (ranking.length === 0) {
-    contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">🎵</span><p>Aún no hay suficientes interacciones en la comunidad para mostrar populares.</p></div>`;
-    return;
+  try {
+    const ranking = await calcularRankingGlobal();
+
+    if (ranking.length === 0) {
+      contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">🎵</span><p>Aún no hay suficientes interacciones en la comunidad para mostrar populares.</p></div>`;
+      return;
+    }
+
+    const coloresPosicion = { 1: '#f59e0b', 2: '#9ca3af', 3: '#b45309' };
+    contenedor.innerHTML = ranking.map((item, i) => {
+      const pos = i + 1;
+      const colorPos = coloresPosicion[pos] || '#7c3aed';
+      const c = item.cancion;
+      return `
+        <div class="ranking-fila" style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer" onclick="playSong(null, ${c.id})">
+          <span style="min-width:24px;font-weight:700;font-size:16px;color:${colorPos}">${pos}</span>
+          <img src="${c.url_imagen || ''}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titulo}</div>
+            <div style="font-size:12px;color:#a0aec0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.artista}</div>
+          </div>
+          <div style="color:#f59e0b;font-size:12px;white-space:nowrap">★ ${item.score.toFixed(1)}</div>
+          <button onclick="event.stopPropagation();playSong(null,${c.id})" style="background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px">▶</button>
+        </div>`;
+    }).join('');
+  } catch (error) {
+    console.error('Error al cargar el ranking global:', error);
+    contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">⚠️</span><p>No se pudo cargar el ranking. Intenta recargar la página.</p></div>`;
   }
-
-  const coloresPosicion = { 1: '#f59e0b', 2: '#9ca3af', 3: '#b45309' };
-  contenedor.innerHTML = ranking.map((item, i) => {
-    const pos = i + 1;
-    const colorPos = coloresPosicion[pos] || '#7c3aed';
-    const c = item.cancion;
-    return `
-      <div class="ranking-fila" style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer" onclick="playSong(null, ${c.id})">
-        <span style="min-width:24px;font-weight:700;font-size:16px;color:${colorPos}">${pos}</span>
-        <img src="${c.url_imagen || ''}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titulo}</div>
-          <div style="font-size:12px;color:#a0aec0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.artista}</div>
-        </div>
-        <div style="color:#f59e0b;font-size:12px;white-space:nowrap">★ ${item.score.toFixed(1)}</div>
-        <button onclick="event.stopPropagation();playSong(null,${c.id})" style="background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px">▶</button>
-      </div>`;
-  }).join('');
 }
 
 /* ═══════════════════ MOODS, GÉNEROS, MIXES ══════════════════ */
