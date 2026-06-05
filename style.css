@@ -5,6 +5,7 @@
    - Disco del reproductor inferior corregido
    - Chat y perfil con estilos completos
    - Todas las secciones originales intactas
+   - Refuerzo para imágenes en discos (overflow y tamaño fijo)
 ═══════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
@@ -179,7 +180,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 }
 .right-panel-content { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 
-/* Disco del panel derecho (CORREGIDO) */
+/* Disco del panel derecho (CORREGIDO + REFUERZO) */
 .now-playing-art {
   width: 160px; height: 160px; border-radius: 50%;
   overflow: hidden;                      /* necesario para redondear la imagen */
@@ -192,14 +193,25 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 }
 .now-playing-art .pl-disc.spinning { animation-play-state: running; }
 
-/* Disc cover genérico (usado en todas partes) */
+/* Disc cover genérico (REFORZADO) */
 .pl-disc-cover {
-  position: absolute; inset: 0; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; background: inherit; overflow: hidden;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: inherit;
+  width: 100% !important;
+  height: 100% !important;
 }
 .pl-disc-cover img {
-  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block;
 }
 
 /* Centro del disco */
@@ -291,7 +303,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   min-width: 0;
 }
 
-/* Disco del reproductor (CORREGIDO – tamaño fijo, giro, cover) */
+/* Disco del reproductor (REFORZADO para evitar desbordamiento) */
 .player-left .pl-disc-wrap {
   width: 58px;
   height: 58px;
@@ -299,36 +311,40 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   position: relative;
   box-shadow: 0 0 20px rgba(167,139,250,0.5);
   border-radius: 50%;
+  overflow: hidden;                /* refuerzo extra */
 }
 .player-left .pl-disc {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: discSpin 3s linear infinite paused;
-  overflow: hidden;                /* para que la imagen no sobresalga */
+  overflow: hidden !important;
 }
 .player-left .pl-disc.spinning {
   animation-play-state: running;
 }
 .player-left .pl-disc-cover {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
   display: flex;
   align-items: center;
   justify-content: center;
   background: inherit;
+  width: 100% !important;
+  height: 100% !important;
 }
 .player-left .pl-disc-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block;
 }
 .player-left .pl-disc-center {
   position: absolute;
@@ -469,8 +485,25 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   width: 140px; height: 140px; border-radius: 50%;
   box-shadow: 0 0 40px rgba(167,139,250,.4);
   animation: discSpin 3s linear infinite paused;
+  overflow: hidden;                /* refuerzo */
 }
 .expanded-disc-img.spinning { animation-play-state: running; }
+.expanded-disc .pl-disc-cover,
+.expanded-disc-img .pl-disc-cover {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+.expanded-disc .pl-disc-cover img,
+.expanded-disc-img .pl-disc-cover img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+}
 .expanded-info h2 { font-family: var(--font-h); font-size: 20px; font-weight: 700; margin-bottom: 4px; }
 .expanded-info p { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
 .expanded-controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
