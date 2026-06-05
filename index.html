@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<!-- HAMBURGER (escritorio no se usa, solo existe por si acaso) -->
+<!-- HAMBURGER (no se usa en el nuevo diseño, se mantiene por compatibilidad) -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
 <!-- CONTENEDOR PRINCIPAL -->
@@ -93,8 +93,8 @@
     <!-- DISCOVER WEEKLY -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
-      <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas.</div>
-      <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando…</div></div>
+      <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas. ¡Dale like para que sea más precisa!</div>
+      <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando tu lista semanal…</div></div>
     </div>
 
     <!-- PLAYLIST -->
@@ -107,7 +107,7 @@
     <!-- CHAT -->
     <div class="page" id="page-chat">
       <div class="page-title">💬 Chat de la comunidad</div>
-      <div class="page-sub">Conéctate con otros usuarios en tiempo real.</div>
+      <div class="page-sub">Conéctate con otros usuarios en tiempo real. Comparte tus gustos y pide recomendaciones.</div>
       <div class="chat-container">
         <div class="chat-messages-panel" id="chatMessagesPanel"></div>
         <div class="chat-input-area">
@@ -123,14 +123,17 @@
       <div class="page-sub">Estadísticas de escucha y logros.</div>
       <div class="section">
         <div class="section-title">📊 Mis números</div>
-        <div class="profile-stat"><span>Total reproducciones</span><strong id="profilePlays">0</strong></div>
+        <div class="profile-stat"><span>Total de reproducciones</span><strong id="profilePlays">0</strong></div>
         <div class="profile-stat"><span>Tiempo escuchado</span><strong id="profileTime">0 min</strong></div>
         <div class="profile-stat"><span>Artista favorito</span><strong id="profileArtist">—</strong></div>
       </div>
-      <div class="section"><div class="section-title">🏆 Logros</div><div id="achievementsList"></div></div>
+      <div class="section">
+        <div class="section-title">🏆 Logros</div>
+        <div id="achievementsList"></div>
+      </div>
     </div>
 
-    <!-- ANALYSIS -->
+    <!-- ANALYSIS (Panel IA completo) -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
