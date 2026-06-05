@@ -741,7 +741,9 @@ function renderizarExploraGeneros() {
     card.style.cursor = 'pointer';
     card.style.flexShrink = '0';
     card.innerHTML = `<span>#${genero}</span>`;
-    card.addEventListener('click', () => abrirPaginaAlbum('genero', genero.trim()));
+    card.addEventListener('click', () => {
+        if (genero) abrirPaginaAlbum('genero', genero.trim());
+    });
     row.appendChild(card);
   });
 }
@@ -775,11 +777,11 @@ function abrirPaginaAlbum(tipo, valor) {
   let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '';
 
   if (tipo === 'genero') {
-    const generoNormalizado = valor.trim();
-    cancionesAlbum = allSongs.filter(s => s.genero.trim() === generoNormalizado);
-    tituloAlbum = generoNormalizado;
-    subtituloAlbum = 'Género';
-  } else if (tipo === 'mood') {
+  const generoNormalizado = valor.trim();
+  cancionesAlbum = allSongs.filter(s => s.genero && s.genero.trim() === generoNormalizado);
+  tituloAlbum = generoNormalizado;
+  subtituloAlbum = 'Género · ' + cancionesAlbum.length + ' canciones';
+} else if (tipo === 'mood') {
     const mood = MOODS.find(m => m.id === valor);
     if (mood) {
       cancionesAlbum = obtenerCancionesPorMood(mood);
