@@ -39,6 +39,11 @@ let queue = [];
 let userPlaylist = [];               // IDs de canciones en la playlist local (ahora en Supabase)
 let paginaAnterior = 'page-home';    // para la página álbum
 
+/* Variables para el scroll horizontal del ranking */
+let rankingDragStartX = 0;
+let rankingIsDragging = false;
+let rankingScrollEnabled = false;
+
 /* ── Helpers DOM ── */
 const $ = id => document.getElementById(id);
 function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
@@ -129,6 +134,9 @@ async function bootApp(){
     renderizarTusMixes();
     await renderizarRankingGlobal();
   } catch(e) { /* no crítico */ }
+
+  // Asegurar que el scroll horizontal del ranking funcione también si el ranking se cargó exitosamente
+  enableRankingScroll();
 
   await actualizarContadoresHeader();
 }
@@ -552,6 +560,46 @@ async function renderizarRankingGlobal() {
     console.error('Error al cargar el ranking global:', error);
     contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">⚠️</span><p>No se pudo cargar el ranking. Intenta recargar la página.</p></div>`;
   }
+
+  // Habilitar el scroll horizontal inteligente (sin interferir con el clic)
+  enableRankingScroll();
+}
+
+/* ═══════ Scroll horizontal para el ranking (PC) ═══════ */
+function enableRankingScroll() {
+  const container = document.getElementById('ranking-lo-mas-escuchado');
+  if (!container || rankingScrollEnabled) return;
+
+  // Detectar si el usuario arrastró o solo hizo clic
+  container.addEventListener('mousedown', (e) => {
+    rankingDragStartX = e.clientX;
+    rankingIsDragging = false;
+  });
+
+  container.addEventListener('mousemove', (e) => {
+    if (Math.abs(e.clientX - rankingDragStartX) > 5) {
+      rankingIsDragging = true;
+    }
+  });
+
+  // Si se arrastró, prevenir el clic (no reproducir)
+  container.addEventListener('click', (e) => {
+    if (rankingIsDragging) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      rankingIsDragging = false; // reset
+    }
+  }, true); // fase de captura (antes que el onclick de las tarjetas)
+
+  // Scroll con la rueda del ratón
+  container.addEventListener('wheel', (e) => {
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      container.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+
+  rankingScrollEnabled = true;
 }
 
 /* ═══════════════════ MOODS, GÉNEROS, MIXES ══════════════════ */
