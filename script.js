@@ -715,10 +715,10 @@ function handleRankingArrowsResize() {
 /* ═══════════════════ MOODS, GÉNEROS, MIXES ══════════════════ */
 const MOODS = [
   { id: 'tristes', nombre: 'Canciones tristes', emoji: '😢', color: 'linear-gradient(135deg, #1e3a5f, #3730a3)', generos: ['Balada', 'Alternativo'], keywords: ['sad','alone','goodbye','heartbreak','lost','pain','beautiful pain','let me down','love is gone','you broke'], cover: 'img/sad_album.jpg' },
-  { id: 'estudiar', nombre: 'Para estudiar', emoji: '📚', color: 'linear-gradient(135deg, #0c4a6e, #1e40af)', generos: ['Electrónica'], keywords: ['faded','lost','dynasty','fearless','past lives','on my way','softcore'], cover: 'img/mood_estudiar.jpg' },
-  { id: 'ejercitar', nombre: 'Para ejercitarse', emoji: '💪', color: 'linear-gradient(135deg, #7f1d1d, #991b1b)', generos: ['Rock', 'Trap', 'Phonk'], keywords: ['rumbling','stronger','legends','thunder','alive','careless','monster','darkside','so tired'], cover: 'img/mood_ejercitar.jpg' },
-  { id: 'anime', nombre: 'Anime OST', emoji: '⛩️', color: 'linear-gradient(135deg, #4c1d95, #6d28d9)', generos: ['Anime'], keywords: [], cover: 'img/mood_anime.jpg' },
-  { id: 'latino', nombre: 'Latino Hits', emoji: '🎺', color: 'linear-gradient(135deg, #064e3b, #065f46)', generos: ['Latino'], keywords: [], cover: 'img/mood_latino.jpg' }
+  { id: 'estudiar', nombre: 'Para estudiar', emoji: '📚', color: 'linear-gradient(135deg, #0c4a6e, #1e40af)', generos: ['Electrónica'], keywords: ['faded','lost','dynasty','fearless','past lives','on my way','softcore'], cover: 'img/para_estudiar.jpg' },
+  { id: 'ejercitar', nombre: 'Para ejercitarse', emoji: '💪', color: 'linear-gradient(135deg, #7f1d1d, #991b1b)', generos: ['Rock', 'Trap', 'Phonk'], keywords: ['rumbling','stronger','legends','thunder','alive','careless','monster','darkside','so tired'], cover: 'img/musica_para_entrenar.png' },
+  { id: 'anime', nombre: 'Anime OST', emoji: '⛩️', color: 'linear-gradient(135deg, #4c1d95, #6d28d9)', generos: ['Anime'], keywords: [], cover: 'img/anime_ost.jpg' },
+  { id: 'latino', nombre: 'Latino Hits', emoji: '🎺', color: 'linear-gradient(135deg, #064e3b, #065f46)', generos: ['Latino'], keywords: [], cover: 'img/latino_hits.png' }
 ];
 
 function obtenerCancionesPorMood(mood) {
