@@ -116,6 +116,7 @@
       const titulo = document.getElementById('titulo').value.trim();
       const artista = document.getElementById('artista').value.trim();
       const genero = document.getElementById('genero').value;
+      const mood = document.getElementById('mood').value || null; // null si no se selecciona nada
 
       if (!audioFile || !imageFile || !titulo || !artista || !genero) {
         uploadMsg.textContent = 'Completa todos los campos y selecciona ambos archivos.';
@@ -147,7 +148,7 @@
         // Insertar en la tabla (solo las columnas que existen)
         const { error: insertError } = await supabase
           .from('canciones')
-          .insert({ titulo, artista, genero, url_preview: audioUrl, url_imagen: imageUrl });
+          .insert({ titulo, artista, genero, mood, url_preview: audioUrl, url_imagen: imageUrl });
         if (insertError) throw new Error('Error al guardar canción: ' + insertError.message);
 
         uploadMsg.textContent = '✅ Canción subida con éxito!';
