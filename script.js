@@ -32,6 +32,8 @@ let recognition  = null;
 let isListening  = false;
 
 /* Variables extra */
+let displayedMessageIds = new Set();  // IDs reales ya mostrados
+let tempMessageMap = new Map();       // tempId -> {element, username, texto}
 let sleepTimer = null;
 let queue = [];
 let userPlaylist = [];               // IDs de canciones en la playlist local (ahora en Supabase)
@@ -1344,7 +1346,7 @@ function initChat() {
       { event: 'INSERT', schema: 'public', table: 'mensajes' },
       payload => {
         console.log('📩 Nuevo mensaje recibido:', payload.new);
-        addMessageToUI(payload.new);
+        addMessageToUI(payload.new); // sin isTemp
         const container = document.getElementById('chatMessagesPanel');
         if (container) container.scrollTop = container.scrollHeight;
       }
@@ -1371,12 +1373,55 @@ function loadChatMessages() {
     });
 }
 
-function addMessageToUI(msg) {
+function addMessageToUI(msg, isTemp = false) {
   const container = document.getElementById('chatMessagesPanel');
   if (!container) return;
+
+  // Si es un mensaje real y ya lo tenemos, no hacer nada
+  if (!isTemp && displayedMessageIds.has(msg.id)) return;
+  
+  // Si es un mensaje real, comprobar si existe un temporal con el mismo texto y usuario
+  if (!isTemp) {
+    for (const [tempId, tempData] of tempMessageMap.entries()) {
+      if (tempData.username === msg.username && tempData.texto === msg.mensaje) {
+        // Reemplazar el temporal con el real
+        const tempElement = tempData.element;
+        if (tempElement) {
+          tempElement.setAttribute('data-msg-id', msg.id);
+          // Actualizar la burbuja (podemos simplemente redefinir su innerHTML)
+          const isMine = currentUser && msg.user_id === currentUser.id;
+          if (isMine) {
+            tempElement.innerHTML = esc(msg.mensaje);
+          } else {
+            tempElement.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
+            const hue = hashCode(msg.user_id || msg.username) % 360;
+            tempElement.style.backgroundColor = `hsla(${hue}, 60%, 25%, 0.6)`;
+          }
+        }
+        tempMessageMap.delete(tempId);
+        displayedMessageIds.add(msg.id);
+        return; // ya reemplazado
+      }
+    }
+  }
+
+  // Si es temporal, creamos el elemento y lo guardamos en el map
+  if (isTemp) {
+    const div = document.createElement('div');
+    div.className = 'msg-bubble my-msg'; // siempre es nuestro
+    div.innerHTML = esc(msg.mensaje);
+    div.setAttribute('data-msg-id', msg.id);
+    container.appendChild(div);
+    tempMessageMap.set(msg.id, { element: div, username: currentUser.nombre || currentUser.username, texto: msg.mensaje });
+    return;
+  }
+
+  // Mensaje real sin duplicado
+  displayedMessageIds.add(msg.id);
   const div = document.createElement('div');
   const isMine = currentUser && msg.user_id === currentUser.id;
   div.className = 'msg-bubble' + (isMine ? ' my-msg' : '');
+  div.setAttribute('data-msg-id', msg.id);
   if (isMine) {
     div.innerHTML = esc(msg.mensaje);
   } else {
@@ -1391,7 +1436,20 @@ async function sendMessage() {
   const input = document.getElementById('chatInput');
   const mensaje = input.value.trim();
   if (!mensaje || !currentUser) return;
+
+  // Crear mensaje temporal y mostrarlo inmediatamente
+  const tempId = 'temp_' + Date.now() + '_' + Math.random();
+  const tempMsg = {
+    id: tempId,
+    user_id: currentUser.id,
+    username: currentUser.nombre || currentUser.username,
+    mensaje: mensaje,
+    created_at: new Date().toISOString()
+  };
+  addMessageToUI(tempMsg, true); // true indica que es temporal
+
   input.value = '';
+
   try {
     const res = await fetch(`${API_BASE}/api/messages`, {
       method: 'POST',
@@ -1406,9 +1464,14 @@ async function sendMessage() {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || 'Error al enviar');
     }
+    // Si la API devuelve el mensaje creado, podríamos usarlo, pero no es necesario
   } catch (e) {
     console.error('Error enviando mensaje:', e);
     toast('Error al enviar mensaje: ' + e.message);
+    // Eliminar el mensaje temporal en caso de error
+    const tempElement = document.querySelector(`[data-msg-id="${tempId}"]`);
+    if (tempElement) tempElement.remove();
+    tempMessageMap.delete(tempId);
   }
 }
 
