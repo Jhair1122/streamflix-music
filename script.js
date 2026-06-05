@@ -124,6 +124,7 @@ async function bootApp(){
   showPage('home');
   initVoiceSearch();
   initChat();
+  initRealtimeRanking();   // ← añadir esta línea
 
   // Inicializar nuevas secciones estáticas
   try {
@@ -149,6 +150,17 @@ async function doLogout(){
   $('plDisc')?.classList.remove('spinning');
   updatePlayPauseBtn(false);
   resetEnergyEffect();
+
+  // Limpiar suscripciones en tiempo real
+  if (chatSubscription) {
+    chatSubscription.unsubscribe();
+    chatSubscription = null;
+  }
+  if (rankingSubscription) {
+    rankingSubscription.unsubscribe();
+    rankingSubscription = null;
+  }
+
   window.location.href = 'explore.html';
 }
 
@@ -1435,6 +1447,7 @@ function closeExpandedPlayer() {
 
 /* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
 let chatSubscription = null;
+let rankingSubscription = null;   // ← nueva
 
 function initChat() {
   loadChatMessages();
@@ -1481,6 +1494,25 @@ function initChat() {
     )
     .subscribe((status) => {
       console.log('📡 Estado de suscripción:', status);
+    });
+}
+
+function initRealtimeRanking() {
+  if (rankingSubscription) return; // evitar duplicados
+
+  console.log('🔄 Iniciando suscripción de ranking en tiempo real...');
+  rankingSubscription = supabase
+    .channel('public:interacciones')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'interacciones' },
+      () => {
+        // Solo actualizamos si existe el contenedor del ranking (puede estar en otra página pero igual lo pintamos)
+        renderizarRankingGlobal();
+      }
+    )
+    .subscribe((status) => {
+      console.log('📡 Estado suscripción ranking:', status);
     });
 }
 
