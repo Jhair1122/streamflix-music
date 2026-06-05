@@ -933,3 +933,11 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .pl-artist { font-size: 9px; }
   .pl-btn { width: 26px; height: 26px; font-size: 14px; }
 }
+
+/* ═══════ VISIBILIDAD DE PÁGINAS ═══════ */
+.page {
+  display: none;
+}
+.page.active {
+  display: block;
+}
