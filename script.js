@@ -40,9 +40,8 @@ let userPlaylist = [];               // IDs de canciones en la playlist local (a
 let paginaAnterior = 'page-home';    // para la página álbum
 
 /* Variables para el scroll horizontal del ranking */
-let rankingDragStartX = 0;
-let rankingIsDragging = false;
 let rankingScrollEnabled = false;
+let rankingArrowsAdded = false;
 
 /* ── Helpers DOM ── */
 const $ = id => document.getElementById(id);
@@ -561,35 +560,14 @@ async function renderizarRankingGlobal() {
     contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0"><span style="font-size:40px">⚠️</span><p>No se pudo cargar el ranking. Intenta recargar la página.</p></div>`;
   }
 
-  // Habilitar el scroll horizontal inteligente (sin interferir con el clic)
+  // Habilitar la navegación con flechas (escritorio) y rueda de ratón
   enableRankingScroll();
 }
 
-/* ═══════ Scroll horizontal para el ranking (PC) ═══════ */
+/* ═══════ Scroll horizontal con flechas (PC) ═══════ */
 function enableRankingScroll() {
   const container = document.getElementById('ranking-lo-mas-escuchado');
   if (!container || rankingScrollEnabled) return;
-
-  // Detectar si el usuario arrastró o solo hizo clic
-  container.addEventListener('mousedown', (e) => {
-    rankingDragStartX = e.clientX;
-    rankingIsDragging = false;
-  });
-
-  container.addEventListener('mousemove', (e) => {
-    if (Math.abs(e.clientX - rankingDragStartX) > 5) {
-      rankingIsDragging = true;
-    }
-  });
-
-  // Si se arrastró, prevenir el clic (no reproducir)
-  container.addEventListener('click', (e) => {
-    if (rankingIsDragging) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      rankingIsDragging = false; // reset
-    }
-  }, true); // fase de captura (antes que el onclick de las tarjetas)
 
   // Scroll con la rueda del ratón
   container.addEventListener('wheel', (e) => {
@@ -600,6 +578,89 @@ function enableRankingScroll() {
   }, { passive: false });
 
   rankingScrollEnabled = true;
+
+  // Añadir flechas solo en escritorio (>768px)
+  addRankingArrows();
+  window.addEventListener('resize', handleRankingArrowsResize);
+}
+
+function addRankingArrows() {
+  if (window.innerWidth <= 768) {
+    removeRankingArrows();
+    return;
+  }
+
+  const container = document.getElementById('ranking-lo-mas-escuchado');
+  if (!container || rankingArrowsAdded) return;
+
+  const section = container.closest('.section');
+  if (!section) return;
+
+  // Crear flecha izquierda
+  const leftArrow = document.createElement('button');
+  leftArrow.className = 'ranking-arrow ranking-arrow-left';
+  leftArrow.innerHTML = '◀';
+  leftArrow.setAttribute('aria-label', 'Desplazar a la izquierda');
+  leftArrow.style.cssText = `
+    position: absolute; top: 50%; left: 8px; transform: translateY(-50%);
+    background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%;
+    width: 36px; height: 36px; display: none; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 5; font-size: 16px; transition: opacity 0.2s;
+  `;
+  leftArrow.addEventListener('click', (e) => {
+    e.stopPropagation();
+    container.scrollBy({ left: -250, behavior: 'smooth' });
+  });
+
+  // Flecha derecha
+  const rightArrow = document.createElement('button');
+  rightArrow.className = 'ranking-arrow ranking-arrow-right';
+  rightArrow.innerHTML = '▶';
+  rightArrow.setAttribute('aria-label', 'Desplazar a la derecha');
+  rightArrow.style.cssText = `
+    position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+    background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%;
+    width: 36px; height: 36px; display: none; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 5; font-size: 16px; transition: opacity 0.2s;
+  `;
+  rightArrow.addEventListener('click', (e) => {
+    e.stopPropagation();
+    container.scrollBy({ left: 250, behavior: 'smooth' });
+  });
+
+  section.style.position = 'relative';
+  section.appendChild(leftArrow);
+  section.appendChild(rightArrow);
+
+  // Actualizar visibilidad de las flechas al hacer scroll
+  const updateArrows = () => {
+    const canScrollLeft = container.scrollLeft > 0;
+    const canScrollRight = container.scrollLeft + container.clientWidth < container.scrollWidth;
+
+    leftArrow.style.display = canScrollLeft ? 'flex' : 'none';
+    rightArrow.style.display = canScrollRight ? 'flex' : 'none';
+  };
+
+  container.addEventListener('scroll', updateArrows);
+  // Llamada inicial
+  updateArrows();
+
+  rankingArrowsAdded = true;
+}
+
+function removeRankingArrows() {
+  document.querySelectorAll('.ranking-arrow').forEach(el => el.remove());
+  rankingArrowsAdded = false;
+}
+
+function handleRankingArrowsResize() {
+  if (window.innerWidth <= 768) {
+    removeRankingArrows();
+  } else {
+    if (!rankingArrowsAdded) {
+      addRankingArrows();
+    }
+  }
 }
 
 /* ═══════════════════ MOODS, GÉNEROS, MIXES ══════════════════ */
