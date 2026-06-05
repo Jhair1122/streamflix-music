@@ -150,11 +150,13 @@ async function bootApp(){
   txt('heroName',currentUser.nombre||currentUser.username);
 
   try {
-    // Cargar canciones desde Supabase
-    const { data: songsData } = await supabase.from('canciones').select('*').order('id', { ascending: true });
-    allSongs = songsRes.data || [];
+    const { data: songsData, error: songsErr } = await supabase
+      .from('canciones').select('*').order('id', { ascending: true });
+    
+    if (songsErr) throw songsErr;
+    allSongs = songsData || [];
+    console.log('[bootApp] Canciones cargadas:', allSongs.length);
 
-    // Cargar interacciones del usuario
     const { data: interData } = await supabase.from('interacciones')
       .select('cancion_id, es_like, es_favorito')
       .eq('usuario_id', currentUser.id);
@@ -162,31 +164,8 @@ async function bootApp(){
     interaccionesMap = {};
     myInter.forEach(i => interaccionesMap[i.cancion_id] = i);
 
-    // Cargar playlist del usuario desde Supabase
     await loadUserPlaylist();
-  // DEBUG TEMPORAL
-  console.log('=== DEBUG PLAYLIST ===');
-  console.log('userPlaylists:', JSON.stringify(userPlaylists));
-  // Verificar que los cancion_id existan en allSongs
-  userPlaylists.forEach(pl => {
-    const found = pl.canciones.map(cid => {
-      const s = allSongs.find(s => s.id === cid);
-      return s ? `✅${cid}(${s.titulo})` : `❌${cid}(NO EXISTE)`;
-    });
-    console.log(`Playlist "${pl.nombre}" [id=${pl.id}]:`, found);
-  });
-  console.log('allSongs IDs (primeros 10):', allSongs.slice(0,10).map(s=>s.id));
-  // FIN DEBUG
-  
-  // Test directo a Supabase
-  const testPl = await supabase.from('playlists').select('*').eq('usuario_id', currentUser.id);
-  console.log('TEST playlists query:', testPl.data, testPl.error);
-  
-  if (testPl.data && testPl.data.length > 0) {
-    const testPc = await supabase.from('playlist_canciones').select('*').in('playlist_id', testPl.data.map(p=>p.id));
-    console.log('TEST playlist_canciones:', testPc.data, testPc.error);
-  }
-  // FIN DEBUG
+
   } catch (err) {
     console.error('Error cargando datos desde Supabase:', err);
     toast('⚠️ Error de conexión. Algunas funciones pueden no estar disponibles.');
@@ -2699,8 +2678,7 @@ async function renderAnalysis() {
 /* ═══════════════════ INIT ══════════════════ */
 window.addEventListener('load', async ()=>{
   if (!loadSession()) { window.location.href = 'explore.html'; return; }
-  const { data } = await supabase.from('canciones').select('*').order('id', { ascending: true });
-  allSongs = data || [];
+  // NO cargar canciones aquí — bootApp lo hace con manejo de errores
 
   const vizEl = $('audioVisualizer');
   if (vizEl) vizEl.innerHTML = Array.from({ length: 14 }, (_, i) => `<div class="vis-bar idle" style="--d:${i * 0.06}s"></div>`).join('');
