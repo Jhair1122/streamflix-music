@@ -876,10 +876,14 @@ async function toggleSongInPlaylistModal(playlistId, songId, btn) {
 function reproducirPlaylist(playlistId) {
   const pl = userPlaylists.find(p => p.id === playlistId);
   if (!pl || pl.canciones.length === 0) { toast('La playlist está vacía'); return; }
-  playlistContext = 'playlist';
-  // Actualizar userPlaylist con esta playlist específica
-  userPlaylist = pl.canciones;
-  playSong(null, pl.canciones[0], 'playlist');
+  
+  // Guardar las canciones de ESTA playlist como contexto exclusivo
+  playlistContext = 'playlist_' + playlistId;
+  
+  // Sobreescribir temporalmente el arreglo para getContextSongs
+  _activePlaylistIds = pl.canciones.slice();
+  
+  playSong(null, pl.canciones[0], 'playlist_' + playlistId);
 }
 
 function filterPlaylist(tipo) {
@@ -1523,6 +1527,7 @@ function abrirPaginaAlbum(tipo, valor) {
 
 // Cola temporal para reproducción de álbum
 let albumQueue = [];
+let _activePlaylistIds = [];   // IDs de la playlist activa al reproducir
 let albumQueueContext = '';
 
 function reproducirDesdeAlbum(arrayIds, indice, ctxKey) {
@@ -1682,8 +1687,18 @@ function getContextSongs() {
   if (playlistContext === 'favorites') return getFavoriteSongs();
   if (playlistContext === 'likes') return getLikedSongs();
   if (playlistContext === 'playlist') return getPlaylistSongs();
+  // Playlist específica por ID
+  if (playlistContext && playlistContext.startsWith('playlist_')) {
+    const plId = parseInt(playlistContext.replace('playlist_', ''));
+    if (!isNaN(plId)) {
+      const pl = userPlaylists.find(p => p.id === plId);
+      if (pl) return allSongs.filter(s => pl.canciones.includes(s.id));
+    }
+    // Fallback a _activePlaylistIds
+    if (_activePlaylistIds.length > 0)
+      return allSongs.filter(s => _activePlaylistIds.includes(s.id));
+  }
   if (playlistContext === 'catalog') {
-    // Solo las canciones del catálogo filtrado actual
     return currentCatalogIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
   if (playlistContext.startsWith('album_')) {
