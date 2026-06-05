@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════
-   SOUNDMIND — style.css (Rediseño Moderno + Chat)
+   SOUNDMIND — style.css (Rediseño Moderno + Chat con colores por usuario)
    - Efectos 3D, vidrio, animaciones fluidas.
    - Chat integrado, botones de salto, sleep timer.
 ═══════════════════════════════════════════════ */
@@ -685,12 +685,19 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   max-height: 280px;
 }
 .msg-bubble {
-  background: var(--accentA);
+  max-width: 80%;
   padding: 8px 12px;
   border-radius: 12px;
   font-size: 13px;
-  max-width: 85%;
   word-wrap: break-word;
+  background: transparent;   /* el color lo asigna JS para otros usuarios */
+  color: var(--text);
+  align-self: flex-start;
+}
+.msg-bubble.my-msg {
+  align-self: flex-end !important;
+  background: rgba(167,139,250,0.25);
+  border: 1px solid rgba(167,139,250,0.4);
 }
 .msg-user {
   font-weight: 700;
@@ -813,7 +820,8 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   flex-direction: column;
   gap: 12px;
 }
-/* Burbujas de mensaje */
+
+/* Burbujas de mensaje (se mantienen las reglas anteriores pero anulamos el fondo fijo para otros) */
 .msg-bubble {
   max-width: 80%;
   padding: 10px 14px;
@@ -821,17 +829,17 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   font-size: 14px;
   line-height: 1.4;
   word-wrap: break-word;
-  background: var(--accentA);          /* mensajes ajenos */
+  background: transparent;          /* se asigna vía JS para otros */
   color: var(--text);
-  align-self: flex-start;               /* alineado a la izquierda */
+  align-self: flex-start;
 }
 
 /* Mensaje propio (derecha) */
 .msg-bubble.my-msg {
-  align-self: flex-end !important;      /* forzar alineación derecha */
+  align-self: flex-end !important;
   background: rgba(167,139,250,0.25);
   border: 1px solid rgba(167,139,250,0.4);
-  text-align: left;                     /* el texto sigue siendo legible */
+  text-align: left;
 }
 
 /* Nombre de usuario solo en mensajes ajenos */
@@ -886,11 +894,11 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 /* Ajustes para móviles (pantallas pequeñas) */
 @media (max-width: 600px) {
   .chat-container {
-    height: 75vh;               /* un poco más de espacio en móvil */
-    border-radius: 0;           /* sin bordes redondeados para aprovechar ancho */
+    height: 75vh;
+    border-radius: 0;
   }
   .msg-bubble {
-    max-width: 90%;             /* burbujas un poco más anchas */
+    max-width: 90%;
     font-size: 13px;
   }
 }
