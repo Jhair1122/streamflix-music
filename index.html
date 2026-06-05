@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<!-- HAMBURGER (no se usa en el nuevo diseño, se mantiene por compatibilidad) -->
+<!-- HAMBURGER (solo móvil) -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
 <!-- CONTENEDOR PRINCIPAL -->
@@ -21,7 +21,7 @@
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <h1>SoundMind</h1>
-      <p>IA · Recomendación Musical</p>
+      <p>IA · RECOMENDACIÓN MUSICAL</p>
     </div>
     <div class="sidebar-user">
       <div class="user-avatar" id="userAvatar"></div>
@@ -29,23 +29,23 @@
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
     <div class="sidebar-nav">
-      <div class="nav-section">Principal</div>
+      <div class="nav-section">PRINCIPAL</div>
       <button class="nav-item active" id="nav-home" onclick="showPage('home')">🏠 Inicio</button>
       <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">📅 Discover Weekly</button>
-      <div class="nav-section">Mi Biblioteca</div>
+      <div class="nav-section">MI BIBLIOTECA</div>
       <button class="nav-item" id="nav-playlist" onclick="showPage('playlist')">🎵 Playlist <span class="nav-badge hidden" id="badge-playlist">0</span></button>
-      <div class="nav-section">Comunidad</div>
+      <div class="nav-section">COMUNIDAD</div>
       <button class="nav-item" id="nav-chat" onclick="showPage('chat')">💬 Chat</button>
-      <div class="nav-section">Mi cuenta</div>
+      <div class="nav-section">MI CUENTA</div>
       <button class="nav-item" id="nav-profile" onclick="showPage('profile')">👤 Mi perfil</button>
-      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">📊 Panel IA</button>
+      <button class="nav-item" id="nav-analysis" onclick="showPage('analysis')">🤖 Panel IA</button>
     </div>
   </nav>
 
   <!-- ═══════════ PANEL CENTRAL ═══════════ -->
   <main class="main-content">
 
-    <!-- HOME -->
+    <!-- HOME (Inicio) -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
@@ -61,6 +61,7 @@
         </div>
       </div>
 
+      <!-- Buscador y chips de género (existentes) -->
       <div class="top-bar">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
@@ -71,6 +72,7 @@
       </div>
       <div class="genre-pills" id="genrePills"></div>
 
+      <!-- Recomendaciones IA (Para ti) -->
       <div class="section rec-highlight">
         <div class="section-head">
           <div class="section-title"><span class="pulse-icon">🎯</span> Para ti <span class="ai-badge">IA activa</span></div>
@@ -79,35 +81,118 @@
         <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Analizando tus gustos…</div></div>
       </div>
 
+      <!-- 🔥 Más populares -->
       <div class="section">
         <div class="section-head"><div class="section-title">🔥 Más populares</div><span class="ai-badge">Según la comunidad</span></div>
         <div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
 
+      <!-- NUEVA SECCIÓN: Más como [artista] -->
+      <div class="section" id="moreLikeSection" style="display:none;">
+        <div class="section-head"><div class="section-title" id="moreLikeTitle">Más como </div></div>
+        <div class="horizontal-scroll" id="moreLikeCards"></div>
+      </div>
+
+      <!-- NUEVA SECCIÓN: ¡Lo más escuchado! -->
+      <div class="section">
+        <div class="section-head"><div class="section-title">🎧 ¡Lo más escuchado!</div><span class="ai-badge">Según la comunidad</span></div>
+        <div class="horizontal-scroll" id="mostListenedCards">
+          <!-- Se llena con JS -->
+        </div>
+      </div>
+
+      <!-- NUEVA SECCIÓN: Canciones para tu estado de ánimo -->
+      <div class="section">
+        <div class="section-head"><div class="section-title">🎭 Canciones para tu estado de ánimo</div></div>
+        <div class="horizontal-scroll" id="moodCards">
+          <!-- Moods hardcodeados -->
+        </div>
+      </div>
+
+      <!-- NUEVA SECCIÓN: Explora tus géneros -->
+      <div class="section">
+        <div class="section-head"><div class="section-title">🌈 Explora tus géneros</div></div>
+        <div class="horizontal-scroll" id="exploreGenresCards">
+          <!-- Géneros visuales -->
+        </div>
+      </div>
+
+      <!-- NUEVA SECCIÓN: Tus mixes más escuchados -->
+      <div class="section">
+        <div class="section-head"><div class="section-title">🔀 Tus mixes más escuchados</div></div>
+        <div class="horizontal-scroll" id="mixesCards">
+          <!-- Mixes -->
+        </div>
+      </div>
+
+      <!-- Catálogo completo (existente) -->
       <div class="section">
         <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
         <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
     </div>
 
-    <!-- DISCOVER WEEKLY -->
+    <!-- BUSCAR (nueva página) -->
+    <div class="page" id="page-search">
+      <div class="search-page-header">
+        <h2>Buscar</h2>
+      </div>
+      <div class="top-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInputBig" placeholder="Buscar por título o artista…" oninput="onSearchBig()">
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">Descubre algo nuevo</div></div>
+        <div class="horizontal-scroll" id="discoverCards">
+          <!-- Géneros visuales -->
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="section-title">Explorar todo</div></div>
+        <div class="explore-grid" id="exploreAllGrid">
+          <!-- Cards grandes -->
+        </div>
+      </div>
+    </div>
+
+    <!-- DISCOVER WEEKLY (existente) -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
-      <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas. ¡Dale like para que sea más precisa!</div>
-      <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando tu lista semanal…</div></div>
+      <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas.</div>
+      <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando…</div></div>
     </div>
 
-    <!-- PLAYLIST -->
+    <!-- PLAYLIST (existente, mejorada) -->
     <div class="page" id="page-playlist">
-      <div class="page-title">🎵 Mi Playlist</div>
-      <div class="page-sub">Tu selección personal. Añade canciones con el botón ➕.</div>
-      <div class="cards-grid" id="playlistCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+      <div class="playlist-header">
+        <button class="back-btn" onclick="showPage('home')">←</button>
+        <h2>Mi Playlist</h2>
+      </div>
+      <div class="playlist-tabs">
+        <button class="gpill active" onclick="filterPlaylist('todos')">Todos</button>
+        <button class="gpill" onclick="filterPlaylist('artistas')">Artistas</button>
+        <button class="gpill" onclick="filterPlaylist('recientes')">Recientes</button>
+      </div>
+      <!-- Vista artistas -->
+      <div id="playlistArtistsView" class="hidden">
+        <div class="artist-list" id="playlistArtistsList"></div>
+        <div class="playlist-actions">
+          <button class="btn-outline" onclick="toast('Función próximamente')">+ Añadir artistas</button>
+          <button class="btn-outline" onclick="toast('Función próximamente')">+ Añadir Playlist</button>
+        </div>
+      </div>
+      <!-- Vista canciones (normal) -->
+      <div id="playlistSongsView">
+        <div class="cards-grid" id="playlistCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+      </div>
     </div>
 
-    <!-- CHAT -->
+    <!-- CHAT (existente) -->
     <div class="page" id="page-chat">
       <div class="page-title">💬 Chat de la comunidad</div>
-      <div class="page-sub">Conéctate con otros usuarios en tiempo real. Comparte tus gustos y pide recomendaciones.</div>
+      <div class="page-sub">Conéctate con otros usuarios en tiempo real.</div>
       <div class="chat-container">
         <div class="chat-messages-panel" id="chatMessagesPanel"></div>
         <div class="chat-input-area">
@@ -117,23 +202,20 @@
       </div>
     </div>
 
-    <!-- PROFILE -->
+    <!-- PROFILE (existente) -->
     <div class="page" id="page-profile">
       <div class="page-title">👤 Mi perfil</div>
       <div class="page-sub">Estadísticas de escucha y logros.</div>
       <div class="section">
         <div class="section-title">📊 Mis números</div>
-        <div class="profile-stat"><span>Total de reproducciones</span><strong id="profilePlays">0</strong></div>
+        <div class="profile-stat"><span>Total reproducciones</span><strong id="profilePlays">0</strong></div>
         <div class="profile-stat"><span>Tiempo escuchado</span><strong id="profileTime">0 min</strong></div>
         <div class="profile-stat"><span>Artista favorito</span><strong id="profileArtist">—</strong></div>
       </div>
-      <div class="section">
-        <div class="section-title">🏆 Logros</div>
-        <div id="achievementsList"></div>
-      </div>
+      <div class="section"><div class="section-title">🏆 Logros</div><div id="achievementsList"></div></div>
     </div>
 
-    <!-- ANALYSIS (Panel IA completo) -->
+    <!-- ANALYSIS (Panel IA) -->
     <div class="page" id="page-analysis">
       <div class="page-title">📊 Panel de Inteligencia Artificial</div>
       <div class="page-sub">Métricas del sistema, validación cruzada y comparación con el sistema básico.</div>
@@ -311,6 +393,30 @@
     <p>Di el nombre de una canción o artista</p>
     <div class="voice-transcript" id="voiceTranscript"></div>
     <button class="voice-cancel-btn" onclick="toggleVoice()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ═══════════ MENÚ CONTEXTUAL (Bottom Sheet / Dropdown) ═══════════ -->
+<div id="contextMenu" class="hidden">
+  <div class="context-overlay" onclick="closeContextMenu()"></div>
+  <div class="context-sheet" id="contextSheet">
+    <div class="context-handle"></div>
+    <div class="context-header">
+      <div class="context-song-img" id="ctxImage">🎵</div>
+      <div>
+        <div class="context-song-title" id="ctxTitle"></div>
+        <div class="context-song-artist" id="ctxArtist"></div>
+      </div>
+    </div>
+    <div class="context-options">
+      <button onclick="contextAction('share')">🔗 Compartir</button>
+      <button onclick="contextAction('like')">❤️ Añadir a Mis Likes</button>
+      <button onclick="contextAction('playlist')">➕ Añadir a Playlist</button>
+      <button onclick="contextAction('hide')">✕ Ocultar en esta lista</button>
+      <button onclick="contextAction('queue')">⬆️ Añadir a la cola</button>
+      <button onclick="contextAction('gotoqueue')">☰ Ir a la cola</button>
+      <button onclick="contextAction('album')">💿 Ir al álbum</button>
+    </div>
   </div>
 </div>
 
