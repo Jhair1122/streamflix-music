@@ -722,7 +722,14 @@ const MOODS = [
 ];
 
 function obtenerCancionesPorMood(mood) {
-  return allSongs.filter(s => s.mood === mood.id);
+  return allSongs.filter(s => {
+    // Si alguna de las columnas mood coincide, la canción pertenece a ese estado de ánimo
+    return s.mood === mood.id ||
+           s.mood2 === mood.id ||
+           s.mood3 === mood.id ||
+           s.mood4 === mood.id ||
+           s.mood5 === mood.id;
+  });
 }
 
 function renderizarCancionesMood() {
