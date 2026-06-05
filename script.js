@@ -395,7 +395,7 @@ function songCard(s, context = 'global'){
   const playing = nowPlayingId === s.id;
   const ctxParam = context === 'global' ? '' : `, '${context}'`;
 
-  const inPlaylist = userPlaylist.includes(s.id);
+const inPlaylist = userPlaylists.some(pl => pl.canciones.includes(s.id));
 
   let coverContent = '';
   if (s.url_imagen) {
@@ -453,7 +453,7 @@ function renderAlbumTrackList(songs, containerId, emptyMsg = 'No hay canciones a
     const liked = inter.es_like;
     const faved = inter.es_favorito;
     const playing = nowPlayingId === c.id;
-    const inPlaylist = userPlaylist.includes(c.id);
+    const inPlaylist = userPlaylists.some(pl => pl.canciones.includes(c.id));
     const thumbHTML = c.url_imagen
       ? `<img class="album-track-thumb" src="${c.url_imagen}" alt="${esc(c.titulo)}" onerror="this.style.display='none'">`
       : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
@@ -1591,7 +1591,7 @@ function openContextMenu(e, songId) {
     imgEl.innerHTML = genreEmoji(song.genero);
   }
   const inter = interaccionesMap[songId] || {};
-  const inPl = userPlaylist.includes(songId);
+  const inPl = userPlaylists.some(pl => pl.canciones.includes(songId));
   document.querySelector('.context-options').innerHTML = `
     <button onclick="contextAction('like')">${inter.es_like ? '❤️ Quitar like' : '🤍 Dar like'}</button>
     <button onclick="contextAction('fav')">${inter.es_favorito ? '⭐ Quitar favorito' : '☆ Añadir a favoritos'}</button>
@@ -2243,7 +2243,7 @@ function openExpandedPlayer() {
   const plBtn = $('expPlaylistBtn');
   if (likeBtn) { likeBtn.textContent = inter.es_like ? '❤️' : '🤍'; likeBtn.style.color = inter.es_like ? 'var(--red)' : ''; }
   if (favBtn) { favBtn.textContent = inter.es_favorito ? '⭐' : '☆'; favBtn.style.color = inter.es_favorito ? 'var(--gold)' : ''; }
-  if (plBtn) plBtn.textContent = userPlaylist.includes(nowPlayingId) ? '➖' : '➕';
+  if (plBtn) plBtn.textContent = userPlaylists.some(pl => pl.canciones.includes(nowPlayingId)) ? '➖' : '➕';
 
   updateDiscCover($('expDiscCover'), song);
   const audio = $('audioEl');
