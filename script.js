@@ -152,7 +152,7 @@ async function bootApp(){
   try {
     // Cargar canciones desde Supabase
     const { data: songsData } = await supabase.from('canciones').select('*').order('id', { ascending: true });
-    allSongs = songsData || [];
+    allSongs = (songsRes.data || []).map(s => ({ ...s, id: Number(s.id) }));
 
     // Cargar interacciones del usuario
     const { data: interData } = await supabase.from('interacciones')
@@ -164,11 +164,19 @@ async function bootApp(){
 
     // Cargar playlist del usuario desde Supabase
     await loadUserPlaylist();
-  // DEBUG TEMPORAL — borrar después
+  // DEBUG TEMPORAL
   console.log('=== DEBUG PLAYLIST ===');
-  console.log('currentUser.id:', currentUser.id, typeof currentUser.id);
   console.log('userPlaylists:', JSON.stringify(userPlaylists));
-  console.log('userPlaylist:', userPlaylist);
+  // Verificar que los cancion_id existan en allSongs
+  userPlaylists.forEach(pl => {
+    const found = pl.canciones.map(cid => {
+      const s = allSongs.find(s => s.id === cid);
+      return s ? `✅${cid}(${s.titulo})` : `❌${cid}(NO EXISTE)`;
+    });
+    console.log(`Playlist "${pl.nombre}" [id=${pl.id}]:`, found);
+  });
+  console.log('allSongs IDs (primeros 10):', allSongs.slice(0,10).map(s=>s.id));
+  // FIN DEBUG
   
   // Test directo a Supabase
   const testPl = await supabase.from('playlists').select('*').eq('usuario_id', currentUser.id);
@@ -577,23 +585,39 @@ async function loadUserPlaylist() {
       return;
     }
 
-    const playlistIds = playlists.map(p => p.id);
+    const playlistIds = playlists.map(p => Number(p.id));
     console.log('[loadUserPlaylist] playlistIds:', playlistIds);
 
-    const { data: pcRows, error: pcErr } = await supabase
+    const { data: pcRaw, error: pcErr } = await supabase
       .from('playlist_canciones')
       .select('playlist_id, cancion_id, posicion')
       .in('playlist_id', playlistIds)
       .order('posicion', { ascending: true });
 
+    // Normalizar TODOS los IDs a Number desde Supabase
+    const pcRows = (pcRaw || []).map(r => ({
+      playlist_id: Number(r.playlist_id),
+      cancion_id:  Number(r.cancion_id),
+      posicion:    Number(r.posicion)
+    }));
+    console.log('[loadUserPlaylist] pcRows normalizados:', pcRows);
+
     console.log('[loadUserPlaylist] playlist_canciones:', pcRows, 'error:', pcErr);
 
     // Agrupar canciones por playlist
+    // Filtrar solo cancion_id que realmente existan en allSongs
     const songMap = {};
-    playlistIds.forEach(pid => { songMap[pid] = []; });
-    (pcRows || []).forEach(row => {
+    playlistIds.forEach(pid => { songMap[pid] = []; }); // pid ya es Number
+    pcRows.forEach(row => {
       if (songMap[row.playlist_id] !== undefined) {
-        songMap[row.playlist_id].push(row.cancion_id);
+        // Verificar que la canción existe en el catálogo cargado
+        const exists = allSongs.some(s => s.id === row.cancion_id);
+        if (exists) {
+          songMap[row.playlist_id].push(row.cancion_id);
+        } else {
+          console.warn('[loadUserPlaylist] cancion_id', row.cancion_id, 
+                       'en playlist', row.playlist_id, '← NO existe en allSongs');
+        }
       }
     });
 
@@ -745,6 +769,13 @@ async function toggleSongInPlaylist(playlistId, songId) {
 function renderPlaylist(filtro) {
   if (filtro !== undefined) currentPlaylistFilter = filtro;
 
+  // Normalizar IDs a número en toda la estructura
+  userPlaylists = userPlaylists.map(pl => ({
+    ...pl,
+    id: Number(pl.id),
+    canciones: (pl.canciones || []).map(Number)
+  }));
+
   const container = document.getElementById('playlistCards');
   if (!container) return;
 
@@ -781,7 +812,7 @@ function renderPlaylist(filtro) {
                        font-size:11px;font-weight:600;cursor:pointer">
                 + Agregar canciones
               </button>
-              <button onclick="reproducirPlaylist(${pl.id})"
+              <button onclick="reproducirPlaylist(Number(${pl.id}))"
                 style="padding:5px 14px;border-radius:20px;background:var(--accent2);
                        color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer">
                 ▶ Play
