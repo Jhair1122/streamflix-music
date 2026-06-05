@@ -10,7 +10,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'DM Sans', sans-serif; background: linear-gradient(135deg, #05050c, #0f0f23); color: #f0f0fa; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .container { background: rgba(11,11,22,0.9); border: 1px solid rgba(167,139,250,.2); border-radius: 24px; padding: 32px; width: 100%; max-width: 480px; backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(124,58,237,.2); }
+    .container { background: rgba(11,11,22,0.9); border: 1px solid rgba(167,139,250,.2); border-radius: 24px; padding: 32px; width: 100%; max-width: 520px; backdrop-filter: blur(10px); box-shadow: 0 0 30px rgba(124,58,237,.2); }
     h2 { font-family: 'Syne', sans-serif; font-size: 24px; margin-bottom: 8px; }
     p.sub { color: #9090b0; font-size: 14px; margin-bottom: 24px; }
     .hidden { display: none !important; }
@@ -43,7 +43,7 @@
     <label>Artista</label>
     <input type="text" id="artista" placeholder="Nombre del artista" required>
 
-    <label>Género</label>
+    <label>Género (principal)</label>
     <select id="genero" required>
       <option value="">Selecciona un género</option>
       <option>Pop</option><option>Electrónica</option><option>Rock</option><option>Anime</option>
@@ -51,9 +51,49 @@
       <option>J-Pop</option><option>Phonk</option><option>Otro</option>
     </select>
 
-    <!-- NUEVO CAMPO: Estado de ánimo -->
-    <label>Estado de ánimo (opcional)</label>
-    <select id="mood">
+    <!-- Estados de ánimo (subgéneros) - hasta 5 opcionales -->
+    <label>Estado de ánimo 1 (opcional)</label>
+    <select id="mood1">
+      <option value="">Ninguno</option>
+      <option value="tristes">😢 Canciones tristes</option>
+      <option value="estudiar">📚 Para estudiar</option>
+      <option value="ejercitar">💪 Para ejercitarse</option>
+      <option value="anime">⛩️ Anime OST</option>
+      <option value="latino">🎺 Latino Hits</option>
+    </select>
+
+    <label>Estado de ánimo 2 (opcional)</label>
+    <select id="mood2">
+      <option value="">Ninguno</option>
+      <option value="tristes">😢 Canciones tristes</option>
+      <option value="estudiar">📚 Para estudiar</option>
+      <option value="ejercitar">💪 Para ejercitarse</option>
+      <option value="anime">⛩️ Anime OST</option>
+      <option value="latino">🎺 Latino Hits</option>
+    </select>
+
+    <label>Estado de ánimo 3 (opcional)</label>
+    <select id="mood3">
+      <option value="">Ninguno</option>
+      <option value="tristes">😢 Canciones tristes</option>
+      <option value="estudiar">📚 Para estudiar</option>
+      <option value="ejercitar">💪 Para ejercitarse</option>
+      <option value="anime">⛩️ Anime OST</option>
+      <option value="latino">🎺 Latino Hits</option>
+    </select>
+
+    <label>Estado de ánimo 4 (opcional)</label>
+    <select id="mood4">
+      <option value="">Ninguno</option>
+      <option value="tristes">😢 Canciones tristes</option>
+      <option value="estudiar">📚 Para estudiar</option>
+      <option value="ejercitar">💪 Para ejercitarse</option>
+      <option value="anime">⛩️ Anime OST</option>
+      <option value="latino">🎺 Latino Hits</option>
+    </select>
+
+    <label>Estado de ánimo 5 (opcional)</label>
+    <select id="mood5">
       <option value="">Ninguno</option>
       <option value="tristes">😢 Canciones tristes</option>
       <option value="estudiar">📚 Para estudiar</option>
@@ -117,10 +157,16 @@
       const titulo = document.getElementById('titulo').value.trim();
       const artista = document.getElementById('artista').value.trim();
       const genero = document.getElementById('genero').value;
-      const mood = document.getElementById('mood').value || null;
+
+      // Leer los 5 mood (subgéneros)
+      const mood1 = document.getElementById('mood1').value || null;
+      const mood2 = document.getElementById('mood2').value || null;
+      const mood3 = document.getElementById('mood3').value || null;
+      const mood4 = document.getElementById('mood4').value || null;
+      const mood5 = document.getElementById('mood5').value || null;
 
       if (!audioFile || !imageFile || !titulo || !artista || !genero) {
-        uploadMsg.textContent = 'Completa todos los campos y selecciona ambos archivos.';
+        uploadMsg.textContent = 'Completa todos los campos obligatorios y selecciona ambos archivos.';
         submitBtn.disabled = false;
         return;
       }
@@ -143,9 +189,21 @@
         const audioUrl = supabase.storage.from('musica').getPublicUrl(audioPath).data.publicUrl;
         const imageUrl = supabase.storage.from('musica').getPublicUrl(imagePath).data.publicUrl;
 
+        // Insertar incluyendo los 5 moods
         const { error: insertError } = await supabase
           .from('canciones')
-          .insert({ titulo, artista, genero, mood, url_preview: audioUrl, url_imagen: imageUrl });
+          .insert({
+            titulo,
+            artista,
+            genero,
+            mood: mood1,
+            mood2,
+            mood3,
+            mood4,
+            mood5,
+            url_preview: audioUrl,
+            url_imagen: imageUrl
+          });
         if (insertError) throw new Error('Error al guardar canción: ' + insertError.message);
 
         uploadMsg.textContent = '✅ Canción subida con éxito!';
