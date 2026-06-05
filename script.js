@@ -1,10 +1,7 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v15 FINAL con Playlist unificada)
-   - Se eliminan páginas separadas de Favoritos, Likes y Cola.
-   - Nueva página "Playlist" con array local.
-   - Botón ➕/➖ en cada tarjeta para agregar/quitar.
-   - Contexto de reproducción 'playlist'.
-   - Likes/favoritos siguen funcionando para IA.
+   SoundMind — script.js (v16 con paneles)
+   - Incluye actualización del panel derecho y barra móvil.
+   - Todas las funciones previas intactas.
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -29,8 +26,8 @@ let isListening  = false;
 
 // ── Variables de funciones extra ──
 let sleepTimer = null;
-let queue = [];                      // ya no se usa, pero se mantiene para no romper otras funciones (se reemplazará por playlist)
-let userPlaylist = [];               // Array de IDs de canciones en la playlist del usuario
+let queue = [];
+let userPlaylist = [];
 
 /* ── Helpers DOM ── */
 const $ = id => document.getElementById(id);
@@ -71,7 +68,6 @@ function checkSession(){
   const saved = loadSession();
   if (!saved) { window.location.href = 'explore.html'; return false; }
   currentUser = saved;
-  // Cargar playlist del usuario desde localStorage
   const stored = localStorage.getItem(`playlist_${currentUser.id}`);
   userPlaylist = stored ? JSON.parse(stored) : [];
   return true;
@@ -433,7 +429,6 @@ function getContextSongs(){
   return allSongs;
 }
 
-// Conservamos estas funciones por compatibilidad con otras partes del código (no se usan visualmente)
 function getFavoriteSongs(){
   const ids=new Set(myInter.filter(i=>i.es_favorito).map(i=>i.cancion_id));
   return allSongs.filter(s=>ids.has(s.id));
@@ -461,6 +456,9 @@ async function playSong(e, songId, context = null){
     txt('expTitle', song.titulo);
     txt('expArtist', song.artista);
   }
+
+  // Actualizar panel derecho
+  updateRightPanel(song);
 
   const audio = $('audioEl');
   if (song.url_preview) {
@@ -492,6 +490,7 @@ async function playSong(e, songId, context = null){
   }
   refreshCardHighlight();
   applyEnergyEffect(song);
+  updateQueue();
 }
 
 function updateDiscCover(coverEl, song) {
@@ -595,9 +594,15 @@ function updatePlayPauseBtn(playing){
   if(btn) btn.textContent=playing?'⏸':'▶';
   const expBtn=$('expPlayPauseBtn');
   if(expBtn) expBtn.textContent=playing?'⏸':'▶';
+  // Sincronizar disco del panel derecho
+  const rightDisc = document.getElementById('rightDisc');
+  if (rightDisc) {
+    if (playing) rightDisc.classList.add('spinning');
+    else rightDisc.classList.remove('spinning');
+  }
 }
 
-/* Visualizer */
+/* Visualizer, Progress, Volumen (sin cambios) */
 function startVisRaf(){
   stopVisRaf();
   if(!analyser) return;
@@ -629,7 +634,6 @@ function startIdleVisualizer(){
   });
 }
 
-/* Progress */
 function updateProgress(){
   const audio=$('audioEl');
   if(!audio.duration) return;
@@ -660,8 +664,6 @@ function fmtTime(s){
   const m=Math.floor(s/60),sec=Math.floor(s%60);
   return m+':'+(sec<10?'0':'')+sec;
 }
-
-/* Volumen */
 function setVolume(val){
   const audio=$('audioEl'); if(audio) audio.volume=parseFloat(val);
   const pct = Math.round(val*100);
@@ -685,7 +687,6 @@ function onAudioEnded(){
     updateStats(nowPlayingId, duration);
     checkAchievements();
 
-    // Siguiente canción en el contexto actual (playlist, global, etc.)
     const list = getContextSongs();
     const idx = list.findIndex(s => s.id === nowPlayingId);
     if (idx >= 0 && idx < list.length - 1) {
@@ -696,7 +697,7 @@ function onAudioEnded(){
   }
 }
 
-/* ═══════════════════ NUEVAS FUNCIONES (Discover Weekly, Estadísticas, Logros, Sleep Timer, Efectos, Chat, Análisis) ══════════════════ */
+/* ═══════════════════ NUEVAS FUNCIONES ══════════════════ */
 
 // ── Discover Weekly ──
 async function generateWeekly() {
@@ -867,21 +868,57 @@ function resetEnergyEffect() {
   document.body.style.transition = '';
 }
 
-// ── Cola de reproducción (se mantienen funciones por compatibilidad, aunque ya no se usan visualmente) ──
+// ── Cola de reproducción (se mantienen funciones por compatibilidad) ──
+function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
+  if (depth === 0 || !seedId) return [];
+  const seed = allSongs.find(s => s.id === seedId);
+  if (!seed || visited.has(seedId)) return [];
+  visited.add(seedId);
+  const next = allSongs
+    .filter(s => !visited.has(s.id))
+    .map(s => ({
+      s,
+      score: s.genero === seed.genero ? 3 : 0
+    }))
+    .sort((a, b) => b.score - a.score)[0];
+  if (!next) return [];
+  return [next.s, ...recursivePlaylistLocal(next.s.id, depth - 1, visited)];
+}
 function updateQueue() {
-  // No se usa, la playlist la reemplaza
+  if (playlistContext === 'favorites') {
+    queue = getFavoriteSongs().filter(s => s.id !== nowPlayingId);
+  } else if (playlistContext === 'likes') {
+    queue = getLikedSongs().filter(s => s.id !== nowPlayingId);
+  } else if (playlistContext === 'playlist') {
+    queue = getPlaylistSongs().filter(s => s.id !== nowPlayingId);
+  } else {
+    if (nowPlayingId) {
+      queue = recursivePlaylistLocal(nowPlayingId, 10, new Set([nowPlayingId]));
+    } else {
+      queue = allSongs.slice(0, 20);
+    }
+  }
+  renderQueueUI();
+  updateRightQueue();   // Actualizar también el panel derecho
 }
 function renderQueueUI() {
-  // No se usa
+  const list = $('queueList');
+  if (!list) return;
+  list.innerHTML = queue.map(s => `<li onclick="playSong(null, ${s.id}, '${playlistContext}')" class="queue-item">
+    <img src="${s.url_imagen || ''}" style="width:30px;height:30px;border-radius:4px;" onerror="this.style.display='none'">
+    ${esc(s.titulo)} — ${esc(s.artista)}
+  </li>`).join('');
 }
 function clearQueue() {
-  // No se usa
+  queue = [];
+  renderQueueUI();
+  toast('Cola vaciada');
 }
 function openQueueModal() {
-  // No se usa
+  $('queueModal')?.classList.remove('hidden');
 }
 function closeQueue() {
-  // No se usa
+  $('queueModal')?.classList.add('hidden');
 }
 
 /* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
@@ -950,37 +987,18 @@ function loadChatMessages() {
 function addMessageToUI(msg) {
   const container = document.getElementById('chatMessagesPanel');
   if (!container) return;
-
   const div = document.createElement('div');
   const isMine = currentUser && msg.user_id === currentUser.id;
-
-  if (isMine) {
-    div.className = 'msg-bubble my-msg';
-  } else {
-    div.className = 'msg-bubble other-msg';
-    // Asignar color único basado en el user_id
-    const hue = hashCode(msg.user_id || msg.username) % 360;
-    div.style.backgroundColor = `hsla(${hue}, 60%, 25%, 0.6)`;
-  }
-
+  div.className = 'msg-bubble' + (isMine ? ' my-msg' : '');
   if (isMine) {
     div.innerHTML = esc(msg.mensaje);
   } else {
     div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
+    // Asignar color único basado en el user_id
+    const hue = hashCode(msg.user_id || msg.username) % 360;
+    div.style.backgroundColor = `hsla(${hue}, 60%, 25%, 0.6)`;
   }
-
   container.appendChild(div);
-}
-
-// Función hash simple para generar un número a partir de un string
-function hashCode(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const chr = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
-    hash |= 0; // convertir a entero de 32 bits
-  }
-  return Math.abs(hash);
 }
 
 async function sendMessage() {
@@ -1008,6 +1026,46 @@ async function sendMessage() {
   }
 }
 
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+/* ═══════════════════ PANEL DERECHO Y BARRA MÓVIL ══════════════════ */
+function updateRightPanel(song) {
+  const rightDisc = document.getElementById('rightDisc');
+  const rightCover = document.getElementById('rightDiscCover');
+  if (rightCover) updateDiscCover(rightCover, song);
+  const rightTitle = document.getElementById('rightTitle');
+  const rightArtist = document.getElementById('rightArtist');
+  if (rightTitle) rightTitle.textContent = song.titulo;
+  if (rightArtist) rightArtist.textContent = song.artista;
+  const audio = document.getElementById('audioEl');
+  if (rightDisc) {
+    if (audio && !audio.paused) rightDisc.classList.add('spinning');
+    else rightDisc.classList.remove('spinning');
+  }
+  updateRightQueue();
+}
+
+function updateRightQueue() {
+  const list = document.getElementById('rightQueueList');
+  if (!list) return;
+  const contextSongs = getContextSongs();
+  const upcoming = contextSongs.filter(s => s.id !== nowPlayingId).slice(0, 5);
+  list.innerHTML = upcoming.map(s => `
+    <li onclick="playSong(null, ${s.id}, '${playlistContext}')">
+      <img src="${s.url_imagen || ''}" onerror="this.style.display='none'">
+      ${esc(s.titulo)}
+    </li>
+  `).join('');
+}
+
 /* ═══════════════════ NAVEGACIÓN Y PANEL IA ══════════════════ */
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1015,7 +1073,12 @@ function showPage(name){
   const pg=$('page-'+name), nv=$('nav-'+name);
   if(pg) pg.classList.add('active');
   if(nv) nv.classList.add('active');
-  if(window.innerWidth<=900) $('sidebar').classList.remove('open');
+  if(window.innerWidth<=768) $('sidebar').classList.remove('open');
+
+  // Actualizar barra móvil
+  document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
+  const mobileActive = document.querySelector(`.mobile-nav-item[onclick="showPage('${name}')"]`);
+  if (mobileActive) mobileActive.classList.add('active');
 
   if (name === 'weekly') renderWeekly();
   else if (name === 'profile') renderProfile();
