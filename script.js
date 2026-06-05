@@ -544,26 +544,53 @@ let userPlaylists = [];   // Array de { id, nombre, canciones: [ids] }
 async function loadUserPlaylist() {
   if (!currentUser) return;
   try {
-    const { data: playlists } = await supabase
-      .from('playlists').select('id, nombre').eq('usuario_id', currentUser.id);
-    
-    if (playlists && playlists.length > 0) {
-      // Cargar canciones de la primera playlist (para compatibilidad con userPlaylist)
-      const { data: canciones } = await supabase
-        .from('playlist_canciones').select('cancion_id').eq('playlist_id', playlists[0].id);
-      userPlaylist = canciones ? canciones.map(c => c.cancion_id) : [];
-      
-      // Guardar todas las playlists con sus canciones
-      userPlaylists = await Promise.all(playlists.map(async pl => {
-        const { data: songs } = await supabase
-          .from('playlist_canciones').select('cancion_id').eq('playlist_id', pl.id);
-        return { ...pl, canciones: songs ? songs.map(s => s.cancion_id) : [] };
-      }));
-    } else {
+    // Cargar SOLO las playlists del usuario actual
+    const { data: playlists, error: plErr } = await supabase
+      .from('playlists')
+      .select('id, nombre')
+      .eq('usuario_id', currentUser.id)
+      .order('id', { ascending: true });
+
+    if (plErr || !playlists || playlists.length === 0) {
       userPlaylist = [];
       userPlaylists = [];
+      return;
     }
-  } catch(e) { userPlaylist = []; userPlaylists = []; }
+
+    // Cargar canciones de TODAS las playlists del usuario en una sola query
+    const playlistIds = playlists.map(p => p.id);
+    const { data: allPcRows } = await supabase
+      .from('playlist_canciones')
+      .select('playlist_id, cancion_id, posicion')
+      .in('playlist_id', playlistIds)
+      .order('posicion', { ascending: true });
+
+    // Agrupar por playlist_id
+    const songsByPlaylist = {};
+    playlistIds.forEach(pid => { songsByPlaylist[pid] = []; });
+    (allPcRows || []).forEach(row => {
+      if (songsByPlaylist[row.playlist_id] !== undefined) {
+        songsByPlaylist[row.playlist_id].push(row.cancion_id);
+      }
+    });
+
+    // Construir userPlaylists con canciones ordenadas
+    userPlaylists = playlists.map(pl => ({
+      ...pl,
+      canciones: songsByPlaylist[pl.id] || []
+    }));
+
+    // userPlaylist = unión de todas las canciones (para compatibilidad con checks ➕/➖)
+    const allIds = new Set();
+    userPlaylists.forEach(pl => pl.canciones.forEach(id => allIds.add(id)));
+    userPlaylist = [...allIds];
+
+    console.log('✅ Playlists cargadas:', userPlaylists.map(p => `${p.nombre}(${p.canciones.length})`));
+  } catch(e) {
+    console.error('Error loadUserPlaylist:', e);
+    userPlaylist = [];
+    userPlaylists = [];
+  }
 }
 
 async function toggleAddToPlaylist(e, songId) {
@@ -867,21 +894,22 @@ async function toggleSongInPlaylistModal(playlistId, songId, btn) {
     toast('➕ Añadida a ' + pl.nombre);
   }
 
-  if (userPlaylists.length > 0) userPlaylist = userPlaylists[0].canciones;
   await loadUserPlaylist();
   renderAll();
   if (document.getElementById('page-playlist').classList.contains('active')) renderPlaylist();
 }
 
 function reproducirPlaylist(playlistId) {
+  // Recargar desde userPlaylists (siempre fresco)
   const pl = userPlaylists.find(p => p.id === playlistId);
-  if (!pl || pl.canciones.length === 0) { toast('La playlist está vacía'); return; }
-  
+  if (!pl) { toast('Playlist no encontrada'); return; }
+  if (pl.canciones.length === 0) { toast('La playlist "' + pl.nombre + '" está vacía'); return; }
+
   const ctx = 'playlist_' + playlistId;
   playlistContext = ctx;
-  _activePlaylistIds = pl.canciones.slice();
-  
-  // Forzar que getContextSongs use esta playlist específica
+  _activePlaylistIds = pl.canciones.slice(); // copia independiente
+
+  console.log(`▶ Reproduciendo playlist "${pl.nombre}" [${ctx}]:`, pl.canciones);
   playSong(null, pl.canciones[0], ctx);
 }
 
@@ -1683,40 +1711,45 @@ async function actualizarContadoresHeader() {
 /* ═══════════════════ PLAYER ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs() {
-  // Playlist específica por ID — máxima prioridad
-  if (playlistContext && playlistContext.startsWith('playlist_')) {
-    const raw = playlistContext.replace('playlist_', '');
-    const plId = parseInt(raw);
+  // ── Playlist específica por ID ──
+  if (playlistContext && typeof playlistContext === 'string' && playlistContext.startsWith('playlist_')) {
+    const plId = parseInt(playlistContext.replace('playlist_', ''), 10);
     if (!isNaN(plId)) {
       const pl = userPlaylists.find(p => p.id === plId);
       if (pl && pl.canciones.length > 0) {
-        return allSongs.filter(s => pl.canciones.includes(s.id))
-                       .sort((a, b) => pl.canciones.indexOf(a.id) - pl.canciones.indexOf(b.id));
+        const ordered = pl.canciones
+          .map(id => allSongs.find(s => s.id === id))
+          .filter(Boolean);
+        console.log(`🎵 getContextSongs [${playlistContext}]:`, ordered.map(s => s.titulo));
+        return ordered;
       }
     }
-    // Fallback: _activePlaylistIds si la playlist ya no existe
+    // Fallback a _activePlaylistIds si la playlist fue eliminada
     if (_activePlaylistIds.length > 0) {
-      return allSongs.filter(s => _activePlaylistIds.includes(s.id))
-                     .sort((a, b) => _activePlaylistIds.indexOf(a.id) - _activePlaylistIds.indexOf(b.id));
-    }
-  }
-  if (playlistContext === 'favorites') return getFavoriteSongs();
-  if (playlistContext === 'likes') return getLikedSongs();
-  if (playlistContext === 'playlist') {
-    // Contexto genérico 'playlist' → primera playlist disponible
-    if (userPlaylists.length > 0) {
-      const pl = userPlaylists[0];
-      return allSongs.filter(s => pl.canciones.includes(s.id))
-                     .sort((a, b) => pl.canciones.indexOf(a.id) - pl.canciones.indexOf(b.id));
+      return _activePlaylistIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
     }
     return [];
   }
+
+  if (playlistContext === 'favorites') return getFavoriteSongs();
+  if (playlistContext === 'likes')     return getLikedSongs();
+
+  if (playlistContext === 'playlist') {
+    if (userPlaylists.length > 0) {
+      const pl = userPlaylists[0];
+      return pl.canciones.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+    }
+    return [];
+  }
+
   if (playlistContext === 'catalog') {
     return currentCatalogIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
+
   if (typeof playlistContext === 'string' && playlistContext.startsWith('album_')) {
     return albumQueue.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
+
   return allSongs;
 }
 function getFavoriteSongs(){
