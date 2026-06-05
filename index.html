@@ -54,14 +54,14 @@
             <p>SoundMind analiza tus gustos con <strong>IA</strong>.</p>
           </div>
           <div class="hero-stats">
-            <div class="hstat"><div class="hstat-val" id="hsSongs">—</div><div class="hstat-label">Canciones</div></div>
-            <div class="hstat"><div class="hstat-val" id="hsLikes">—</div><div class="hstat-label">Mis likes</div></div>
-            <div class="hstat"><div class="hstat-val" id="hsFavs">—</div><div class="hstat-label">Favoritos</div></div>
+            <div class="hstat"><div class="hstat-val" id="stat-canciones">—</div><div class="hstat-label">Canciones</div></div>
+            <div class="hstat"><div class="hstat-val" id="stat-likes">—</div><div class="hstat-label">Mis likes</div></div>
+            <div class="hstat"><div class="hstat-val" id="stat-favoritos">—</div><div class="hstat-label">Favoritos</div></div>
           </div>
         </div>
       </div>
 
-      <!-- Buscador y chips de género (existentes) -->
+      <!-- Buscador y chips de género -->
       <div class="top-bar">
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
@@ -87,50 +87,38 @@
         <div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
 
-      <!-- NUEVA SECCIÓN: Más como [artista] -->
+      <!-- NUEVO: Más como [artista] -->
       <div class="section" id="moreLikeSection" style="display:none;">
         <div class="section-head"><div class="section-title" id="moreLikeTitle">Más como </div></div>
         <div class="horizontal-scroll" id="moreLikeCards"></div>
       </div>
 
-      <!-- NUEVA SECCIÓN: ¡Lo más escuchado! -->
+      <!-- NUEVO: ¡Lo más escuchado! (Ranking global) -->
       <div class="section">
         <div class="section-head"><div class="section-title">🎧 ¡Lo más escuchado!</div><span class="ai-badge">Según la comunidad</span></div>
-        <div class="horizontal-scroll" id="mostListenedCards">
-          <!-- Se llena con JS -->
+        <div id="ranking-lo-mas-escuchado">
+          <div class="loading"><div class="spin"></div> Calculando ranking…</div>
         </div>
       </div>
 
-      <!-- NUEVA SECCIÓN: Canciones para tu estado de ánimo -->
-      <div class="section">
-        <div class="section-head"><div class="section-title">🎭 Canciones para tu estado de ánimo</div></div>
-        <div class="horizontal-scroll" id="moodCards">
-          <!-- Moods hardcodeados -->
-        </div>
-      </div>
+      <!-- NUEVO: Canciones para tu estado de ánimo -->
+      <div class="section" id="seccion-canciones-mood"></div>
 
-      <!-- NUEVA SECCIÓN: Explora tus géneros -->
-      <div class="section">
-        <div class="section-head"><div class="section-title">🌈 Explora tus géneros</div></div>
-        <div class="horizontal-scroll" id="exploreGenresCards">
-          <!-- Géneros visuales -->
-        </div>
-      </div>
+      <!-- NUEVO: Explora tus géneros -->
+      <div class="section" id="seccion-explora-generos"></div>
 
-      <!-- NUEVA SECCIÓN: Tus mixes más escuchados -->
-      <div class="section">
-        <div class="section-head"><div class="section-title">🔀 Tus mixes más escuchados</div></div>
-        <div class="horizontal-scroll" id="mixesCards">
-          <!-- Mixes -->
-        </div>
-      </div>
+      <!-- NUEVO: Tus mixes más escuchados -->
+      <div class="section" id="seccion-tus-mixes"></div>
 
-      <!-- Catálogo completo (existente) -->
+      <!-- Catálogo completo -->
       <div class="section">
         <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
         <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
     </div>
+
+    <!-- PÁGINA ÁLBUM (dinámica, controlada por JS) -->
+    <div class="page" id="page-album" style="display:none;"></div>
 
     <!-- BUSCAR (nueva página) -->
     <div class="page" id="page-search">
@@ -145,26 +133,22 @@
       </div>
       <div class="section">
         <div class="section-head"><div class="section-title">Descubre algo nuevo</div></div>
-        <div class="horizontal-scroll" id="discoverCards">
-          <!-- Géneros visuales -->
-        </div>
+        <div class="horizontal-scroll" id="discoverCards"></div>
       </div>
       <div class="section">
         <div class="section-head"><div class="section-title">Explorar todo</div></div>
-        <div class="explore-grid" id="exploreAllGrid">
-          <!-- Cards grandes -->
-        </div>
+        <div class="explore-grid" id="exploreAllGrid"></div>
       </div>
     </div>
 
-    <!-- DISCOVER WEEKLY (existente) -->
+    <!-- DISCOVER WEEKLY -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
       <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas.</div>
       <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando…</div></div>
     </div>
 
-    <!-- PLAYLIST (existente, mejorada) -->
+    <!-- PLAYLIST -->
     <div class="page" id="page-playlist">
       <div class="playlist-header">
         <button class="back-btn" onclick="showPage('home')">←</button>
@@ -175,21 +159,19 @@
         <button class="gpill" onclick="filterPlaylist('artistas')">Artistas</button>
         <button class="gpill" onclick="filterPlaylist('recientes')">Recientes</button>
       </div>
-      <!-- Vista artistas -->
       <div id="playlistArtistsView" class="hidden">
         <div class="artist-list" id="playlistArtistsList"></div>
         <div class="playlist-actions">
-          <button class="btn-outline" onclick="toast('Función próximamente')">+ Añadir artistas</button>
-          <button class="btn-outline" onclick="toast('Función próximamente')">+ Añadir Playlist</button>
+          <button class="btn-outline" onclick="crearNuevaPlaylist()">+ Añadir artistas</button>
+          <button class="btn-outline" onclick="crearNuevaPlaylist()">+ Añadir Playlist</button>
         </div>
       </div>
-      <!-- Vista canciones (normal) -->
       <div id="playlistSongsView">
         <div class="cards-grid" id="playlistCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
     </div>
 
-    <!-- CHAT (existente) -->
+    <!-- CHAT -->
     <div class="page" id="page-chat">
       <div class="page-title">💬 Chat de la comunidad</div>
       <div class="page-sub">Conéctate con otros usuarios en tiempo real.</div>
@@ -202,7 +184,7 @@
       </div>
     </div>
 
-    <!-- PROFILE (existente) -->
+    <!-- PROFILE -->
     <div class="page" id="page-profile">
       <div class="page-title">👤 Mi perfil</div>
       <div class="page-sub">Estadísticas de escucha y logros.</div>
@@ -274,7 +256,7 @@
         <div class="section-title" style="margin-bottom:14px">🖥️ Infraestructura tecnológica</div>
         <div class="infra-list">
           <strong>Frontend:</strong> HTML5 + CSS3 + JavaScript ES2022 — GitHub Pages (CDN global, 99.9% uptime)<br>
-          <strong>Base de datos:</strong> Supabase (PostgreSQL 15) — tablas: usuarios, canciones, interacciones<br>
+          <strong>Base de datos:</strong> Supabase (PostgreSQL 15) — tablas: usuarios, canciones, interacciones, playlists, cola, historial<br>
           <strong>Recomendaciones guardadas:</strong> campos <code>recomendacion1</code> y <code>recomendacion2</code> en tabla usuarios<br>
           <strong>Búsqueda por voz:</strong> Web Speech API (SpeechRecognition) — idioma es-ES<br>
           <strong>Visualizador de audio:</strong> Web Audio API (AnalyserNode) con barras animadas en tiempo real<br>
@@ -409,13 +391,7 @@
       </div>
     </div>
     <div class="context-options">
-      <button onclick="contextAction('share')">🔗 Compartir</button>
-      <button onclick="contextAction('like')">❤️ Añadir a Mis Likes</button>
-      <button onclick="contextAction('playlist')">➕ Añadir a Playlist</button>
-      <button onclick="contextAction('hide')">✕ Ocultar en esta lista</button>
-      <button onclick="contextAction('queue')">⬆️ Añadir a la cola</button>
-      <button onclick="contextAction('gotoqueue')">☰ Ir a la cola</button>
-      <button onclick="contextAction('album')">💿 Ir al álbum</button>
+      <!-- Se llenan dinámicamente desde JS -->
     </div>
   </div>
 </div>
