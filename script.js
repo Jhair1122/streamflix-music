@@ -686,16 +686,7 @@ const MOODS = [
 ];
 
 function obtenerCancionesPorMood(mood) {
-  // Si la canción tiene el campo mood explícito, usamos ese
-  return allSongs.filter(s => {
-    if (s.mood) {
-      return s.mood === mood.id;
-    }
-    // Si no, usamos la lógica original de géneros y palabras clave
-    const enGenero = mood.generos.includes(s.genero);
-    const enKeywords = mood.keywords.some(kw => s.titulo.toLowerCase().includes(kw) || s.artista.toLowerCase().includes(kw));
-    return enGenero || enKeywords;
-  });
+  return allSongs.filter(s => s.mood === mood.id);
 }
 
 function renderizarCancionesMood() {
