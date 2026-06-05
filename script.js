@@ -1330,18 +1330,28 @@ function closeExpandedPlayer() {
 let chatSubscription = null;
 
 function initChat() {
+  // Cargar mensajes iniciales
   loadChatMessages();
 
-  if (!window.supabase) return;
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  chatSubscription = supabaseClient
-    .channel('table-db-changes')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes' }, payload => {
-      addMessageToUI(payload.new);
-      const container = document.getElementById('chatMessagesPanel');
-      if (container) container.scrollTop = container.scrollHeight;
-    })
-    .subscribe();
+  // Si ya hay una suscripción activa, no crear otra
+  if (chatSubscription) return;
+
+  console.log('🔔 Iniciando suscripción de chat en tiempo real...');
+  chatSubscription = supabase
+    .channel('public:messages')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'mensajes' },
+      payload => {
+        console.log('📩 Nuevo mensaje recibido:', payload.new);
+        addMessageToUI(payload.new);
+        const container = document.getElementById('chatMessagesPanel');
+        if (container) container.scrollTop = container.scrollHeight;
+      }
+    )
+    .subscribe((status) => {
+      console.log('📡 Estado de suscripción:', status);
+    });
 }
 
 function loadChatMessages() {
