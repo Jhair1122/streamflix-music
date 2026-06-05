@@ -20,7 +20,7 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 @app.route("/api/songs")
 def get_songs():
     try:
-        # Ahora ordenamos por id (más recientes primero) en lugar de popularidad
+        # Ordena por id (más reciente primero) en lugar de popularidad
         res = supabase.table("canciones").select("*").order("id", desc=True).execute()
         return jsonify({"data": res.data})
     except Exception as e:
