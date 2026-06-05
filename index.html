@@ -29,9 +29,7 @@
       <button class="nav-item active" id="nav-home" onclick="showPage('home')">🏠 Inicio</button>
       <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">📅 Discover Weekly</button>
       <div class="nav-section">Mi Biblioteca</div>
-      <button class="nav-item" id="nav-favorites" onclick="showPage('favorites')">⭐ Favoritos <span class="nav-badge hidden" id="badge-fav">0</span></button>
-      <button class="nav-item" id="nav-likes" onclick="showPage('likes')">❤️ Mis likes <span class="nav-badge hidden" id="badge-like">0</span></button>
-      <button class="nav-item" id="nav-queue" onclick="showPage('queue'); openQueueModal()">🔀 Cola de reproducción</button>
+      <button class="nav-item" id="nav-playlist" onclick="showPage('playlist')">🎵 Playlist <span class="nav-badge hidden" id="badge-playlist">0</span></button>
       <div class="nav-section">Comunidad</div>
       <button class="nav-item" id="nav-chat" onclick="showPage('chat')">💬 Chat</button>
       <div class="nav-section">Mi cuenta</div>
@@ -43,7 +41,7 @@
   <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- HOME -->
+    <!-- HOME (Inicio + Catálogo) -->
     <div class="page active" id="page-home">
       <div class="hero">
         <div class="hero-content">
@@ -94,29 +92,11 @@
       <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando tu lista semanal…</div></div>
     </div>
 
-    <!-- FAVORITES -->
-    <div class="page" id="page-favorites">
-      <div class="page-title">⭐ Favoritos</div>
-      <div class="page-sub">Canciones marcadas como favoritas. Tienen doble peso en el algoritmo de recomendación.</div>
-      <div class="cards-grid" id="favCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
-    </div>
-
-    <!-- LIKES -->
-    <div class="page" id="page-likes">
-      <div class="page-title">❤️ Mis likes</div>
-      <div class="page-sub">Historial completo de canciones que te gustaron. Son la base del aprendizaje de la IA.</div>
-      <div class="cards-grid" id="likeCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
-    </div>
-
-    <!-- QUEUE MODAL -->
-    <div id="queueModal" class="hidden">
-      <div class="queue-overlay" onclick="closeQueue()"></div>
-      <div class="queue-panel">
-        <h3>🔀 Próximas canciones</h3>
-        <ul id="queueList"></ul>
-        <button class="btn-auth" onclick="clearQueue()" style="margin-top:10px;">Limpiar cola</button>
-        <button class="btn-auth" onclick="closeQueue()">Cerrar</button>
-      </div>
+    <!-- PLAYLIST (nueva) -->
+    <div class="page" id="page-playlist">
+      <div class="page-title">🎵 Mi Playlist</div>
+      <div class="page-sub">Tu selección personal. Añade canciones con el botón ➕ y ordénalas a tu gusto.</div>
+      <div class="cards-grid" id="playlistCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
     </div>
 
     <!-- CHAT (página completa) -->
