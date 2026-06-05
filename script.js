@@ -127,12 +127,14 @@ async function bootApp(){
   initRealtimeRanking();   // ← añadir esta línea
 
   // Inicializar nuevas secciones estáticas
-  try {
+    try {
     renderizarCancionesMood();
     renderizarExploraGeneros();
     renderizarTusMixes();
     await renderizarRankingGlobal();
-  } catch(e) { /* no crítico */ }
+  } catch(e) {
+    console.error('Error al inicializar secciones estáticas:', e);
+  }
 
   // Asegurar que el scroll horizontal del ranking funcione también si el ranking se cargó exitosamente
   enableRankingScroll();
@@ -722,7 +724,7 @@ const COLORES_GENERO = {
 function renderizarExploraGeneros() {
   const contenedor = document.getElementById('seccion-explora-generos');
   if (!contenedor) return;
-  const generosUnicos = [...new Set(allSongs.map(s => s.genero.trim()))].sort();
+  const generosUnicos = [...new Set(allSongs.map(s => s.genero?.trim()).filter(Boolean))].sort();
   contenedor.innerHTML = `<h2 style="font-size:18px;font-weight:700;margin-bottom:4px">🌈 Explora tus géneros</h2><div id="genero-cards-row" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>`;
   const row = document.getElementById('genero-cards-row');
   generosUnicos.forEach(genero => {
