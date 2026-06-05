@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════
-   SOUNDMIND — style.css (Paneles Escritorio + Móvil App)
+   SOUNDMIND — style.css (Spotify-like Redesign)
    - Layout de 3 paneles + reproductor fijo
-   - Barra de navegación móvil inferior
+   - Nuevas secciones: Buscar, Playlist detalle, Bottom sheet, etc.
    - Conserva todos los estilos anteriores
 ═══════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
@@ -80,7 +80,11 @@ input, select { font-family: var(--font-b); }
 .hidden { display: none !important; }
 code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 2px 6px; border-radius: 4px; }
 
-/* ═══════════ NUEVO LAYOUT PRINCIPAL ═══════════ */
+/* ═══════ VISIBILIDAD DE PÁGINAS ═══════ */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ═══════ NUEVO LAYOUT PRINCIPAL ═══════ */
 #app {
   display: flex;
   min-height: calc(100vh - var(--bar));
@@ -593,7 +597,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   color: var(--accent3);
 }
 
-/* ── Chat FAB y Panel (antiguos, ocultos en el nuevo diseño) ── */
+/* ── Chat FAB y Panel (antiguos, ocultos) ── */
 #chatFAB { display: none; }
 #chatPanel { display: none; }
 
@@ -824,7 +828,246 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 .pulse-icon { animation: pulseIcon 2s infinite; display: inline-block; }
 @keyframes pulseIcon { 0%{transform:scale(1)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
 
-/* ═══════════ BARRA DE NAVEGACIÓN MÓVIL ═══════════ */
+/* ═══════ NUEVAS SECCIONES (Spotify-like) ═══════ */
+
+/* Horizontal scroll para todas las nuevas secciones */
+.horizontal-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.horizontal-scroll::-webkit-scrollbar { display: none; }
+
+/* Cards de género / mood / mix (tarjetas visuales) */
+.genre-card, .mood-card, .mix-card {
+  min-width: 140px;
+  height: 100px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.genre-card:hover, .mood-card:hover, .mix-card:hover {
+  transform: scale(1.03);
+  box-shadow: var(--shadow-glow);
+}
+.genre-card::after, .mood-card::after, .mix-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+}
+.genre-card span, .mood-card span, .mix-card span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Cards de explorar todo (página Buscar) */
+.explore-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.explore-card {
+  height: 110px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-end;
+  padding: 14px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.explore-card:hover {
+  filter: brightness(1.1);
+}
+.explore-card .icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 32px;
+  opacity: 0.3;
+}
+
+/* Página de búsqueda */
+.search-page-header {
+  margin-bottom: 20px;
+}
+.search-page-header h2 {
+  font-family: var(--font-h);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+/* Playlist detalle */
+.playlist-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.back-btn {
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.playlist-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.btn-outline:hover {
+  background: var(--accentA);
+  color: var(--accent3);
+}
+
+/* Lista de artistas en playlist */
+.artist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.artist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.artist-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--accent2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+}
+.artist-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+.artist-label {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+/* Menú contextual (Bottom Sheet) */
+#contextMenu {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+#contextMenu:not(.hidden) {
+  opacity: 1;
+  pointer-events: auto;
+}
+.context-overlay {
+  position: absolute;
+  inset: 0;
+}
+.context-sheet {
+  background: var(--bg2);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 500px;
+  padding: 20px 16px 30px;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+#contextMenu:not(.hidden) .context-sheet {
+  transform: translateY(0);
+}
+.context-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--text3);
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.context-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.context-song-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  overflow: hidden;
+}
+.context-song-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+.context-song-artist {
+  font-size: 13px;
+  color: var(--text2);
+}
+.context-options button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.context-options button:hover {
+  background: rgba(167,139,250,0.1);
+}
+
+/* ═══════ BARRA DE NAVEGACIÓN MÓVIL ═══════ */
 .mobile-nav {
   display: none;
   position: fixed;
@@ -863,7 +1106,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   background: var(--accentA);
 }
 
-/* ═══════════ MEDIA QUERIES ═══════════ */
+/* ═══════ MEDIA QUERIES ═══════ */
 @media (min-width: 769px) {
   .hamburger { display: none; }
   .mobile-nav { display: none; }
@@ -922,6 +1165,8 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .search-wrap { max-width: 100%; }
   .rec-highlight { padding: 14px; margin: 16px 0; }
   .chat-container { height: 50vh; }
+  .context-sheet { max-width: 100%; }
+  .explore-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 400px) {
@@ -932,12 +1177,4 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .pl-title { font-size: 11px; }
   .pl-artist { font-size: 9px; }
   .pl-btn { width: 26px; height: 26px; font-size: 14px; }
-}
-
-/* ═══════ VISIBILIDAD DE PÁGINAS ═══════ */
-.page {
-  display: none;
-}
-.page.active {
-  display: block;
 }
