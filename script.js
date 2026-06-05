@@ -918,10 +918,14 @@ function cerrarPaginaAlbum() {
   pagina.classList.remove('active');
   pagina.style.display = 'none';
 
+  // Limpiar todos los inline display antes de restaurar
+  document.querySelectorAll('.page').forEach(p => {
+    p.style.display = '';   // ← NUEVA LÍNEA
+  });
+
   const anterior = document.getElementById(paginaAnterior);
   if (anterior) {
     anterior.classList.add('active');
-    anterior.style.display = 'block';
   }
 }
 
@@ -1797,12 +1801,15 @@ function updateRightQueue() {
 /* ═══════════════════ NAVEGACIÓN Y PANEL IA ══════════════════ */
 function showPage(name){
   try {
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-    const pg=$('page-'+name), nv=$('nav-'+name);
-    if(pg) pg.classList.add('active');
-    if(nv) nv.classList.add('active');
-    if(window.innerWidth<=768) $('sidebar').classList.remove('open');
+    document.querySelectorAll('.page').forEach(p => {
+      p.classList.remove('active');
+      p.style.display = '';   // ← NUEVA LÍNEA: limpia el inline display
+    });
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const pg = $('page-' + name), nv = $('nav-' + name);
+    if (pg) pg.classList.add('active');
+    if (nv) nv.classList.add('active');
+    if (window.innerWidth <= 768) $('sidebar').classList.remove('open');
 
     document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
     const mobileActive = document.querySelector(`.mobile-nav-item[onclick="showPage('${name}')"]`);
@@ -1815,17 +1822,13 @@ function showPage(name){
       if (!chatSubscription) initChat();
       loadChatMessages();
     }
-    else if (name === 'playlist') {
-      renderPlaylist();
-    }
+    else if (name === 'playlist') renderPlaylist();
     else if (name === 'search') {
       document.getElementById('searchInputBig').value = '';
       searchQuery = '';
       renderCatalog();
     }
-    else if (name === 'recomendaciones') {
-      renderHomeRec();
-    }
+    else if (name === 'recomendaciones') renderHomeRec();
   } catch (e) {
     console.error('Error al mostrar la página ' + name, e);
     toast('⚠️ No se pudo cargar la sección. Intenta de nuevo.');
