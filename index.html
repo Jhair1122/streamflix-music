@@ -23,11 +23,6 @@
       <h1>SoundMind</h1>
       <p>IA · RECOMENDACIÓN MUSICAL</p>
     </div>
-    <div class="sidebar-user">
-      <div class="user-avatar" id="userAvatar"></div>
-      <div class="user-name" id="userName"></div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
     <div class="sidebar-nav">
       <div class="nav-section">PRINCIPAL</div>
       <button class="nav-item active" id="nav-home" onclick="showPage('home')">🏠 Inicio</button>
@@ -48,19 +43,22 @@
 
     <!-- HOME (Inicio) -->
     <div class="page active" id="page-home">
-      <div class="hero">
-        <div class="hero-content">
-          <div>
-            <h2>Hola, <span id="heroName"></span> 👋</h2>
-            <p>SoundMind analiza tus gustos con <strong>IA</strong>.</p>
-          </div>
-          <div class="hero-stats">
+      <!-- CABECERA UNIFICADA (usuario + saludo + stats) -->
+       <div class="user-header">
+        <div class="user-header-info">
+            <div class="user-avatar" id="userAvatar"></div>
+            <div>
+                <h2>Hola, <span id="heroName"></span> 👋</h2>
+                <p>SoundMind analiza tus gustos con <strong>IA</strong>.</p>
+            </div>
+        </div>
+        <div class="user-header-stats">
             <div class="hstat"><div class="hstat-val" id="stat-canciones">—</div><div class="hstat-label">Canciones</div></div>
             <div class="hstat"><div class="hstat-val" id="stat-likes">—</div><div class="hstat-label">Mis likes</div></div>
             <div class="hstat"><div class="hstat-val" id="stat-favoritos">—</div><div class="hstat-label">Favoritos</div></div>
-          </div>
+            <button class="btn-logout-header" onclick="doLogout()" title="Cerrar sesión">Salir</button>
         </div>
-      </div>
+    </div>
 
       <!-- 🎧 LO MÁS ESCUCHADO (horizontal) -->
       <div class="section">
