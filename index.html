@@ -32,6 +32,7 @@
       <div class="nav-section">PRINCIPAL</div>
       <button class="nav-item active" id="nav-home" onclick="showPage('home')">🏠 Inicio</button>
       <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">📅 Discover Weekly</button>
+      <button class="nav-item" id="nav-recomendaciones" onclick="showPage('recomendaciones')">🎯 Recomendaciones</button>
       <div class="nav-section">MI BIBLIOTECA</div>
       <button class="nav-item" id="nav-playlist" onclick="showPage('playlist')">🎵 Playlist <span class="nav-badge hidden" id="badge-playlist">0</span></button>
       <div class="nav-section">COMUNIDAD</div>
@@ -61,44 +62,21 @@
         </div>
       </div>
 
-      <!-- Buscador y chips de género -->
-      <div class="top-bar">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
-          <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
-        </div>
-        <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
-      </div>
-      <div class="genre-pills" id="genrePills"></div>
-
-      <!-- Recomendaciones IA (Para ti) -->
-      <div class="section rec-highlight">
-        <div class="section-head">
-          <div class="section-title"><span class="pulse-icon">🎯</span> Para ti <span class="ai-badge">IA activa</span></div>
-        </div>
-        <p class="section-sub">Basado en tus likes (prioridad) y favoritos.</p>
-        <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Analizando tus gustos…</div></div>
-      </div>
-
-      <!-- 🔥 Más populares -->
+      <!-- 🎧 LO MÁS ESCUCHADO (horizontal) -->
       <div class="section">
-        <div class="section-head"><div class="section-title">🔥 Más populares</div><span class="ai-badge">Según la comunidad</span></div>
-        <div class="cards-grid" id="homePopCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+        <div class="section-head">
+          <div class="section-title">🎧 ¡Lo más escuchado!</div>
+          <span class="ai-badge">Según la comunidad</span>
+        </div>
+        <div class="horizontal-scroll" id="ranking-lo-mas-escuchado">
+          <div class="loading"><div class="spin"></div> Calculando ranking…</div>
+        </div>
       </div>
 
       <!-- NUEVO: Más como [artista] -->
       <div class="section" id="moreLikeSection" style="display:none;">
         <div class="section-head"><div class="section-title" id="moreLikeTitle">Más como </div></div>
         <div class="horizontal-scroll" id="moreLikeCards"></div>
-      </div>
-
-      <!-- NUEVO: ¡Lo más escuchado! (Ranking global) -->
-      <div class="section">
-        <div class="section-head"><div class="section-title">🎧 ¡Lo más escuchado!</div><span class="ai-badge">Según la comunidad</span></div>
-        <div id="ranking-lo-mas-escuchado">
-          <div class="loading"><div class="spin"></div> Calculando ranking…</div>
-        </div>
       </div>
 
       <!-- NUEVO: Canciones para tu estado de ánimo -->
@@ -110,11 +88,27 @@
       <!-- NUEVO: Tus mixes más escuchados -->
       <div class="section" id="seccion-tus-mixes"></div>
 
-      <!-- Catálogo completo -->
+      <!-- 🎵 Catálogo completo + buscador y chips de género -->
       <div class="section">
         <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
+        <div class="top-bar" style="margin-top:12px">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
+            <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
+          </div>
+          <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
+        </div>
+        <div class="genre-pills" id="genrePills" style="margin-bottom:12px"></div>
         <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
       </div>
+    </div>
+
+    <!-- RECOMENDACIONES IA -->
+    <div class="page" id="page-recomendaciones">
+      <div class="page-title">🎯 Para ti</div>
+      <p class="page-sub">Basado en tus likes (prioridad) y favoritos. <span class="ai-badge">IA activa</span></p>
+      <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Analizando tus gustos…</div></div>
     </div>
 
     <!-- PÁGINA ÁLBUM (dinámica, controlada por JS) -->
