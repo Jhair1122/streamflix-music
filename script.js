@@ -8,7 +8,6 @@
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ── State ── */
 let currentUser  = null;
