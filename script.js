@@ -731,6 +731,15 @@ function renderizarExploraGeneros() {
     const card = document.createElement('div');
     card.className = 'genre-card';
     card.style.background = COLORES_GENERO[genero] || 'linear-gradient(135deg,#27272a,#52525b)';
+    // Estilos inline para garantizar visibilidad
+    card.style.minWidth = '140px';
+    card.style.height = '100px';
+    card.style.borderRadius = '12px';
+    card.style.display = 'flex';
+    card.style.alignItems = 'flex-end';
+    card.style.padding = '10px';
+    card.style.cursor = 'pointer';
+    card.style.flexShrink = '0';
     card.innerHTML = `<span>#${genero}</span>`;
     card.addEventListener('click', () => abrirPaginaAlbum('genero', genero.trim()));
     row.appendChild(card);
