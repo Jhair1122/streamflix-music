@@ -777,11 +777,11 @@ function abrirPaginaAlbum(tipo, valor) {
   let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '';
 
   if (tipo === 'genero') {
-  const generoNormalizado = valor.trim();
-  cancionesAlbum = allSongs.filter(s => s.genero && s.genero.trim() === generoNormalizado);
-  tituloAlbum = generoNormalizado;
-  subtituloAlbum = 'Género · ' + cancionesAlbum.length + ' canciones';
-} else if (tipo === 'mood') {
+    const generoNormalizado = valor.trim();
+    cancionesAlbum = allSongs.filter(s => s.genero && s.genero.trim() === generoNormalizado);
+    tituloAlbum = generoNormalizado;
+    subtituloAlbum = 'Género · ' + cancionesAlbum.length + ' canciones';
+  } else if (tipo === 'mood') {
     const mood = MOODS.find(m => m.id === valor);
     if (mood) {
       cancionesAlbum = obtenerCancionesPorMood(mood);
@@ -794,54 +794,80 @@ function abrirPaginaAlbum(tipo, valor) {
     subtituloAlbum = 'Mix del artista';
   }
 
-  // Verificar si hay canciones
+  // Ocultar todas las páginas y activar page-album
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';   // ← forzar ocultamiento aunque tengan style inline
+  });
+
+  const pagina = document.getElementById('page-album');
+  pagina.style.display = 'block';   // ← forzar visibilidad
+  pagina.classList.add('active');
+
   if (cancionesAlbum.length === 0) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const pagina = document.getElementById('page-album');
-    pagina.classList.add('active');
-    pagina.innerHTML = `<div style="text-align:center;padding:40px;color:#a0aec0">
-      <h2>${tituloAlbum || 'Álbum'}</h2>
-      <p>No se encontraron canciones.</p>
-      <button onclick="cerrarPaginaAlbum()" style="margin-top:20px;background:var(--accent2);color:#fff;border:none;border-radius:20px;padding:10px 24px;cursor:pointer">Volver</button>
-    </div>`;
+    pagina.innerHTML = `
+      <div style="text-align:center;padding:40px;color:#a0aec0">
+        <div style="font-size:48px;margin-bottom:12px">${genreEmoji(valor)}</div>
+        <h2 style="margin-bottom:8px">${tituloAlbum || 'Álbum'}</h2>
+        <p>No se encontraron canciones.</p>
+        <button onclick="cerrarPaginaAlbum()" style="margin-top:20px;background:var(--accent2);color:#fff;border:none;border-radius:20px;padding:10px 24px;cursor:pointer">← Volver</button>
+      </div>`;
     return;
   }
 
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const pagina = document.getElementById('page-album');
-  pagina.classList.add('active');
+  const portadaBg = COLORES_GENERO[valor] || 'linear-gradient(135deg,#4c1d95,#7c3aed)';
+  const iconoPortada = tipo === 'mood'
+    ? (MOODS.find(m => m.id === valor)?.emoji || '🎵')
+    : genreEmoji(valor);
+
   pagina.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;padding:16px 16px 0">
       <button onclick="cerrarPaginaAlbum()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">←</button>
       <h2 style="font-size:18px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tituloAlbum}</h2>
     </div>
     <div style="padding:24px 16px 0;text-align:center">
-      <div style="width:200px;height:200px;background:${COLORES_GENERO[valor] || 'linear-gradient(135deg,#4c1d95,#7c3aed)'};border-radius:12px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:60px">🎵</div>
-      <div style="font-weight:700;font-size:22px">${tituloAlbum}</div>
-      <div style="color:#a0aec0;font-size:13px;margin-top:4px">${cancionesAlbum.length} canciones</div>
-      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.2);border-radius:20px;padding:4px 12px;margin-top:8px;font-size:12px">🎵 SoundMind</div>
-      <div style="color:#a0aec0;font-size:11px;margin-top:6px">${subtituloAlbum} · Generado por IA</div>
+      <div style="width:180px;height:180px;background:${portadaBg};border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:72px;box-shadow:0 8px 32px rgba(0,0,0,.4)">${iconoPortada}</div>
+      <div style="font-weight:700;font-size:22px;margin-bottom:4px">${tituloAlbum}</div>
+      <div style="color:#a0aec0;font-size:13px">${cancionesAlbum.length} canciones</div>
+      <div style="color:#a0aec0;font-size:11px;margin-top:4px">${subtituloAlbum} · Generado por IA</div>
     </div>
     <div style="display:flex;gap:12px;padding:20px 16px 0;justify-content:center">
-      <button onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})" style="flex:1;max-width:140px;background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:24px;padding:10px;cursor:pointer;font-size:14px">⇌ Aleatorio</button>
-      <button onclick="reproducirDesde(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0)" style="flex:1;max-width:140px;background:#7c3aed;border:none;color:#fff;border-radius:24px;padding:10px;cursor:pointer;font-weight:700;font-size:14px">▶ Reproducir todo</button>
+      <button onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})"
+        style="flex:1;max-width:140px;background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:24px;padding:10px;cursor:pointer;font-size:14px">⇌ Aleatorio</button>
+      <button onclick="reproducirDesde(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0)"
+        style="flex:1;max-width:140px;background:#7c3aed;border:none;color:#fff;border-radius:24px;padding:10px;cursor:pointer;font-weight:700;font-size:14px">▶ Reproducir todo</button>
     </div>
-    <div style="padding:16px">${cancionesAlbum.map(c => `
-      <div data-cancion-id="${c.id}" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
-        <img src="${c.url_imagen || ''}" style="width:50px;height:50px;border-radius:8px;object-fit:cover;flex-shrink:0">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titulo}</div>
-          <div style="font-size:12px;color:#a0aec0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.artista}</div>
-          <span style="font-size:10px;background:rgba(124,58,237,0.3);color:#c4b5fd;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">${c.genero}</span>
-        </div>
-        <button onclick="playSong(null, ${c.id})" style="background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px">▶</button>
-        <button onclick="openContextMenu(event, ${c.id})" style="background:none;border:none;color:#a0aec0;font-size:18px;cursor:pointer;padding:4px">⋮</button>
-      </div>`).join('')}</div>`;
+    <div style="padding:16px">
+      ${cancionesAlbum.map(c => `
+        <div data-cancion-id="${c.id}" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer"
+             onclick="playSong(null, ${c.id})">
+          ${c.url_imagen
+            ? `<img src="${c.url_imagen}" style="width:50px;height:50px;border-radius:8px;object-fit:cover;flex-shrink:0">`
+            : `<div style="width:50px;height:50px;border-radius:8px;background:${genreGradient(c.genero)};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${genreEmoji(c.genero)}</div>`
+          }
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.titulo)}</div>
+            <div style="font-size:12px;color:#a0aec0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.artista)}</div>
+            <span style="font-size:10px;background:rgba(124,58,237,0.3);color:#c4b5fd;padding:2px 8px;border-radius:10px;margin-top:4px;display:inline-block">${esc(c.genero)}</span>
+          </div>
+          <button onclick="event.stopPropagation();playSong(null,${c.id})"
+            style="background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px;flex-shrink:0">▶</button>
+          <button onclick="event.stopPropagation();openContextMenu(event,${c.id})"
+            style="background:none;border:none;color:#a0aec0;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0">⋮</button>
+        </div>`).join('')}
+    </div>`;
 }
 
 function cerrarPaginaAlbum() {
-  document.getElementById('page-album').classList.remove('active');
-  document.getElementById(paginaAnterior)?.classList.add('active');
+  const pagina = document.getElementById('page-album');
+  pagina.classList.remove('active');
+  pagina.style.display = 'none';
+
+  const anterior = document.getElementById(paginaAnterior);
+  if (anterior) {
+    anterior.classList.add('active');
+    anterior.style.display = 'block';
+  }
 }
 
 function shuffleYReproducir(arrayIds) {
