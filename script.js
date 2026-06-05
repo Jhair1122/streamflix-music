@@ -1,6 +1,7 @@
 /* ════════════════════════════════════════════════════
-   SoundMind — script.js (v16 FINAL)
-   - Incluye panel derecho, barra móvil, playlist, chat, etc.
+   SoundMind — script.js (v17 Spotify-like)
+   - Incluye nuevas páginas (Buscar, Playlist detalle, Menú contextual)
+   - Todas las funciones previas intactas
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -102,6 +103,7 @@ async function bootApp(){
   showPage('home');
   initVoiceSearch();
   initChat();
+  initStaticSections();   // ← Inicializa las nuevas secciones estáticas
 }
 
 /* ═══════════════════ LOGOUT ══════════════════ */
@@ -242,7 +244,7 @@ function updateBadges(){
   }
 }
 
-/* ── Song Card (con botón de playlist) ── */
+/* ── Song Card (con botón de playlist y menú contextual) ── */
 function songCard(s, context = 'global'){
   const inter  =myInter.find(i=>i.cancion_id===s.id);
   const liked  =inter&&inter.es_like;
@@ -277,6 +279,7 @@ function songCard(s, context = 'global'){
         <button class="cta${faved?' faved-btn':''}" onclick="toggleFav(event,${s.id})">${faved?'⭐':'☆'}</button>
         <button class="cta${inPlaylist?' playlist-btn':''}" onclick="toggleAddToPlaylist(event,${s.id})" title="${inPlaylist?'Quitar de Playlist':'Agregar a Playlist'}">${inPlaylist?'➖':'➕'}</button>
         <button class="cta play-btn" onclick="playSong(event,${s.id}${ctxParam}); event.stopPropagation()">▶ Play</button>
+        <button class="cta" onclick="openContextMenu(event,${s.id})" title="Más opciones">⋮</button>
       </div>
     </div>
   </div>`;
@@ -333,6 +336,10 @@ function filterGenre(btn,genre){
 }
 function onSearch(){
   searchQuery=$('searchInput').value.toLowerCase();
+  renderCatalog();
+}
+function onSearchBig(){
+  searchQuery=$('searchInputBig').value.toLowerCase();
   renderCatalog();
 }
 function renderCatalog(){
@@ -459,6 +466,8 @@ async function playSong(e, songId, context = null){
 
   // Actualizar panel derecho
   updateRightPanel(song);
+  // Actualizar sección "Más como..."
+  updateMoreLikeSection(song);
 
   const audio = $('audioEl');
   if (song.url_preview) {
@@ -1036,6 +1045,169 @@ function hashCode(str) {
   return Math.abs(hash);
 }
 
+/* ═══════════════════ INICIALIZACIÓN DE SECCIONES ESTÁTICAS (NUEVAS) ══════════════════ */
+function initStaticSections() {
+  // Most listened (lo más escuchado)
+  const listenedContainer = document.getElementById('mostListenedCards');
+  if (listenedContainer && allSongs.length > 0) {
+    const topSongs = allSongs.slice(0, 5);
+    listenedContainer.innerHTML = topSongs.map(s => `
+      <div class="mix-card" style="background-image:url(${s.url_imagen || ''})" onclick="playSong(null, ${s.id})">
+        <span>${s.titulo}</span>
+      </div>
+    `).join('');
+  }
+
+  // Moods (estados de ánimo)
+  const moodContainer = document.getElementById('moodCards');
+  if (moodContainer) {
+    const moods = [
+      { name: 'Canciones tristes', color: '#3b82f6' },
+      { name: 'Para estudiar', color: '#8b5cf6' },
+      { name: 'Para ejercitarse', color: '#ef4444' },
+    ];
+    moodContainer.innerHTML = moods.map(m => `
+      <div class="mood-card" style="background:${m.color}" onclick="toast('Próximamente')">
+        <span>${m.name}</span>
+      </div>
+    `).join('');
+  }
+
+  // Explore genres (explora tus géneros)
+  const genreContainer = document.getElementById('exploreGenresCards');
+  if (genreContainer) {
+    const genres = [...new Set(allSongs.map(s => s.genero))];
+    genreContainer.innerHTML = genres.map(g => `
+      <div class="genre-card" onclick="filterGenre(null, '${g}')">
+        <span>#${g}</span>
+      </div>
+    `).join('');
+  }
+
+  // Mixes (tus mixes más escuchados)
+  const mixesContainer = document.getElementById('mixesCards');
+  if (mixesContainer) {
+    const artists = [...new Set(allSongs.map(s => s.artista))];
+    mixesContainer.innerHTML = artists.slice(0, 5).map(artist => `
+      <div class="mix-card" style="background: linear-gradient(135deg, var(--accent2), #4f46e5);" onclick="toast('Mix de ${artist}')">
+        <span>Mix de ${artist}</span>
+      </div>
+    `).join('');
+  }
+
+  // Discover cards (página Buscar)
+  const discoverContainer = document.getElementById('discoverCards');
+  if (discoverContainer) {
+    const genres = [...new Set(allSongs.map(s => s.genero))];
+    discoverContainer.innerHTML = genres.map(g => `
+      <div class="genre-card" onclick="filterGenre(null, '${g}')">
+        <span>#${g}</span>
+      </div>
+    `).join('');
+  }
+
+  // Explore all grid (página Buscar)
+  const exploreGrid = document.getElementById('exploreAllGrid');
+  if (exploreGrid) {
+    exploreGrid.innerHTML = `
+      <div class="explore-card" style="background:#ec4899" onclick="showPage('home')"><span>Música</span><span class="icon">🎵</span></div>
+      <div class="explore-card" style="background:#10b981" onclick="showPage('playlist')"><span>Playlist</span><span class="icon">📋</span></div>
+      <div class="explore-card" style="background:#8b5cf6" onclick="showPage('chat')"><span>Chat</span><span class="icon">💬</span></div>
+      <div class="explore-card" style="background:#3b82f6" onclick="showPage('weekly')"><span>Discover Weekly</span><span class="icon">📅</span></div>
+    `;
+  }
+}
+
+/* ═══════════════════ MENÚ CONTEXTUAL ══════════════════ */
+let contextSongId = null;
+function openContextMenu(e, songId) {
+  e.stopPropagation();
+  const song = allSongs.find(s => s.id === songId);
+  if (!song) return;
+  contextSongId = songId;
+  document.getElementById('ctxTitle').textContent = song.titulo;
+  document.getElementById('ctxArtist').textContent = song.artista;
+  const imgEl = document.getElementById('ctxImage');
+  if (song.url_imagen) {
+    imgEl.innerHTML = `<img src="${song.url_imagen}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+  } else {
+    imgEl.innerHTML = genreEmoji(song.genero);
+  }
+  document.getElementById('contextMenu').classList.remove('hidden');
+}
+
+function closeContextMenu() {
+  document.getElementById('contextMenu').classList.add('hidden');
+}
+
+function contextAction(action) {
+  if (!contextSongId) return;
+  const song = allSongs.find(s => s.id === contextSongId);
+  if (!song) return;
+  switch(action) {
+    case 'like': toggleLike(null, contextSongId); break;
+    case 'playlist': toggleAddToPlaylist(null, contextSongId); break;
+    case 'queue': playSong(null, contextSongId, playlistContext); break;
+    default: toast('Función próximamente');
+  }
+  closeContextMenu();
+}
+
+/* ═══════════════════ MÁS COMO [ARTISTA] ══════════════════ */
+function updateMoreLikeSection(song) {
+  const section = document.getElementById('moreLikeSection');
+  const title = document.getElementById('moreLikeTitle');
+  const container = document.getElementById('moreLikeCards');
+  if (!section || !song) return;
+  title.textContent = 'Más como ' + song.artista;
+  const similar = allSongs.filter(s => s.artista === song.artista && s.id !== song.id).slice(0, 5);
+  if (similar.length > 0) {
+    container.innerHTML = similar.map(s => `
+      <div style="text-align:center;cursor:pointer;min-width:80px;" onclick="playSong(null, ${s.id})">
+        <img src="${s.url_imagen || ''}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin-bottom:4px;" onerror="this.style.display='none'">
+        <div style="font-size:12px;font-weight:600;">${s.artista}</div>
+        <div style="font-size:10px;color:var(--text2);">Artista</div>
+      </div>
+    `).join('');
+    section.style.display = 'block';
+  } else {
+    section.style.display = 'none';
+  }
+}
+
+/* ═══════════════════ PLAYLIST FILTROS ══════════════════ */
+function filterPlaylist(tab) {
+  document.querySelectorAll('#page-playlist .gpill').forEach(b => b.classList.remove('active'));
+  const activeTab = document.querySelector(`#page-playlist .gpill[onclick="filterPlaylist('${tab}')"]`);
+  if (activeTab) activeTab.classList.add('active');
+  const artistsView = document.getElementById('playlistArtistsView');
+  const songsView = document.getElementById('playlistSongsView');
+  if (tab === 'artistas') {
+    artistsView.classList.remove('hidden');
+    songsView.classList.add('hidden');
+    renderPlaylistArtists();
+  } else {
+    artistsView.classList.add('hidden');
+    songsView.classList.remove('hidden');
+    renderPlaylist();
+  }
+}
+
+function renderPlaylistArtists() {
+  const artists = [...new Set(userPlaylist.map(id => allSongs.find(s => s.id === id)?.artista).filter(Boolean))];
+  const list = document.getElementById('playlistArtistsList');
+  if (!list) return;
+  list.innerHTML = artists.map(artist => `
+    <div class="artist-row">
+      <div class="artist-avatar">${artist[0]}</div>
+      <div>
+        <div class="artist-name">${artist}</div>
+        <div class="artist-label">Artista</div>
+      </div>
+    </div>
+  `).join('');
+}
+
 /* ═══════════════════ PANEL DERECHO Y BARRA MÓVIL ══════════════════ */
 function updateRightPanel(song) {
   const rightDisc = document.getElementById('rightDisc');
@@ -1089,6 +1261,12 @@ function showPage(name){
   }
   else if (name === 'playlist') {
     renderPlaylist();
+  }
+  else if (name === 'search') {
+    // Limpiar búsqueda y mostrar catálogo completo
+    document.getElementById('searchInputBig').value = '';
+    searchQuery = '';
+    renderCatalog();
   }
 }
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
