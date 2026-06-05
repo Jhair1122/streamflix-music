@@ -1386,6 +1386,7 @@ function loadChatMessages() {
       const container = document.getElementById('chatMessagesPanel');
       if (container) {
         container.innerHTML = '';
+        displayedMessageIds.clear();   // ← AÑADE ESTA LÍNEA
         (data.messages || []).forEach(msg => addMessageToUI(msg));
         container.scrollTop = container.scrollHeight;
       }
