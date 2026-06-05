@@ -138,8 +138,42 @@ async function bootApp(){
 
   // Asegurar que el scroll horizontal del ranking funcione también si el ranking se cargó exitosamente
   enableRankingScroll();
+  initSidebarToggle();
 
   await actualizarContadoresHeader();
+}
+
+/* ═══════════════════ SIDEBAR COLAPSABLE ══════════════════ */
+function initSidebarToggle() {
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  if (!sidebar || !toggleBtn) return;
+
+  const STORAGE_KEY = 'soundmind_sidebar_collapsed';
+
+  function setCollapsed(collapsed) {
+    if (collapsed) {
+      sidebar.classList.add('collapsed');
+      toggleBtn.title = 'Abrir Tu biblioteca';
+    } else {
+      sidebar.classList.remove('collapsed');
+      toggleBtn.title = 'Contraer Tu biblioteca';
+    }
+    localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+  }
+
+  // Cargar estado guardado
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === '1') {
+    setCollapsed(true);
+  } else {
+    setCollapsed(false);
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    setCollapsed(!isCollapsed);
+  });
 }
 
 /* ═══════════════════ LOGOUT ══════════════════ */
