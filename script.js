@@ -40,7 +40,8 @@ let displayedMessageIds = new Set();
 let pendingTempMessages = new Map();
 let sleepTimer = null;
 let queue = [];
-let userPlaylist = [];               // IDs de canciones en la playlist local (ahora en Supabase)
+let userPlaylist = [];   
+let currentCatalogIds = [];   // IDs del catálogo filtrado actual            // IDs de canciones en la playlist local (ahora en Supabase)
 let paginaAnterior = 'page-home';    // para la página álbum
 
 /* Variables para el scroll horizontal del ranking */
@@ -532,7 +533,9 @@ function renderCatalog() {
     s.artista.toLowerCase().includes(searchQuery)
   );
   txt('catalogCount', songs.length + ' canciones');
-  renderAlbumTrackList(songs, 'catalogCards', 'No se encontraron canciones.', 'global');
+  // Guardar IDs del catálogo actual para contexto de reproducción
+  currentCatalogIds = songs.map(s => s.id);
+  renderAlbumTrackList(songs, 'catalogCards', 'No se encontraron canciones.', 'catalog');
 }
 
 /* ── Playlist (Supabase) ── */
@@ -566,45 +569,140 @@ async function loadUserPlaylist() {
 async function toggleAddToPlaylist(e, songId) {
   if (e && e.stopPropagation) e.stopPropagation();
   if (!currentUser) return;
-  let { data: playlists } = await supabase.from('playlists').select('id,nombre').eq('usuario_id', currentUser.id).limit(1);
-  let playlistId;
+
+  // Cargar playlists del usuario
+  const { data: playlists } = await supabase
+    .from('playlists').select('id, nombre').eq('usuario_id', currentUser.id);
+
+  // Si no hay playlists, crear una por defecto y agregar
   if (!playlists || playlists.length === 0) {
-    const { data: newPlaylist } = await supabase.from('playlists').insert({ usuario_id: currentUser.id, nombre: 'Mi Playlist' }).select().single();
-    playlistId = newPlaylist.id;
-  } else {
-    playlistId = playlists[0].id;
+    const { data: newPl } = await supabase
+      .from('playlists')
+      .insert({ usuario_id: currentUser.id, nombre: 'Mi Playlist' })
+      .select().single();
+    if (newPl) {
+      await supabase.from('playlist_canciones').upsert(
+        { playlist_id: newPl.id, cancion_id: songId, posicion: 0 },
+        { onConflict: 'playlist_id,cancion_id' }
+      );
+      userPlaylist.push(songId);
+      await loadUserPlaylist();
+      renderAll();
+      toast('➕ Añadida a Mi Playlist');
+    }
+    return;
   }
-  const index = userPlaylist.indexOf(songId);
-  if (index >= 0) {
-    await supabase.from('playlist_canciones').delete().eq('playlist_id', playlistId).eq('cancion_id', songId);
-    userPlaylist.splice(index, 1);
-    toast('🗑️ Canción eliminada de tu Playlist');
+
+  // Mostrar modal selector de playlist
+  const existing = document.getElementById('playlistSelectorOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'playlistSelectorOverlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,5,12,.88);backdrop-filter:blur(12px);
+  `;
+
+  const song = allSongs.find(s => s.id === songId);
+  const songName = song ? song.titulo : 'esta canción';
+
+  let listHTML = playlists.map(pl => {
+    const inThisPl = userPlaylists.find(p => p.id === pl.id)?.canciones.includes(songId);
+    return `
+      <button onclick="toggleSongInPlaylist(${pl.id}, ${songId})"
+        style="display:flex;align-items:center;justify-content:space-between;
+               width:100%;padding:12px 16px;border-radius:12px;border:1px solid var(--border);
+               background:${inThisPl ? 'rgba(167,139,250,.15)' : 'var(--bg3)'};
+               color:var(--text);font-size:14px;font-weight:600;cursor:pointer;
+               transition:.15s;margin-bottom:8px;font-family:var(--font-b);"
+        onmouseover="this.style.background='rgba(167,139,250,.2)'"
+        onmouseout="this.style.background='${inThisPl ? 'rgba(167,139,250,.15)' : 'var(--bg3)'}'">
+        <span>🎵 ${esc(pl.nombre)}</span>
+        <span style="font-size:18px">${inThisPl ? '✓' : '+'}</span>
+      </button>`;
+  }).join('');
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:24px;
+                padding:28px 24px;width:90%;max-width:360px;box-shadow:var(--shadow-lg)">
+      <h3 style="font-family:var(--font-h);font-size:18px;font-weight:800;margin-bottom:4px">
+        Añadir a Playlist
+      </h3>
+      <p style="color:var(--text2);font-size:12px;margin-bottom:18px;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        ${esc(songName)}
+      </p>
+      <div style="max-height:280px;overflow-y:auto;margin-bottom:14px">
+        ${listHTML}
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('playlistSelectorOverlay').remove()"
+          style="flex:1;padding:10px;border-radius:50px;border:1px solid var(--border);
+                 background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">
+          Cerrar
+        </button>
+        <button onclick="document.getElementById('playlistSelectorOverlay').remove();crearNuevaPlaylist(${songId})"
+          style="flex:1;padding:10px;border-radius:50px;background:var(--accent2);
+                 border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
+          + Nueva playlist
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+async function toggleSongInPlaylist(playlistId, songId) {
+  const pl = userPlaylists.find(p => p.id === playlistId);
+  if (!pl) return;
+
+  const inPl = pl.canciones.includes(songId);
+  if (inPl) {
+    await supabase.from('playlist_canciones')
+      .delete().eq('playlist_id', playlistId).eq('cancion_id', songId);
+    pl.canciones = pl.canciones.filter(id => id !== songId);
+    toast('🗑️ Eliminada de ' + pl.nombre);
   } else {
-    const { count } = await supabase.from('playlist_canciones').select('*', { count: 'exact', head: true }).eq('playlist_id', playlistId);
-    await supabase.from('playlist_canciones').upsert({ playlist_id: playlistId, cancion_id: songId, posicion: count || 0 }, { onConflict: 'playlist_id,cancion_id' });
-    userPlaylist.push(songId);
-    toast('➕ Canción añadida a tu Playlist');
+    const pos = pl.canciones.length;
+    await supabase.from('playlist_canciones').upsert(
+      { playlist_id: playlistId, cancion_id: songId, posicion: pos },
+      { onConflict: 'playlist_id,cancion_id' }
+    );
+    pl.canciones.push(songId);
+    toast('➕ Añadida a ' + pl.nombre);
   }
+
+  // Actualizar userPlaylist (primera playlist para compatibilidad)
+  if (userPlaylists.length > 0) {
+    userPlaylist = userPlaylists[0].canciones;
+  }
+
+  await loadUserPlaylist();
   renderAll();
-  if (document.getElementById('page-playlist').classList.contains('active')) renderPlaylist();
+
+  // Refrescar el modal si sigue abierto
+  const overlay = document.getElementById('playlistSelectorOverlay');
+  if (overlay) {
+    overlay.remove();
+    toggleAddToPlaylist(null, songId);
+  }
 }
 
 function renderPlaylist(filtro) {
   if (filtro !== undefined) currentPlaylistFilter = filtro;
-  
+
   const container = document.getElementById('playlistCards');
   if (!container) return;
 
   if (currentPlaylistFilter === 'favoritos') {
-    const songs = getFavoriteSongs();
-    renderAlbumTrackList(songs, 'playlistCards',
+    renderAlbumTrackList(getFavoriteSongs(), 'playlistCards',
       'No tienes favoritos todavía. Usa ⭐ en cualquier canción.', 'global');
   } else if (currentPlaylistFilter === 'likes') {
-    const songs = getLikedSongs();
-    renderAlbumTrackList(songs, 'playlistCards',
+    renderAlbumTrackList(getLikedSongs(), 'playlistCards',
       'No tienes likes todavía. Usa ❤️ en cualquier canción.', 'likes');
   } else {
-    // Mostrar todas las playlists
     if (!userPlaylists || userPlaylists.length === 0) {
       container.innerHTML = `<div class="empty-state">
         <div class="empty-icon">🎵</div>
@@ -618,32 +716,161 @@ function renderPlaylist(filtro) {
     userPlaylists.forEach(pl => {
       const songs = allSongs.filter(s => pl.canciones.includes(s.id));
       html += `
-        <div style="margin-bottom:24px">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="margin-bottom:28px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
             <span style="font-family:var(--font-h);font-size:16px;font-weight:700">
               🎵 ${esc(pl.nombre)}
             </span>
             <span style="font-size:11px;color:var(--text2)">${songs.length} canciones</span>
-            <button onclick="reproducirPlaylist(${pl.id})"
-              style="margin-left:auto;padding:5px 14px;border-radius:20px;background:var(--accent2);
-                     color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer">
-              ▶ Play
-            </button>
+            <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+              <button onclick="abrirBuscadorParaPlaylist(${pl.id})"
+                style="padding:5px 12px;border-radius:20px;background:var(--accentA);
+                       color:var(--accent3);border:1px solid var(--border2);
+                       font-size:11px;font-weight:600;cursor:pointer">
+                + Agregar canciones
+              </button>
+              <button onclick="reproducirPlaylist(${pl.id})"
+                style="padding:5px 14px;border-radius:20px;background:var(--accent2);
+                       color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer">
+                ▶ Play
+              </button>
+            </div>
           </div>
           <div id="pl-songs-${pl.id}"></div>
         </div>`;
     });
 
     container.innerHTML = html;
-
-    // Renderizar canciones de cada playlist
     userPlaylists.forEach(pl => {
       const songs = allSongs.filter(s => pl.canciones.includes(s.id));
-      renderAlbumTrackList(songs, `pl-songs-${pl.id}`,
-        'Esta playlist está vacía.', 'playlist');
+      renderAlbumTrackList(songs, `pl-songs-${pl.id}`, 'Esta playlist está vacía.', 'playlist');
     });
   }
   updateBadges();
+}
+
+// Buscador modal para agregar canciones a una playlist específica
+function abrirBuscadorParaPlaylist(playlistId) {
+  const pl = userPlaylists.find(p => p.id === playlistId);
+  if (!pl) return;
+
+  const existing = document.getElementById('addSongsOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'addSongsOverlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9400;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,5,12,.9);backdrop-filter:blur(14px);
+  `;
+
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:24px;
+                padding:24px 20px;width:95%;max-width:500px;max-height:85vh;
+                display:flex;flex-direction:column;box-shadow:var(--shadow-lg)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 style="font-family:var(--font-h);font-size:18px;font-weight:800;margin:0">
+          + Agregar a "${esc(pl.nombre)}"
+        </h3>
+        <button onclick="document.getElementById('addSongsOverlay').remove()"
+          style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;
+                 padding:4px 8px;border-radius:8px">✕</button>
+      </div>
+      <input id="addSongsSearch" type="text" placeholder="Buscar canción o artista…"
+        style="width:100%;padding:10px 16px;border-radius:50px;border:1px solid var(--border);
+               background:var(--bg3);color:var(--text);font-size:14px;outline:none;
+               margin-bottom:12px;font-family:var(--font-b)"
+        oninput="filtrarBuscadorPlaylist(${playlistId})">
+      <div id="addSongsList"
+        style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  setTimeout(() => {
+    document.getElementById('addSongsSearch')?.focus();
+    filtrarBuscadorPlaylist(playlistId);
+  }, 80);
+}
+
+function filtrarBuscadorPlaylist(playlistId) {
+  const input = document.getElementById('addSongsSearch');
+  const list = document.getElementById('addSongsList');
+  if (!list) return;
+
+  const q = (input?.value || '').toLowerCase();
+  const pl = userPlaylists.find(p => p.id === playlistId);
+
+  let songs = allSongs;
+  if (q) songs = songs.filter(s =>
+    s.titulo.toLowerCase().includes(q) || s.artista.toLowerCase().includes(q)
+  );
+  songs = songs.slice(0, 40);
+
+  list.innerHTML = songs.map(s => {
+    const inPl = pl?.canciones.includes(s.id);
+    const thumb = s.url_imagen
+      ? `<img src="${s.url_imagen}" style="width:38px;height:38px;border-radius:6px;object-fit:cover;flex-shrink:0">`
+      : `<div style="width:38px;height:38px;border-radius:6px;background:${genreGradient(s.genero)};
+              display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${genreEmoji(s.genero)}</div>`;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;
+                  background:${inPl ? 'rgba(167,139,250,.12)' : 'var(--bg3)'};
+                  border:1px solid ${inPl ? 'var(--border2)' : 'transparent'};transition:.15s"
+           onmouseover="this.style.background='rgba(167,139,250,.18)'"
+           onmouseout="this.style.background='${inPl ? 'rgba(167,139,250,.12)' : 'var(--bg3)'}'">
+        ${thumb}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.titulo)}</div>
+          <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.artista)}</div>
+        </div>
+        <button onclick="toggleSongInPlaylistModal(${playlistId}, ${s.id}, this)"
+          style="flex-shrink:0;padding:6px 14px;border-radius:20px;border:none;cursor:pointer;
+                 font-size:12px;font-weight:700;font-family:var(--font-b);
+                 background:${inPl ? 'rgba(248,113,113,.2)' : 'var(--accent2)'};
+                 color:${inPl ? 'var(--red)' : '#fff'}">
+          ${inPl ? '✓ Añadida' : '+ Añadir'}
+        </button>
+      </div>`;
+  }).join('');
+}
+
+async function toggleSongInPlaylistModal(playlistId, songId, btn) {
+  const pl = userPlaylists.find(p => p.id === playlistId);
+  if (!pl) return;
+
+  const inPl = pl.canciones.includes(songId);
+  if (inPl) {
+    await supabase.from('playlist_canciones')
+      .delete().eq('playlist_id', playlistId).eq('cancion_id', songId);
+    pl.canciones = pl.canciones.filter(id => id !== songId);
+    if (btn) {
+      btn.textContent = '+ Añadir';
+      btn.style.background = 'var(--accent2)';
+      btn.style.color = '#fff';
+      btn.closest('div[style]').style.background = 'var(--bg3)';
+    }
+    toast('🗑️ Eliminada');
+  } else {
+    await supabase.from('playlist_canciones').upsert(
+      { playlist_id: playlistId, cancion_id: songId, posicion: pl.canciones.length },
+      { onConflict: 'playlist_id,cancion_id' }
+    );
+    pl.canciones.push(songId);
+    if (btn) {
+      btn.textContent = '✓ Añadida';
+      btn.style.background = 'rgba(248,113,113,.2)';
+      btn.style.color = 'var(--red)';
+      btn.closest('div[style]').style.background = 'rgba(167,139,250,.12)';
+    }
+    toast('➕ Añadida a ' + pl.nombre);
+  }
+
+  if (userPlaylists.length > 0) userPlaylist = userPlaylists[0].canciones;
+  await loadUserPlaylist();
+  renderAll();
+  if (document.getElementById('page-playlist').classList.contains('active')) renderPlaylist();
 }
 
 function reproducirPlaylist(playlistId) {
@@ -664,13 +891,15 @@ function filterPlaylist(tipo) {
 }
 
 // ── Función crearNuevaPlaylist (para los botones del HTML) ──
-async function crearNuevaPlaylist() {
-  // Crear modal bonito
+async function crearNuevaPlaylist(songIdToAdd = null) {
+  const existing = document.getElementById('newPlaylistOverlay');
+  if (existing) existing.remove();
+
   const overlay = document.createElement('div');
   overlay.id = 'newPlaylistOverlay';
   overlay.style.cssText = `
-    position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;
-    background:rgba(5,5,12,.85);backdrop-filter:blur(10px);
+    position:fixed;inset:0;z-index:9600;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,5,12,.88);backdrop-filter:blur(12px);
   `;
   overlay.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:24px;
@@ -684,9 +913,9 @@ async function crearNuevaPlaylist() {
       <input id="newPlaylistInput" type="text" placeholder="Ej: Mis favoritos, Workout..."
         style="width:100%;padding:12px 18px;border-radius:50px;border:1px solid var(--border);
                background:var(--bg3);color:var(--text);font-size:15px;outline:none;
-               font-family:var(--font-b);margin-bottom:16px"
+               font-family:var(--font-b);margin-bottom:16px;display:block"
         maxlength="40"
-        onkeydown="if(event.key==='Enter') confirmNewPlaylist()"
+        onkeydown="if(event.key==='Enter') confirmNewPlaylist(${songIdToAdd || 'null'})"
       >
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button onclick="document.getElementById('newPlaylistOverlay').remove()"
@@ -694,7 +923,7 @@ async function crearNuevaPlaylist() {
                  background:transparent;color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">
           Cancelar
         </button>
-        <button onclick="confirmNewPlaylist()"
+        <button onclick="confirmNewPlaylist(${songIdToAdd || 'null'})"
           style="padding:10px 24px;border-radius:50px;background:var(--accent2);
                  color:#fff;font-size:13px;font-weight:700;cursor:pointer;border:none;
                  box-shadow:0 4px 14px rgba(124,58,237,.4)">
@@ -705,11 +934,10 @@ async function crearNuevaPlaylist() {
   `;
   document.body.appendChild(overlay);
   setTimeout(() => document.getElementById('newPlaylistInput')?.focus(), 100);
-  // Cerrar al hacer clic fuera
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
-async function confirmNewPlaylist() {
+async function confirmNewPlaylist(songIdToAdd = null) {
   const input = document.getElementById('newPlaylistInput');
   if (!input) return;
   const nombre = input.value.trim();
@@ -720,15 +948,25 @@ async function confirmNewPlaylist() {
   const { data, error } = await supabase
     .from('playlists')
     .insert({ usuario_id: currentUser.id, nombre })
-    .select()
-    .single();
+    .select().single();
 
   if (error) { toast('❌ Error al crear la playlist'); return; }
-
   toast(`✅ Playlist "${nombre}" creada`);
-  // Recargar playlists y mostrar la nueva
+
   await loadUserPlaylist();
-  renderPlaylist();
+
+  // Si se pasó una canción, añadirla automáticamente
+  if (songIdToAdd) {
+    await supabase.from('playlist_canciones').upsert(
+      { playlist_id: data.id, cancion_id: songIdToAdd, posicion: 0 },
+      { onConflict: 'playlist_id,cancion_id' }
+    );
+    await loadUserPlaylist();
+    toast(`➕ Canción añadida a "${nombre}"`);
+  }
+
+  renderAll();
+  if (document.getElementById('page-playlist').classList.contains('active')) renderPlaylist();
 }
 
 /* ═══════════════════ INTERACTIONS (likes/favs con Supabase) ══════════════════ */
@@ -1444,8 +1682,11 @@ function getContextSongs() {
   if (playlistContext === 'favorites') return getFavoriteSongs();
   if (playlistContext === 'likes') return getLikedSongs();
   if (playlistContext === 'playlist') return getPlaylistSongs();
+  if (playlistContext === 'catalog') {
+    // Solo las canciones del catálogo filtrado actual
+    return currentCatalogIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+  }
   if (playlistContext.startsWith('album_')) {
-    // Retornar las canciones del álbum actual en orden
     return albumQueue.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
   }
   return allSongs;
@@ -2123,7 +2364,6 @@ function addMessageToUI(msg) {
   const container = document.getElementById('chatMessagesPanel');
   if (!container) return;
 
-  // Evitar duplicados usando el ID real (los temporales no se guardan en el set)
   if (typeof msg.id === 'number' || (typeof msg.id === 'string' && !msg.id.startsWith('temp_'))) {
     if (displayedMessageIds.has(msg.id)) return;
     displayedMessageIds.add(msg.id);
@@ -2142,6 +2382,11 @@ function addMessageToUI(msg) {
     div.style.backgroundColor = `hsla(${hue}, 60%, 25%, 0.6)`;
   }
   container.appendChild(div);
+
+  // Scroll automático al último mensaje (siempre)
+  requestAnimationFrame(() => {
+    container.scrollTop = container.scrollHeight;
+  });
 }
 
 async function sendMessage() {
@@ -2149,7 +2394,6 @@ async function sendMessage() {
   const mensaje = input.value.trim();
   if (!mensaje || !currentUser) return;
 
-  // Mostrar mensaje temporal inmediatamente
   const tempId = 'temp_' + Date.now() + '_' + Math.random();
   const tempMsg = {
     id: tempId,
@@ -2158,11 +2402,14 @@ async function sendMessage() {
     mensaje: mensaje,
     created_at: new Date().toISOString()
   };
-  
-  // Añadir al DOM directamente
+
   addMessageToUI(tempMsg);
-  
-  // Guardar referencia para después reemplazar cuando llegue el real
+  input.value = '';
+
+  // Scroll inmediato al enviar
+  const container = document.getElementById('chatMessagesPanel');
+  if (container) container.scrollTop = container.scrollHeight;
+
   const tempElement = document.querySelector(`[data-msg-id="${tempId}"]`);
   if (tempElement) {
     pendingTempMessages.set(tempId, {
@@ -2171,8 +2418,6 @@ async function sendMessage() {
       texto: mensaje
     });
   }
-
-  input.value = '';
 
   try {
     const res = await fetch(`${API_BASE}/api/messages`, {
@@ -2189,9 +2434,7 @@ async function sendMessage() {
       throw new Error(errData.error || 'Error al enviar');
     }
   } catch (e) {
-    console.error('Error enviando mensaje:', e);
     toast('Error al enviar mensaje: ' + e.message);
-    // Eliminar el mensaje temporal en caso de error
     if (tempElement) tempElement.remove();
     pendingTempMessages.delete(tempId);
   }
