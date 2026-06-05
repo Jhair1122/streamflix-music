@@ -5,6 +5,8 @@
    - IDs correctos: stat-canciones, stat-likes, stat-favoritos
    - Migración a Supabase completa
    - Todas las funciones previas intactas
+   - Sidebar colapsable añadido
+   - Portadas de moods mejoradas
 ════════════════════════════════════════════════════ */
 
 const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
@@ -712,11 +714,11 @@ function handleRankingArrowsResize() {
 
 /* ═══════════════════ MOODS, GÉNEROS, MIXES ══════════════════ */
 const MOODS = [
-  { id: 'tristes', nombre: 'Canciones tristes', emoji: '😢', color: 'linear-gradient(135deg, #1e3a5f, #3730a3)', generos: ['Balada', 'Alternativo'], keywords: ['sad','alone','goodbye','heartbreak','lost','pain','beautiful pain','let me down','love is gone','you broke'] },
-  { id: 'estudiar', nombre: 'Para estudiar', emoji: '📚', color: 'linear-gradient(135deg, #0c4a6e, #1e40af)', generos: ['Electrónica'], keywords: ['faded','lost','dynasty','fearless','past lives','on my way','softcore'] },
-  { id: 'ejercitar', nombre: 'Para ejercitarse', emoji: '💪', color: 'linear-gradient(135deg, #7f1d1d, #991b1b)', generos: ['Rock', 'Trap', 'Phonk'], keywords: ['rumbling','stronger','legends','thunder','alive','careless','monster','darkside','so tired'] },
-  { id: 'anime', nombre: 'Anime OST', emoji: '⛩️', color: 'linear-gradient(135deg, #4c1d95, #6d28d9)', generos: ['Anime'], keywords: [] },
-  { id: 'latino', nombre: 'Latino Hits', emoji: '🎺', color: 'linear-gradient(135deg, #064e3b, #065f46)', generos: ['Latino'], keywords: [] }
+  { id: 'tristes', nombre: 'Canciones tristes', emoji: '😢', color: 'linear-gradient(135deg, #1e3a5f, #3730a3)', generos: ['Balada', 'Alternativo'], keywords: ['sad','alone','goodbye','heartbreak','lost','pain','beautiful pain','let me down','love is gone','you broke'], cover: 'img/mood_tristes.jpg' },
+  { id: 'estudiar', nombre: 'Para estudiar', emoji: '📚', color: 'linear-gradient(135deg, #0c4a6e, #1e40af)', generos: ['Electrónica'], keywords: ['faded','lost','dynasty','fearless','past lives','on my way','softcore'], cover: 'img/mood_estudiar.jpg' },
+  { id: 'ejercitar', nombre: 'Para ejercitarse', emoji: '💪', color: 'linear-gradient(135deg, #7f1d1d, #991b1b)', generos: ['Rock', 'Trap', 'Phonk'], keywords: ['rumbling','stronger','legends','thunder','alive','careless','monster','darkside','so tired'], cover: 'img/mood_ejercitar.jpg' },
+  { id: 'anime', nombre: 'Anime OST', emoji: '⛩️', color: 'linear-gradient(135deg, #4c1d95, #6d28d9)', generos: ['Anime'], keywords: [], cover: 'img/mood_anime.jpg' },
+  { id: 'latino', nombre: 'Latino Hits', emoji: '🎺', color: 'linear-gradient(135deg, #064e3b, #065f46)', generos: ['Latino'], keywords: [], cover: 'img/mood_latino.jpg' }
 ];
 
 function obtenerCancionesPorMood(mood) {
@@ -732,8 +734,17 @@ function renderizarCancionesMood() {
     const canciones = obtenerCancionesPorMood(mood);
     const card = document.createElement('div');
     card.className = 'mood-card';
-    card.style.background = mood.color;
-    card.innerHTML = `<div><div style="font-size:18px">${mood.emoji}</div><div style="font-weight:700;font-size:15px;color:#fff;line-height:1.2;margin-top:4px">${mood.nombre}</div><div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px">${canciones.length} canciones</div></div>`;
+    // Usar la imagen de portada (si existe) o el color de respaldo
+    card.style.backgroundImage = mood.cover ? `url(${mood.cover})` : mood.color;
+    card.style.backgroundSize = 'cover';
+    card.style.backgroundPosition = 'center';
+    // Degradado sutil sobre la imagen para que el texto sea legible
+    card.innerHTML = `<div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(0,0,0,0.7), transparent)"></div>
+                      <div style="position:relative;z-index:1">
+                        <div style="font-size:18px">${mood.emoji}</div>
+                        <div style="font-weight:700;font-size:15px;color:#fff;line-height:1.2;margin-top:4px">${mood.nombre}</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px">${canciones.length} canciones</div>
+                      </div>`;
     card.addEventListener('click', () => abrirPaginaAlbum('mood', mood.id));
     row.appendChild(card);
   });
@@ -840,9 +851,12 @@ function abrirPaginaAlbum(tipo, valor) {
     return;
   }
 
+  // Obtener la cover del mood si existe
+  const moodActual = tipo === 'mood' ? MOODS.find(m => m.id === valor) : null;
+  const coverUrl = moodActual?.cover || null;
   const portadaBg = COLORES_GENERO[valor] || 'linear-gradient(135deg,#4c1d95,#7c3aed)';
   const iconoPortada = tipo === 'mood'
-    ? (MOODS.find(m => m.id === valor)?.emoji || '🎵')
+    ? (moodActual?.emoji || '🎵')
     : genreEmoji(valor);
 
   pagina.innerHTML = `
@@ -850,11 +864,19 @@ function abrirPaginaAlbum(tipo, valor) {
       <button onclick="cerrarPaginaAlbum()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">←</button>
       <h2 style="font-size:18px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tituloAlbum}</h2>
     </div>
-    <div style="padding:24px 16px 0;text-align:center">
-      <div style="width:180px;height:180px;background:${portadaBg};border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:72px;box-shadow:0 8px 32px rgba(0,0,0,.4)">${iconoPortada}</div>
-      <div style="font-weight:700;font-size:22px;margin-bottom:4px">${tituloAlbum}</div>
-      <div style="color:#a0aec0;font-size:13px">${cancionesAlbum.length} canciones</div>
-      <div style="color:#a0aec0;font-size:11px;margin-top:4px">${subtituloAlbum} · Generado por IA</div>
+    <div style="position:relative;overflow:hidden;${coverUrl ? `background-image:url(${coverUrl});background-size:cover;background-position:center;` : ''}">
+      <!-- Capa de fade-out en la parte inferior -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to bottom, transparent, rgba(5,5,12,1));z-index:2;pointer-events:none;"></div>
+      <!-- Capa semitransparente superior para mejorar legibilidad -->
+      <div style="position:absolute;top:0;left:0;right:0;height:60px;background:linear-gradient(to top, transparent, rgba(5,5,12,0.7));z-index:2;pointer-events:none;"></div>
+      <div style="padding:24px 16px 0;text-align:center;position:relative;z-index:1">
+        <div style="width:180px;height:180px;background:${coverUrl ? `url(${coverUrl}) center/cover` : portadaBg};border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:72px;box-shadow:0 8px 32px rgba(0,0,0,.4);${coverUrl ? '' : `background:${portadaBg}`}">
+          ${!coverUrl ? iconoPortada : ''}
+        </div>
+        <div style="font-weight:700;font-size:22px;margin-bottom:4px">${tituloAlbum}</div>
+        <div style="color:#a0aec0;font-size:13px">${cancionesAlbum.length} canciones</div>
+        <div style="color:#a0aec0;font-size:11px;margin-top:4px">${subtituloAlbum} · Generado por IA</div>
+      </div>
     </div>
     <div style="display:flex;gap:12px;padding:20px 16px 0;justify-content:center">
       <button onclick="shuffleYReproducir(${JSON.stringify(cancionesAlbum.map(c=>c.id))})"
