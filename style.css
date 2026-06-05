@@ -5,7 +5,6 @@
    - Disco del reproductor inferior corregido
    - Chat y perfil con estilos completos
    - Todas las secciones originales intactas
-   - Refuerzo para imágenes en discos (overflow y tamaño fijo)
 ═══════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
@@ -180,7 +179,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 }
 .right-panel-content { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 
-/* Disco del panel derecho (CORREGIDO + REFUERZO) */
+/* Disco del panel derecho (CORREGIDO) */
 .now-playing-art {
   width: 160px; height: 160px; border-radius: 50%;
   overflow: hidden;                      /* necesario para redondear la imagen */
@@ -193,25 +192,14 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
 }
 .now-playing-art .pl-disc.spinning { animation-play-state: running; }
 
-/* Disc cover genérico (REFORZADO) */
+/* Disc cover genérico (usado en todas partes) */
 .pl-disc-cover {
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: 50% !important;
-  overflow: hidden !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: inherit;
-  width: 100% !important;
-  height: 100% !important;
+  position: absolute; inset: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; background: inherit; overflow: hidden;
 }
 .pl-disc-cover img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: 50% !important;
-  display: block;
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
 }
 
 /* Centro del disco */
@@ -303,7 +291,7 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   min-width: 0;
 }
 
-/* Disco del reproductor (REFORZADO para evitar desbordamiento) */
+/* Disco del reproductor (CORREGIDO – tamaño fijo, giro, cover) */
 .player-left .pl-disc-wrap {
   width: 58px;
   height: 58px;
@@ -311,40 +299,36 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   position: relative;
   box-shadow: 0 0 20px rgba(167,139,250,0.5);
   border-radius: 50%;
-  overflow: hidden;                /* refuerzo extra */
 }
 .player-left .pl-disc {
-  width: 100% !important;
-  height: 100% !important;
-  border-radius: 50% !important;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: discSpin 3s linear infinite paused;
-  overflow: hidden !important;
+  overflow: hidden;                /* para que la imagen no sobresalga */
 }
 .player-left .pl-disc.spinning {
   animation-play-state: running;
 }
 .player-left .pl-disc-cover {
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: 50% !important;
-  overflow: hidden !important;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background: inherit;
-  width: 100% !important;
-  height: 100% !important;
 }
 .player-left .pl-disc-cover img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: 50% !important;
-  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 .player-left .pl-disc-center {
   position: absolute;
@@ -485,25 +469,8 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   width: 140px; height: 140px; border-radius: 50%;
   box-shadow: 0 0 40px rgba(167,139,250,.4);
   animation: discSpin 3s linear infinite paused;
-  overflow: hidden;                /* refuerzo */
 }
 .expanded-disc-img.spinning { animation-play-state: running; }
-.expanded-disc .pl-disc-cover,
-.expanded-disc-img .pl-disc-cover {
-  position: absolute !important;
-  inset: 0 !important;
-  border-radius: 50% !important;
-  overflow: hidden !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-.expanded-disc .pl-disc-cover img,
-.expanded-disc-img .pl-disc-cover img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: 50% !important;
-}
 .expanded-info h2 { font-family: var(--font-h); font-size: 20px; font-weight: 700; margin-bottom: 4px; }
 .expanded-info p { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
 .expanded-controls { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
@@ -1541,4 +1508,48 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .album-track-thumb, .album-track-thumb-placeholder { width: 36px; height: 36px; }
   .album-track-title { font-size: 12px; }
   .album-track-artist { font-size: 10px; }
+}
+
+/* Ocultar disco giratorio del panel derecho */
+.now-playing-art { display: none !important; }
+
+/* Evitar que contenido tape el reproductor */
+#playerBar {
+  z-index: 500 !important;
+}
+.main-content {
+  padding-bottom: 20px;
+}
+/* Arreglar imagen de disco en reproductor */
+#plDisc, .pl-disc-wrap .pl-disc {
+  overflow: hidden !important;
+  border-radius: 50% !important;
+}
+#plDisc .pl-disc-cover img,
+.pl-disc-wrap .pl-disc .pl-disc-cover img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block !important;
+}
+/* Disco del expanded player — arreglo imagen circular */
+#expDisc {
+  overflow: hidden !important;
+  position: relative;
+}
+#expDisc .pl-disc-cover {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+#expDisc .pl-disc-cover img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block !important;
 }
