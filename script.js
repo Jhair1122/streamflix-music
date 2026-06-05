@@ -950,15 +950,37 @@ function loadChatMessages() {
 function addMessageToUI(msg) {
   const container = document.getElementById('chatMessagesPanel');
   if (!container) return;
+
   const div = document.createElement('div');
   const isMine = currentUser && msg.user_id === currentUser.id;
-  div.className = 'msg-bubble' + (isMine ? ' my-msg' : '');
+
+  if (isMine) {
+    div.className = 'msg-bubble my-msg';
+  } else {
+    div.className = 'msg-bubble other-msg';
+    // Asignar color único basado en el user_id
+    const hue = hashCode(msg.user_id || msg.username) % 360;
+    div.style.backgroundColor = `hsla(${hue}, 60%, 25%, 0.6)`;
+  }
+
   if (isMine) {
     div.innerHTML = esc(msg.mensaje);
   } else {
     div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
   }
+
   container.appendChild(div);
+}
+
+// Función hash simple para generar un número a partir de un string
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + chr;
+    hash |= 0; // convertir a entero de 32 bits
+  }
+  return Math.abs(hash);
 }
 
 async function sendMessage() {
