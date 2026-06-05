@@ -1421,33 +1421,6 @@ function addMessageToUI(msg) {
   container.appendChild(div);
 }
 
-  // Si es temporal, creamos el elemento y lo guardamos en el map
-  if (isTemp) {
-    const div = document.createElement('div');
-    div.className = 'msg-bubble my-msg'; // siempre es nuestro
-    div.innerHTML = esc(msg.mensaje);
-    div.setAttribute('data-msg-id', msg.id);
-    container.appendChild(div);
-    tempMessageMap.set(msg.id, { element: div, username: currentUser.nombre || currentUser.username, texto: msg.mensaje });
-    return;
-  }
-
-  // Mensaje real sin duplicado
-  displayedMessageIds.add(msg.id);
-  const div = document.createElement('div');
-  const isMine = currentUser && msg.user_id === currentUser.id;
-  div.className = 'msg-bubble' + (isMine ? ' my-msg' : '');
-  div.setAttribute('data-msg-id', msg.id);
-  if (isMine) {
-    div.innerHTML = esc(msg.mensaje);
-  } else {
-    div.innerHTML = `<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
-    const hue = hashCode(msg.user_id || msg.username) % 360;
-    div.style.backgroundColor = `hsla(${hue}, 60%, 25%, 0.6)`;
-  }
-  container.appendChild(div);
- 
-
 async function sendMessage() {
   const input = document.getElementById('chatInput');
   const mensaje = input.value.trim();
