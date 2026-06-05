@@ -251,7 +251,7 @@ function findBestMatch(query, songs) {
 function renderAll(){
   updateHeroStats();
   updateBadges();
-  renderHomePopular();
+  // renderHomePopular();   // Eliminado (sección "Más populares" ya no existe)
   renderHomeRec();
   renderCatalog();
   renderPlaylist();
@@ -331,7 +331,7 @@ function renderCards(songs,containerId,emptyMsg='No hay canciones aquí aún.', 
   el.innerHTML=songs.map(s => songCard(s, context)).join('');
 }
 
-/* ── Populars (API) ── */
+/* ── Populars (API) ── (ya no se usa, pero se mantiene por si acaso) */
 async function renderHomePopular() {
   try {
     const res = await fetch(`${API_BASE}/api/popular`);
@@ -534,21 +534,18 @@ async function renderizarRankingGlobal() {
       return;
     }
 
-    const coloresPosicion = { 1: '#f59e0b', 2: '#9ca3af', 3: '#b45309' };
+    // Formato horizontal (tarjetas deslizables)
     contenedor.innerHTML = ranking.map((item, i) => {
-      const pos = i + 1;
-      const colorPos = coloresPosicion[pos] || '#7c3aed';
       const c = item.cancion;
       return `
-        <div class="ranking-fila" style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer" onclick="playSong(null, ${c.id})">
-          <span style="min-width:24px;font-weight:700;font-size:16px;color:${colorPos}">${pos}</span>
-          <img src="${c.url_imagen || ''}" style="width:48px;height:48px;border-radius:8px;object-fit:cover">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titulo}</div>
-            <div style="font-size:12px;color:#a0aec0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.artista}</div>
-          </div>
-          <div style="color:#f59e0b;font-size:12px;white-space:nowrap">★ ${item.score.toFixed(1)}</div>
-          <button onclick="event.stopPropagation();playSong(null,${c.id})" style="background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:14px">▶</button>
+        <div style="min-width:140px;background:rgba(11,11,22,.8);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;cursor:pointer;flex-shrink:0;transition:var(--transition-fast)"
+             onclick="playSong(null, ${c.id})"
+             onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <img src="${c.url_imagen || ''}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;margin-bottom:6px">
+          <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titulo}</div>
+          <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.artista}</div>
+          <div style="color:#f59e0b;font-size:11px;margin-top:4px">★ ${item.score.toFixed(1)}</div>
+          <button onclick="event.stopPropagation();playSong(null,${c.id})" style="margin-top:6px;background:rgba(124,58,237,0.2);border:none;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:12px">▶</button>
         </div>`;
     }).join('');
   } catch (error) {
@@ -1332,7 +1329,7 @@ function closeExpandedPlayer() {
 let chatSubscription = null;
 
 function initChat() {
-  loadChatMessages();   // ¡esta línea vuelve!
+  loadChatMessages();
 
   if (chatSubscription) return;   // evitar doble suscripción
 
@@ -1386,7 +1383,7 @@ function loadChatMessages() {
       const container = document.getElementById('chatMessagesPanel');
       if (container) {
         container.innerHTML = '';
-        displayedMessageIds.clear();   // ← AÑADE ESTA LÍNEA
+        displayedMessageIds.clear();   // Limpiar IDs para que se muestre el historial completo
         (data.messages || []).forEach(msg => addMessageToUI(msg));
         container.scrollTop = container.scrollHeight;
       }
@@ -1466,8 +1463,6 @@ async function sendMessage() {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || 'Error al enviar');
     }
-    // Si la API devuelve el mensaje creado, podríamos reemplazar aquí,
-    // pero confiamos en el evento Realtime.
   } catch (e) {
     console.error('Error enviando mensaje:', e);
     toast('Error al enviar mensaje: ' + e.message);
@@ -1566,6 +1561,9 @@ function showPage(name){
     document.getElementById('searchInputBig').value = '';
     searchQuery = '';
     renderCatalog();
+  }
+  else if (name === 'recomendaciones') {
+    renderHomeRec();
   }
 }
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
