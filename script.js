@@ -2032,64 +2032,128 @@ function updatePlayerLikeBtn() {
   btn.style.fontSize = '18px';
 }
 
-/* Visualizer */
-function startVisRaf(){
+/* ── Visualizador reactivo mejorado ── */
+let _visSmoothed = null;   // array de valores suavizados (persistente entre frames)
+
+function startVisRaf() {
   stopVisRaf();
-  if(!analyser) return;
+  if (!analyser) return;
   const bars = document.querySelectorAll('.vis-bar');
-  if(!bars.length) return;
+  if (!bars.length) return;
+
   const bufLen = analyser.frequencyBinCount;
   const dataArr = new Uint8Array(bufLen);
+  const BAR_COUNT = bars.length;
+
+  // Inicializar suavizado
+  if (!_visSmoothed || _visSmoothed.length !== BAR_COUNT) {
+    _visSmoothed = new Float32Array(BAR_COUNT).fill(0);
+  }
+
+  // Altura máxima real del contenedor
+  const vizEl = document.getElementById('audioVisualizer');
+  const MAX_H = vizEl ? (vizEl.offsetHeight || 48) : 48;
+
+  // Factor de suavizado: 0 = sin suavizado, 1 = sin cambio
+  // Subida rápida (0.35), bajada lenta (0.72) → efecto "bounce natural"
+  const RISE  = 0.35;
+  const FALL  = 0.72;
 
   // Paleta de colores por intensidad
-  const getColor = (pct) => {
-    if(pct > .85) return 'linear-gradient(to top,#f72585,#ff9f1c)';
-    if(pct > .6)  return 'linear-gradient(to top,#6c2bd9,#00f5d4)';
-    if(pct > .35) return 'linear-gradient(to top,#9d6fff,#00f5d4)';
-    return 'linear-gradient(to top,#6c2bd9,#9d6fff)';
-  };
+  function getColor(pct) {
+    if (pct > 0.88) return 'linear-gradient(to top, #ff2d78, #ff9f00)';   // rojo-naranja: muy alta energía
+    if (pct > 0.70) return 'linear-gradient(to top, #f72585, #c77dff)';   // rosa-violeta: alta
+    if (pct > 0.48) return 'linear-gradient(to top, #6c2bd9, #00f5d4)';   // violeta-cyan: media-alta
+    if (pct > 0.28) return 'linear-gradient(to top, #9d6fff, #00e5ff)';   // violeta claro-cyan: media
+    return             'linear-gradient(to top, #4a2080, #9d6fff)';        // violeta oscuro: baja
+  }
 
-  function draw(){
+  // Glow por intensidad
+  function getGlow(pct, h) {
+    if (pct > 0.80) return `0 0 ${Math.round(h * 0.6)}px rgba(255,45,120,0.7), 0 0 ${Math.round(h * 0.3)}px rgba(255,159,0,0.4)`;
+    if (pct > 0.55) return `0 0 ${Math.round(h * 0.5)}px rgba(108,43,217,0.6), 0 0 ${Math.round(h * 0.25)}px rgba(0,245,212,0.3)`;
+    if (pct > 0.30) return `0 0 ${Math.round(h * 0.35)}px rgba(157,111,255,0.4)`;
+    return 'none';
+  }
+
+  function draw() {
     analyser.getByteFrequencyData(dataArr);
-    // Calcular energía promedio
-    const avg = dataArr.reduce((s,v)=>s+v,0) / dataArr.length;
-    const energy = avg / 255;
 
+    // Energía promedio global (para efectos secundarios)
+    let totalEnergy = 0;
+    for (let i = 0; i < bufLen; i++) totalEnergy += dataArr[i];
+    const avgEnergy = totalEnergy / bufLen / 255;
+
+    // Pulso en el disco cuando hay picos de energía alta
+    const discWrap = document.querySelector('.pl-disc-wrap');
+    if (discWrap) {
+      if (avgEnergy > 0.45) {
+        const glow = Math.round(avgEnergy * 35);
+        discWrap.style.filter = `drop-shadow(0 0 ${glow}px rgba(157,111,255,${(avgEnergy * 0.9).toFixed(2)}))`;
+      } else {
+        discWrap.style.filter = '';
+      }
+    }
+
+    // Distribuir frecuencias entre las barras con escala logarítmica
+    // (graves a la izquierda con más peso, agudos a la derecha más comprimidos)
     bars.forEach((bar, i) => {
-      const idx = Math.floor(i * (bufLen / bars.length));
+      // Mapeo logarítmico: da más espacio visual a graves (más importantes perceptivamente)
+      const logMin = Math.log(1);
+      const logMax = Math.log(bufLen);
+      const logIdx = Math.exp(logMin + (logMax - logMin) * (i / (BAR_COUNT - 1)));
+      const idx = Math.min(bufLen - 1, Math.floor(logIdx));
+
+      // Valor raw normalizado [0, 1]
       const raw = dataArr[idx] / 255;
-      const h = Math.max(2, raw * 32);
+
+      // Suavizado asimétrico (subida rápida, bajada lenta)
+      const prev = _visSmoothed[i];
+      _visSmoothed[i] = raw > prev
+        ? prev + (raw - prev) * (1 - RISE)
+        : prev * FALL;
+
+      const smooth = _visSmoothed[i];
+
+      // Altura: escalar al contenedor real, mínimo 3px
+      const h = Math.max(3, smooth * MAX_H * 0.95);
+
       bar.style.height = h + 'px';
-      bar.style.background = getColor(raw);
-      bar.style.boxShadow = raw > .6
-        ? `0 0 ${Math.round(raw*12)}px rgba(0,245,212,${(raw-.6)*1.5})`
-        : 'none';
+      bar.style.background = getColor(smooth);
+      bar.style.boxShadow = getGlow(smooth, h);
       bar.classList.remove('idle');
     });
 
-    // Efecto de pulso en el disco cuando hay energía alta
-    const discWrap = document.querySelector('.pl-disc-wrap');
-    if(discWrap){
-      const glow = Math.round(energy * 30);
-      discWrap.style.filter = energy > .4
-        ? `drop-shadow(0 0 ${glow}px rgba(157,111,255,${energy*.8}))`
-        : '';
-    }
-
     visRaf = requestAnimationFrame(draw);
   }
+
   draw();
 }
 function stopVisRaf(){
   if(visRaf){ cancelAnimationFrame(visRaf); visRaf=null }
 }
-function startIdleVisualizer(){
+function startIdleVisualizer() {
   stopVisRaf();
-  document.querySelectorAll('.vis-bar').forEach((bar,i)=>{
-    bar.style.setProperty('--d',(i*0.06)+'s');
+  // Limpiar suavizado
+  if (_visSmoothed) _visSmoothed.fill(0);
+
+  const bars = document.querySelectorAll('.vis-bar');
+  const n = bars.length;
+  bars.forEach((bar, i) => {
+    // Delay en arco: el centro anima primero
+    const center = n / 2;
+    const dist = Math.abs(i - center) / center;
+    const delay = (dist * 0.4).toFixed(2);
+    bar.style.setProperty('--d', delay + 's');
     bar.classList.add('idle');
-    bar.style.height='';
+    bar.style.height = '';
+    bar.style.boxShadow = '';
+    bar.style.background = '';
   });
+
+  // Limpiar glow del disco cuando se pausa
+  const discWrap = document.querySelector('.pl-disc-wrap');
+  if (discWrap) discWrap.style.filter = '';
 }
 
 /* Progress */
@@ -2828,7 +2892,16 @@ window.addEventListener('load', async ()=>{
   // NO cargar canciones aquí — bootApp lo hace con manejo de errores
 
   const vizEl = $('audioVisualizer');
-  if (vizEl) vizEl.innerHTML = Array.from({ length: 20 }, (_, i) => `<div class="vis-bar idle" style="--d:${(i * 0.04).toFixed(2)}s"></div>`).join('');
+  if (vizEl) {
+  const BAR_N = 28;
+  vizEl.innerHTML = Array.from({ length: BAR_N }, (_, i) => {
+    // Delay escalonado: primero sube el centro, luego los extremos (efecto "arco")
+    const center = BAR_N / 2;
+    const dist = Math.abs(i - center) / center;
+    const delay = (dist * 0.4).toFixed(2);
+    return `<div class="vis-bar idle" style="--d:${delay}s"></div>`;
+  }).join('');
+}
 
   const audio = $('audioEl');
   if (audio) {
