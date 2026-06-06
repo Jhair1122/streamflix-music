@@ -72,6 +72,7 @@ function requireLogin(feature='esta función'){
   overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
 }
 
+// --- Navegación entre páginas ---
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -84,6 +85,7 @@ function showPage(name) {
     if (sidebar) sidebar.classList.remove('open');
   }
 }
+function toggleSidebar(){ $('sidebar')?.classList.toggle('open'); }
 
 // --- Cargar canciones ---
 async function loadSongs(){
@@ -98,7 +100,6 @@ async function loadSongs(){
       allSongs = data || [];
     }
   }
-  txt('hsSongs', allSongs.length);
   buildGenrePills();
   renderCatalog();
   renderMoodCards();
@@ -349,7 +350,7 @@ function abrirPaginaAlbum(tipo, valor) {
   } else if (tipo === 'mood') {
     const mood = MOODS.find(m => m.id === valor);
     if (mood) {
-      cancionesAlbum = allSongs.filter(s => s.mood === mood.id); // Mood exacto
+      cancionesAlbum = allSongs.filter(s => s.mood === mood.id);
       tituloAlbum = mood.nombre;
       subtituloAlbum = mood.emoji + ' · ' + cancionesAlbum.length + ' canciones';
     }
@@ -595,5 +596,5 @@ window.addEventListener('load',async()=>{
   }
   const vr=$('volumeRange'); if(vr){ vr.value=0.8; setVolume(0.8); }
   $('playerBar').classList.remove('hidden');
-  initChatReadOnly();
+  showPage('home');
 });
