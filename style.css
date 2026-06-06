@@ -1539,7 +1539,13 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   .player-center { flex: 1; }
   .player-right { display: none; }
   .pl-volume { display: none; }
-  .pl-btn.skip-btn { display: none !important; }
+  .pl-btn.skip-btn {
+    display: flex !important;
+    font-size: 10px;
+    font-weight: 700;
+    width: 28px;
+    height: 28px;
+  }
   .pl-visualizer { display: none; }
   .pl-controls-btns { gap: 8px; }
   .pl-controls-btns .pl-btn { width: 30px; height: 30px; font-size: 14px; }
@@ -1783,4 +1789,23 @@ code { font-size: 12px; color: var(--accent3); background: var(--bg3); padding: 
   object-fit: cover !important;
   border-radius: 50% !important;
   display: block !important;
+}
+/* ── Botón limpiar búsqueda ── */
+.clear-search-btn {
+  position: absolute;
+  right: 46px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  border: none;
+  color: var(--text2);
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+.clear-search-btn:hover {
+  background: rgba(248,113,113,.25);
+  color: var(--red);
 }
