@@ -2666,6 +2666,20 @@ async function renderAnalysis() {
   }
 }
 
+/* ═══════════════════ KEEP-ALIVE para Render ══════════════════ */
+function keepAlive() {
+  // Petición muy ligera a un endpoint que solo devuelve un OK
+  fetch(`${API_BASE}/api/songs?limit=1`)
+    .then(() => console.log('⚡ Keep-alive enviado'))
+    .catch(() => console.warn('Keep-alive falló (servidor posiblemente inactivo)'));
+}
+
+// Ejecutar inmediatamente al cargar la página (por si acaso)
+keepAlive();
+
+// Repetir cada 10 minutos (600.000 ms)
+setInterval(keepAlive, 600000);
+
 /* ═══════════════════ INIT ══════════════════ */
 window.addEventListener('load', async ()=>{
   if (!loadSession()) { window.location.href = 'explore.html'; return; }
