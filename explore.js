@@ -547,18 +547,6 @@ function addMsgUI(msg){
   c.appendChild(d);
 }
 
-/* ── Navegación ── */
-function showPage(name){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  const pg=$('page-'+name), nv=$('nav-'+name);
-  if(pg) pg.classList.add('active');
-  if(nv) nv.classList.add('active');
-  if(window.innerWidth<=768) $('sidebar')?.classList.remove('open');
-  if(name==='chat') initChatReadOnly();
-}
-function toggleSidebar(){ $('sidebar')?.classList.toggle('open'); }
-
 /* ── Voz ── */
 function initVoiceSearch(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -578,8 +566,7 @@ function initVoiceSearch(){
   recognition.onerror = () => { isListening = false; $('voiceOverlay').classList.remove('show'); };
 }
 function toggleVoice(){
-  if (!recognition) { initVoiceSearch(); }
-  if (isListening) { recognition.stop(); } else { recognition.start(); }
+  requireLogin('búsqueda por voz');
 }
 
 window.addEventListener('load',async()=>{
