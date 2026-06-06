@@ -3,374 +3,241 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SoundMind — Acceder</title>
+  <title>SoundMind — Explorar música</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box }
-    :root {
-      --bg: #05050c; --bg2: #111120; --bg3: #181828;
-      --accent: #a78bfa; --accent2: #7c3aed; --accent3: #c4b5fd;
-      --text: #f0f0fa; --text2: #9090b0; --text3: #52527a;
-      --border: rgba(255,255,255,.06); --border2: rgba(167,139,250,.2);
-      --red: #f87171; --green: #34d399;
-      --font-h: 'Syne', sans-serif; --font-b: 'DM Sans', sans-serif;
-    }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: var(--font-b);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      align-items: stretch;
-      overflow-x: hidden;
-    }
-
-    /* ── Layout split ── */
-    .login-split {
-      display: flex;
-      width: 100%;
-      min-height: 100vh;
-    }
-
-    /* Panel izquierdo — visual */
-    .login-visual {
-      flex: 1;
-      background: linear-gradient(135deg, #0d0d1f 0%, #1a0533 50%, #0b0b22 100%);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 40px; position: relative; overflow: hidden;
-    }
-    .login-visual::before {
-      content: ''; position: absolute;
-      top: -120px; left: -120px;
-      width: 500px; height: 500px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(124,58,237,.25) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .login-visual::after {
-      content: ''; position: absolute;
-      bottom: -80px; right: -80px;
-      width: 350px; height: 350px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(34,211,238,.1) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .visual-content { position: relative; z-index: 1; text-align: center; max-width: 380px; }
-    .visual-logo {
-      font-family: var(--font-h); font-size: 48px; font-weight: 800;
-      background: linear-gradient(135deg, #fff 20%, #c4b5fd 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      margin-bottom: 8px; letter-spacing: -2px;
-    }
-    .visual-tagline {
-      font-size: 12px; color: var(--text3); letter-spacing: 1.5px;
-      text-transform: uppercase; margin-bottom: 40px;
-    }
-    .visual-disc {
-      width: 160px; height: 160px; border-radius: 50%; margin: 0 auto 32px;
-      background: linear-gradient(135deg, #7c3aed, #a78bfa, #22d3ee);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 60px;
-      animation: discSpin 8s linear infinite;
-      box-shadow: 0 0 60px rgba(124,58,237,.4), 0 0 120px rgba(124,58,237,.15);
-      position: relative;
-    }
-    .visual-disc::after {
-      content: ''; position: absolute;
-      width: 28px; height: 28px; border-radius: 50%;
-      background: #05050c; border: 3px solid rgba(255,255,255,.2);
-    }
-    @keyframes discSpin { to { transform: rotate(360deg); } }
-    .visual-features { display: flex; flex-direction: column; gap: 14px; text-align: left; }
-    .visual-feature {
-      display: flex; align-items: center; gap: 12px;
-      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
-      border-radius: 12px; padding: 12px 16px;
-    }
-    .visual-feature-icon { font-size: 22px; flex-shrink: 0; }
-    .visual-feature-text { font-size: 13px; color: var(--text2); line-height: 1.4; }
-    .visual-feature-text strong { color: var(--text); display: block; font-size: 13px; }
-
-    /* Panel derecho — formulario */
-    .login-form-panel {
-      width: 460px; flex-shrink: 0;
-      background: #0b0b16;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 48px 40px;
-      border-left: 1px solid rgba(255,255,255,.05);
-      overflow-y: auto;
-    }
-    .form-header { text-align: center; margin-bottom: 32px; width: 100%; }
-    .form-header h2 {
-      font-family: var(--font-h); font-size: 26px; font-weight: 800;
-      margin-bottom: 6px; letter-spacing: -.4px;
-    }
-    .form-header p { color: var(--text2); font-size: 13px; }
-
-    /* Tabs */
-    .auth-tabs {
-      display: flex; background: rgba(255,255,255,.04);
-      border: 1px solid var(--border); border-radius: 50px;
-      padding: 4px; margin-bottom: 28px; gap: 4px; width: 100%;
-    }
-    .auth-tab {
-      flex: 1; padding: 10px; border-radius: 50px;
-      background: none; border: none; color: var(--text2);
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: .2s; font-family: var(--font-b);
-    }
-    .auth-tab.active {
-      background: var(--accent2); color: #fff;
-      box-shadow: 0 4px 14px rgba(124,58,237,.4);
-    }
-
-    /* Campos */
-    .auth-field { margin-bottom: 16px; width: 100%; }
-    .auth-field label {
-      display: block; font-size: 11px; color: var(--text2);
-      margin-bottom: 7px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
-    }
-    .field-wrap { position: relative; }
-    .field-icon {
-      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-      font-size: 16px; pointer-events: none;
-    }
-    .auth-field input {
-      width: 100%; padding: 13px 18px 13px 46px;
-      border-radius: 50px; border: 1px solid var(--border);
-      background: rgba(255,255,255,.04); color: var(--text);
-      font-size: 14px; font-family: var(--font-b); outline: none;
-      transition: .2s;
-    }
-    .auth-field input:focus {
-      border-color: var(--accent2);
-      background: rgba(124,58,237,.08);
-      box-shadow: 0 0 0 3px rgba(124,58,237,.15);
-    }
-    .auth-field input::placeholder { color: var(--text3); }
-
-    /* Botón submit */
-    .btn-auth {
-      width: 100%; padding: 14px; border-radius: 50px;
-      background: linear-gradient(135deg, var(--accent2), #5b21b6);
-      color: #fff; font-weight: 700; font-size: 15px; letter-spacing: .3px;
-      border: none; cursor: pointer; transition: .2s; margin-top: 8px;
-      box-shadow: 0 8px 28px rgba(124,58,237,.38); font-family: var(--font-b);
-    }
-    .btn-auth:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(124,58,237,.48); }
-    .btn-auth:active { transform: translateY(0); }
-
-    /* Mensaje de error/éxito */
-    #authMsg {
-      min-height: 22px; text-align: center;
-      font-size: 13px; margin-top: 12px; width: 100%;
-      padding: 0 4px; line-height: 1.5;
-    }
-    #authMsg.error { color: var(--red); }
-    #authMsg.success { color: var(--green); }
-
-    /* Link explorar */
-    .explore-link {
-      text-align: center; margin-top: 20px;
-      font-size: 13px; color: var(--text2); width: 100%;
-    }
-    .explore-link a { color: var(--accent3); text-decoration: none; font-weight: 600; }
-    .explore-link a:hover { text-decoration: underline; }
-
-    /* Divider */
-    .form-divider {
-      display: flex; align-items: center; gap: 12px;
-      margin: 16px 0; width: 100%;
-    }
-    .form-divider::before, .form-divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--border);
-    }
-    .form-divider span { font-size: 12px; color: var(--text3); white-space: nowrap; }
-
-    .hidden { display: none !important; }
-
-    /* ── Responsive ── */
-    @media (max-width: 900px) {
-      .login-visual { display: none; }
-      .login-form-panel { width: 100%; border-left: none; padding: 40px 24px; }
-    }
-    @media (max-width: 480px) {
-      .login-form-panel { padding: 32px 20px; justify-content: flex-start; padding-top: 48px; }
-      .form-header h2 { font-size: 22px; }
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="login-split">
 
-  <!-- Panel visual -->
-  <div class="login-visual">
-    <div class="visual-content">
-      <div class="visual-logo">SoundMind</div>
-      <div class="visual-tagline">IA · Recomendación Musical</div>
-      <div class="visual-disc">🎵</div>
-      <div class="visual-features">
-        <div class="visual-feature">
-          <div class="visual-feature-icon">🎯</div>
-          <div class="visual-feature-text">
-            <strong>Recomendaciones personalizadas</strong>
-            Algoritmos KNN, árbol de decisión y playlists recursivas
+<!-- HAMBURGER (solo móvil) -->
+<button class="hamburger" onclick="toggleSidebar()">☰</button>
+
+<!-- CONTENEDOR PRINCIPAL -->
+<div id="app" class="">
+
+  <!-- ═══════════ SIDEBAR IZQUIERDO (Escritorio) ═══════════ -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-content">
+        <h1><span class="brand-full">SoundMind</span><span class="brand-short">SM</span></h1>
+        <p>IA · EXPLORAR</p>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">PRINCIPAL</div>
+      <button class="nav-item active" id="nav-home" onclick="showPage('home')">🏠 Inicio</button>
+      <button class="nav-item" id="nav-weekly" onclick="showPage('weekly')">📅 Discover Weekly</button>
+      <button class="nav-item" id="nav-recomendaciones" onclick="showPage('recomendaciones')">🎯 Recomendaciones</button>
+      <div class="nav-section">MI BIBLIOTECA</div>
+      <button class="nav-item" id="nav-playlist" onclick="requireLogin('Playlist')">🎵 Playlist</button>
+      <div class="nav-section">COMUNIDAD</div>
+      <button class="nav-item" id="nav-chat" onclick="showPage('chat')">💬 Chat</button>
+      <div class="nav-section">MI CUENTA</div>
+      <button class="nav-item" id="nav-profile" onclick="requireLogin('Perfil')">👤 Mi perfil</button>
+      <button class="nav-item" id="nav-analysis" onclick="requireLogin('Panel IA')">🤖 Panel IA</button>
+      <div class="nav-section"></div>
+      <button class="nav-item" style="color: var(--accent3); font-weight: 700;" onclick="window.location.href='login.html'">🔐 Iniciar sesión</button>
+    </div>
+  </nav>
+
+  <!-- ═══════════ PANEL CENTRAL ═══════════ -->
+  <main class="main-content">
+
+    <!-- HOME (Inicio) -->
+    <div class="page active" id="page-home">
+      <!-- CABECERA DE BIENVENIDA (pública) -->
+      <div class="user-header">
+        <div class="user-header-info">
+          <div class="user-avatar" style="background: linear-gradient(135deg, #7c3aed, #a78bfa);">🎧</div>
+          <div>
+            <h2>Explora SoundMind <span style="color:var(--accent3)">🌐</span></h2>
+            <p>Descubre música, géneros y tendencias sin necesidad de cuenta.</p>
           </div>
         </div>
-        <div class="visual-feature">
-          <div class="visual-feature-icon">📅</div>
-          <div class="visual-feature-text">
-            <strong>Discover Weekly</strong>
-            Nueva playlist cada lunes basada en tus gustos
+        <div class="user-header-stats">
+          <button class="btn-logout-header" onclick="window.location.href='login.html'" style="background: var(--accentA); border-color: var(--accent); color: var(--accent3);">
+            Iniciar sesión
+          </button>
+        </div>
+      </div>
+
+      <!-- 🎧 LO MÁS ESCUCHADO (horizontal) -->
+      <div class="section">
+        <div class="section-head">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="section-title">🎧 Lo más escuchado</div>
+            <span class="ai-badge">Comunidad</span>
           </div>
         </div>
-        <div class="visual-feature">
-          <div class="visual-feature-icon">💬</div>
-          <div class="visual-feature-text">
-            <strong>Chat en tiempo real</strong>
-            Conéctate con otros usuarios de la comunidad
+        <div class="horizontal-scroll" id="ranking-lo-mas-escuchado">
+          <div class="loading"><div class="spin"></div> Calculando ranking…</div>
+        </div>
+      </div>
+
+      <!-- NUEVO: Canciones para tu estado de ánimo (preview) -->
+      <div class="section" id="seccion-canciones-mood"></div>
+
+      <!-- NUEVO: Explora tus géneros -->
+      <div class="section" id="seccion-explora-generos"></div>
+
+      <!-- NUEVO: Tus mixes más escuchados -->
+      <div class="section" id="seccion-tus-mixes"></div>
+
+      <!-- 🎵 Catálogo completo + buscador y chips de género -->
+      <div class="section">
+        <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
+        <div class="top-bar" style="margin-top:12px">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Buscar por título o artista…" oninput="onSearch()">
+            <button class="clear-search-btn hidden" id="clearSearchBtn" onclick="clearSearch()" title="Limpiar búsqueda">✕</button>
+            <button class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Buscar por voz">🎤</button>
           </div>
+          <span id="catalogCount" style="font-size:13px;color:var(--text2)"></span>
+        </div>
+        <div class="genre-pills" id="genrePills" style="margin-bottom:12px"></div>
+        <div class="cards-grid" id="catalogCards"><div class="loading"><div class="spin"></div> Cargando…</div></div>
+      </div>
+    </div>
+
+    <!-- RECOMENDACIONES IA (redirige a login) -->
+    <div class="page" id="page-recomendaciones">
+      <div style="text-align:center;padding:60px 20px;color:#a0aec0">
+        <div style="font-size:56px;margin-bottom:16px">🔒</div>
+        <h2 style="font-family:var(--font-h);margin-bottom:10px">Recomendaciones personalizadas</h2>
+        <p style="margin-bottom:24px">Inicia sesión para recibir música basada en tus gustos.</p>
+        <button onclick="window.location.href='login.html'" class="btn-shuffle-all" style="margin:0 auto">Iniciar sesión →</button>
+      </div>
+    </div>
+
+    <!-- PÁGINA ÁLBUM (dinámica, controlada por JS) -->
+    <div class="page" id="page-album"></div>
+
+    <!-- DISCOVER WEEKLY (preview) -->
+    <div class="page" id="page-weekly">
+      <div style="text-align:center;padding:60px 20px;color:#a0aec0">
+        <div style="font-size:56px;margin-bottom:16px">📅</div>
+        <h2 style="font-family:var(--font-h);margin-bottom:10px">Discover Weekly</h2>
+        <p style="margin-bottom:24px">Cada lunes, una playlist nueva basada en tus gustos. Inicia sesión para activarla.</p>
+        <button onclick="window.location.href='login.html'" class="btn-shuffle-all" style="margin:0 auto">Iniciar sesión →</button>
+      </div>
+    </div>
+
+    <!-- CHAT (solo lectura) -->
+    <div class="page" id="page-chat">
+      <div class="page-title">💬 Chat de la comunidad</div>
+      <div class="page-sub">Mensajes públicos. Inicia sesión para participar.</div>
+      <div class="chat-container">
+        <div class="chat-messages-panel" id="chatMessagesPanel"></div>
+        <div class="chat-input-area">
+          <input type="text" placeholder="Inicia sesión para escribir…" disabled>
+          <button class="chat-send-btn" disabled>Enviar</button>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Panel formulario -->
-  <div class="login-form-panel">
-    <div class="form-header">
-      <h2>Bienvenido 👋</h2>
-      <p>Accede a tu cuenta o crea una nueva</p>
-    </div>
-
-    <div class="auth-tabs" style="width:100%;max-width:360px">
-      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Iniciar sesión</button>
-      <button class="auth-tab" id="tabReg" onclick="switchTab('register')">Crear cuenta</button>
-    </div>
-
-    <!-- Login -->
-    <div id="formLogin" style="width:100%;max-width:360px">
-      <div class="auth-field">
-        <label>Usuario</label>
-        <div class="field-wrap">
-          <span class="field-icon">👤</span>
-          <input type="text" id="loginUser" placeholder="Tu nombre de usuario" autocomplete="username"
-            onkeydown="if(event.key==='Enter') doLogin()">
-        </div>
-      </div>
-      <div class="auth-field">
-        <label>Contraseña</label>
-        <div class="field-wrap">
-          <span class="field-icon">🔒</span>
-          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"
-            onkeydown="if(event.key==='Enter') doLogin()">
-        </div>
-      </div>
-      <button class="btn-auth" onclick="doLogin()">Ingresar →</button>
-    </div>
-
-    <!-- Register -->
-    <div id="formReg" class="hidden" style="width:100%;max-width:360px">
-      <div class="auth-field">
-        <label>Nombre completo</label>
-        <div class="field-wrap">
-          <span class="field-icon">✏️</span>
-          <input type="text" id="regName" placeholder="Tu nombre real" autocomplete="name"
-            onkeydown="if(event.key==='Enter') doRegister()">
-        </div>
-      </div>
-      <div class="auth-field">
-        <label>Usuario</label>
-        <div class="field-wrap">
-          <span class="field-icon">👤</span>
-          <input type="text" id="regUser" placeholder="Elige un nombre de usuario" autocomplete="username"
-            onkeydown="if(event.key==='Enter') doRegister()">
-        </div>
-      </div>
-      <div class="auth-field">
-        <label>Contraseña</label>
-        <div class="field-wrap">
-          <span class="field-icon">🔒</span>
-          <input type="password" id="regPass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"
-            onkeydown="if(event.key==='Enter') doRegister()">
-        </div>
-      </div>
-      <button class="btn-auth" onclick="doRegister()">Crear cuenta →</button>
-    </div>
-
-    <div id="authMsg"></div>
-
-    <div class="form-divider" style="width:100%;max-width:360px">
-      <span>o continúa sin cuenta</span>
-    </div>
-
-    <div class="explore-link" style="max-width:360px">
-      <a href="explore.html">← Explorar música sin iniciar sesión</a>
-    </div>
-  </div>
+  </main>
 
 </div>
 
-<script>
-  const API_BASE = 'https://streamflix-music.onrender.com';
+<!-- ═══════════ REPRODUCTOR INFERIOR (Fijo) ═══════════ -->
+<div id="playerBar" class="hidden">
+  <div class="player-left">
+    <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
+      <div class="pl-disc" id="plDisc"><div class="pl-disc-cover" id="plDiscCover">🎵</div><div class="pl-disc-center"></div></div>
+    </div>
+    <div class="pl-info" onclick="openExpandedPlayer()">
+      <div class="pl-title" id="plTitle">Sin reproducción</div>
+      <div class="pl-artist" id="plArtist"></div>
+    </div>
+  </div>
+  <div class="player-center">
+    <div class="pl-controls-btns">
+      <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
+      <button class="pl-btn" onclick="playPrevSong()">⏮</button>
+      <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
+      <button class="pl-btn" onclick="playNextSong()">⏭</button>
+      <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
+    </div>
+    <div class="pl-progress-wrap">
+      <span class="pl-time" id="currentTime">0:00</span>
+      <div class="pl-progress" id="progressBar" onclick="seekProgress(event)"><div class="pl-progress-fill" id="progressFill"></div></div>
+      <span class="pl-time" id="totalTime">0:00</span>
+    </div>
+    <div class="pl-visualizer" id="audioVisualizer"></div>
+  </div>
+  <div class="player-right">
+    <div class="pl-volume">
+      <span class="pl-vol-icon" id="volIcon">🔊</span>
+      <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
+      <span class="vol-percent" id="volPercent">80%</span>
+    </div>
+  </div>
+  <audio id="audioEl" preload="none"></audio>
+</div>
 
-  function saveSession(user){ localStorage.setItem('soundmind_user', JSON.stringify(user)); }
+<!-- EXPANDED PLAYER (igual que en index) -->
+<div id="expandedPlayer" class="hidden">
+  <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
+  <div class="expanded-card">
+    <button class="expanded-close" onclick="closeExpandedPlayer()">✕</button>
+    <div class="expanded-disc">
+      <div class="pl-disc expanded-disc-img" id="expDisc"><div class="pl-disc-cover" id="expDiscCover">🎵</div><div class="pl-disc-center"></div></div>
+    </div>
+    <div class="expanded-info"><h2 id="expTitle">Sin reproducción</h2><p id="expArtist"></p></div>
+    <div class="expanded-like-row">
+      <button class="exp-action-btn" onclick="requireLogin('likes')" title="Like">🤍</button>
+      <button class="exp-action-btn" onclick="requireLogin('favoritos')" title="Favorito">☆</button>
+      <button class="exp-action-btn" onclick="requireLogin('playlists')" title="Playlist">➕</button>
+    </div>
+    <div class="expanded-controls">
+      <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
+      <button class="pl-btn" onclick="playPrevSong()">⏮</button>
+      <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
+      <button class="pl-btn" onclick="playNextSong()">⏭</button>
+      <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
+    </div>
+    <div class="expanded-progress">
+      <span id="expCurrentTime">0:00</span>
+      <div class="pl-progress" id="expProgressBar" onclick="seekProgressExpanded(event)"><div class="pl-progress-fill" id="expProgressFill"></div></div>
+      <span id="expTotalTime">0:00</span>
+    </div>
+    <div class="expanded-volume">
+      <span class="pl-vol-icon">🔊</span>
+      <input type="range" id="expVolumeRange" min="0" max="1" step="0.05" value="0.8" oninput="setVolume(this.value)">
+      <span class="vol-percent" id="expVolPercent">80%</span>
+    </div>
+  </div>
+</div>
 
-  // Detectar si viene desde #register
-  if(window.location.hash === '#register') switchTab('register');
+<!-- TOAST -->
+<div id="toast"></div>
 
-  function switchTab(tab){
-    document.getElementById('tabLogin').classList.toggle('active', tab==='login');
-    document.getElementById('tabReg').classList.toggle('active', tab==='register');
-    document.getElementById('formLogin').classList.toggle('hidden', tab!=='login');
-    document.getElementById('formReg').classList.toggle('hidden', tab!=='register');
-    setMsg('','');
-  }
+<!-- VOICE OVERLAY (igual) -->
+<div id="voiceOverlay">
+  <div class="voice-modal">
+    <div class="voice-waves">
+      <div class="voice-wave"></div><div class="voice-wave"></div><div class="voice-wave"></div>
+      <div class="voice-wave"></div><div class="voice-wave"></div><div class="voice-wave"></div>
+    </div>
+    <h3>Escuchando…</h3>
+    <p>Di el nombre de una canción o artista</p>
+    <div class="voice-transcript" id="voiceTranscript"></div>
+    <button class="voice-cancel-btn" onclick="toggleVoice()">Cancelar</button>
+  </div>
+</div>
 
-  function setMsg(msg, type='error'){
-    const el=document.getElementById('authMsg');
-    el.textContent=msg; el.className=type;
-  }
+<!-- ═══════════ BARRA DE NAVEGACIÓN MÓVIL ═══════════ -->
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-item active" onclick="showPage('home')">🏠<span>Inicio</span></button>
+  <button class="mobile-nav-item" onclick="showPage('weekly')">📅<span>Semanal</span></button>
+  <button class="mobile-nav-item" onclick="requireLogin('Playlist')">🎵<span>Playlist</span></button>
+  <button class="mobile-nav-item" onclick="showPage('chat')">💬<span>Chat</span></button>
+  <button class="mobile-nav-item" onclick="window.location.href='login.html'">🔐<span>Login</span></button>
+</nav>
 
-  async function doLogin(){
-    const username=document.getElementById('loginUser').value.trim();
-    const password=document.getElementById('loginPass').value.trim();
-    if(!username||!password){ setMsg('Completa todos los campos'); return; }
-    setMsg('Verificando…','');
-    try {
-      const res=await fetch(`${API_BASE}/api/login`,{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({username,password})
-      });
-      if(!res.ok){ const d=await res.json().catch(()=>({})); throw new Error(d.error||'Credenciales inválidas'); }
-      const data=await res.json();
-      saveSession(data.user);
-      setMsg('✓ Entrando…','success');
-      setTimeout(()=>window.location.href='index.html', 400);
-    } catch(err){ setMsg(err.message||'Error de conexión'); }
-  }
-
-  async function doRegister(){
-    const nombre=document.getElementById('regName').value.trim();
-    const username=document.getElementById('regUser').value.trim();
-    const password=document.getElementById('regPass').value.trim();
-    if(!nombre||!username||!password){ setMsg('Completa todos los campos'); return; }
-    if(username.length<3){ setMsg('El usuario debe tener al menos 3 caracteres'); return; }
-    if(password.length<6){ setMsg('La contraseña debe tener al menos 6 caracteres'); return; }
-    setMsg('Creando cuenta…','');
-    try {
-      const res=await fetch(`${API_BASE}/api/register`,{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({nombre,username,password})
-      });
-      if(!res.ok){ const d=await res.json().catch(()=>({})); throw new Error(d.error||'Error al crear cuenta'); }
-      const data=await res.json();
-      saveSession(data.user);
-      setMsg('✓ Cuenta creada. Entrando…','success');
-      setTimeout(()=>window.location.href='index.html', 500);
-    } catch(err){ setMsg(err.message||'Error de conexión'); }
-  }
-</script>
+<script src="explore.js"></script>
 </body>
 </html>
