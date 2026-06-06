@@ -287,8 +287,12 @@
     <div class="pl-info" onclick="openExpandedPlayer()">
       <div class="pl-title" id="plTitle">Sin reproducción</div>
       <div class="pl-artist" id="plArtist"></div>
+      <button class="player-like-btn" id="playerLikeBtn" 
+      onclick="if(nowPlayingId) toggleLike(event, nowPlayingId);event.stopPropagation()" 
+      title="Me gusta">🤍</button>
     </div>
   </div>
+  
   <div class="player-center">
     <div class="pl-controls-btns">
       <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
