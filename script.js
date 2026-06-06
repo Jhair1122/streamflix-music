@@ -612,7 +612,16 @@ async function loadUserPlaylist() {
     userPlaylist = [...allCanciones];
 
     console.log('[loadUserPlaylist] ✅ Final userPlaylists:', 
-      userPlaylists.map(p => `${p.nombre}[id=${p.id}](${p.canciones.length} canciones: ${p.canciones})`));
+      userPlaylists.map(p => `${p.nombre}[id=${p.id} tipo:${typeof p.id}](${p.canciones.length} canciones: ${p.canciones} tipos:${p.canciones.map(c=>typeof c)})`));
+    
+    // Verificación cruzada con allSongs
+    userPlaylists.forEach(pl => {
+      pl.canciones.forEach(cid => {
+        const found = allSongs.find(s => Number(s.id) === Number(cid));
+        if (!found) console.error(`❌ cancion_id ${cid} NO encontrada en allSongs`);
+        else console.log(`✅ cancion_id ${cid} → "${found.titulo}"`);
+      });
+    });
 
   } catch(e) {
     console.error('[loadUserPlaylist] EXCEPCIÓN:', e);
@@ -776,7 +785,7 @@ function renderPlaylist(filtro) {
 
     let html = '';
     userPlaylists.forEach(pl => {
-      const songs = allSongs.filter(s => pl.canciones.includes(s.id));
+      const songs = allSongs.filter(s => pl.canciones.includes(Number(s.id)));
       html += `
         <div style="margin-bottom:28px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
@@ -805,7 +814,7 @@ function renderPlaylist(filtro) {
     container.innerHTML = html;
     userPlaylists.forEach(pl => {
       const songs = allSongs.filter(s => pl.canciones.includes(s.id));
-      renderAlbumTrackList(songs, `pl-songs-${pl.id}`, 'Esta playlist está vacía.', 'playlist');
+      renderAlbumTrackList(songs, `pl-songs-${pl.id}`, 'Esta playlist está vacía.', 'playlist_' + pl.id);
     });
   }
   updateBadges();
