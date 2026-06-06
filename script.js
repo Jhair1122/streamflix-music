@@ -155,7 +155,6 @@ async function bootApp(){
     
     if (songsErr) throw songsErr;
     allSongs = songsData || [];
-    console.log('[bootApp] Canciones cargadas:', allSongs.length);
 
     const { data: interData } = await supabase.from('interacciones')
       .select('cancion_id, es_like, es_favorito')
@@ -547,15 +546,12 @@ async function loadUserPlaylist() {
   if (!currentUser) return;
   
   const uid = String(currentUser.id).trim();
-  console.log('[loadUserPlaylist] uid:', uid);
   
   try {
     const { data: playlists, error: plErr } = await supabase
       .from('playlists')
       .select('id, nombre, usuario_id')
       .eq('usuario_id', uid);
-
-    console.log('[loadUserPlaylist] playlists result:', playlists, 'error:', plErr);
 
     if (plErr || !playlists || playlists.length === 0) {
       userPlaylist = [];
@@ -565,7 +561,6 @@ async function loadUserPlaylist() {
     }
 
     const playlistIds = playlists.map(p => Number(p.id));
-    console.log('[loadUserPlaylist] playlistIds:', playlistIds);
 
     const { data: pcRaw, error: pcErr } = await supabase
       .from('playlist_canciones')
@@ -579,9 +574,6 @@ async function loadUserPlaylist() {
       cancion_id:  Number(r.cancion_id),
       posicion:    Number(r.posicion)
     }));
-    console.log('[loadUserPlaylist] pcRows normalizados:', pcRows);
-
-    console.log('[loadUserPlaylist] playlist_canciones:', pcRows, 'error:', pcErr);
 
     // Agrupar canciones por playlist
     // Filtrar solo cancion_id que realmente existan en allSongs
@@ -610,18 +602,6 @@ async function loadUserPlaylist() {
     const allCanciones = new Set();
     userPlaylists.forEach(pl => pl.canciones.forEach(id => allCanciones.add(id)));
     userPlaylist = [...allCanciones];
-
-    console.log('[loadUserPlaylist] ✅ Final userPlaylists:', 
-      userPlaylists.map(p => `${p.nombre}[id=${p.id} tipo:${typeof p.id}](${p.canciones.length} canciones: ${p.canciones} tipos:${p.canciones.map(c=>typeof c)})`));
-    
-    // Verificación cruzada con allSongs
-    userPlaylists.forEach(pl => {
-      pl.canciones.forEach(cid => {
-        const found = allSongs.find(s => Number(s.id) === Number(cid));
-        if (!found) console.error(`❌ cancion_id ${cid} NO encontrada en allSongs`);
-        else console.log(`✅ cancion_id ${cid} → "${found.titulo}"`);
-      });
-    });
 
   } catch(e) {
     console.error('[loadUserPlaylist] EXCEPCIÓN:', e);
@@ -944,13 +924,10 @@ async function toggleSongInPlaylistModal(playlistId, songId, btn) {
 }
 
 function reproducirPlaylist(playlistId) {
-  console.log('[reproducirPlaylist] playlistId:', playlistId, 'userPlaylists:', userPlaylists);
   
   const pl = userPlaylists.find(p => p.id === playlistId);
   if (!pl) {
     toast('Playlist no encontrada (id=' + playlistId + ')');
-    console.error('[reproducirPlaylist] No se encontró playlist con id:', playlistId, 
-                  'disponibles:', userPlaylists.map(p=>p.id));
     return;
   }
   if (pl.canciones.length === 0) {
@@ -961,7 +938,6 @@ function reproducirPlaylist(playlistId) {
   playlistContext = 'playlist_' + playlistId;
   _activePlaylistIds = pl.canciones.slice();
   
-  console.log('[reproducirPlaylist] ctx:', playlistContext, 'canciones:', _activePlaylistIds);
   playSong(null, pl.canciones[0], playlistContext);
 }
 
@@ -1770,16 +1746,12 @@ function getContextSongs() {
       const pl = userPlaylists.find(p => p.id === plId);
       if (pl && pl.canciones.length > 0) {
         const songs = pl.canciones.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
-        console.log('[getContextSongs] playlist_' + plId, '→', songs.map(s=>s.titulo));
         return songs;
       }
-      console.warn('[getContextSongs] playlist_' + plId + ' no encontrada en userPlaylists:', 
-                   userPlaylists.map(p=>p.id));
     }
 
     // Fallback _activePlaylistIds
     if (_activePlaylistIds.length > 0) {
-      console.log('[getContextSongs] fallback _activePlaylistIds:', _activePlaylistIds);
       return _activePlaylistIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
     }
     return [];
