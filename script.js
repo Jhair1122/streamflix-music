@@ -259,51 +259,71 @@ function initVoiceSearch(){
   if (!SR) { const vb=$('voiceBtn'); if(vb) vb.style.opacity='.35'; return; }
   recognition = new SR();
   recognition.lang = 'es-ES';
-  recognition.continuous = true;
-  recognition.interimResults = true;
+  recognition.continuous = true;       // seguir escuchando aunque haya pausas
+  recognition.interimResults = true;  // mostrar resultados parciales
+
+  let lastTranscript = '';             // acumula lo escuchado en esta sesión
+  let searchAlreadyDone = false;      // evita doble búsqueda
 
   recognition.onstart = () => {
     isListening = true;
+    lastTranscript = '';
+    searchAlreadyDone = false;
     $('voiceBtn').classList.add('listening');
     $('voiceOverlay').classList.add('show');
-    txt('voiceTranscript','Escuchando… di "buscar" para iniciar la búsqueda');
+    txt('voiceTranscript','🎤 Habla ahora…');
   };
+
   recognition.onend = () => {
     isListening = false;
     $('voiceBtn').classList.remove('listening');
     $('voiceOverlay').classList.remove('show');
+
+    // Si al terminar de escuchar hay texto y no se hizo búsqueda, buscar con todo el texto
+    if (!searchAlreadyDone && lastTranscript.trim()) {
+      realizarBusquedaVoz(lastTranscript.trim());
+    }
   };
+
   recognition.onerror = (e) => {
     isListening = false;
     $('voiceBtn').classList.remove('listening');
     $('voiceOverlay').classList.remove('show');
     toast('⚠️ Micrófono: ' + e.error);
   };
+
   recognition.onresult = (e) => {
-    let transcript = '';
+    // Reconstruir el transcript completo desde el resultado más reciente
+    let newTranscript = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
+      newTranscript += e.results[i][0].transcript;
     }
-    txt('voiceTranscript', '"' + transcript + '"');
+    lastTranscript = newTranscript;
+    txt('voiceTranscript', '"' + newTranscript + '"');
 
-    const keyword = 'buscar';
-    const lowerTranscript = transcript.toLowerCase();
-    const keywordIndex = lowerTranscript.lastIndexOf(keyword);
-
+    // Opcional: seguir permitiendo la palabra clave "buscar" para búsqueda inmediata
+    const lower = newTranscript.toLowerCase();
+    const keywordIndex = lower.lastIndexOf('buscar');
     if (keywordIndex !== -1) {
-      let rawQuery = transcript.substring(0, keywordIndex).trim();
+      const rawQuery = newTranscript.substring(0, keywordIndex).trim();
       if (rawQuery) {
-        const bestMatch = findBestMatch(rawQuery, allSongs);
-        const finalQuery = bestMatch || rawQuery;
-        searchQuery = finalQuery.toLowerCase();
-        const si = $('searchInput');
-        if (si) si.value = finalQuery;
-        renderCatalog();
-        toast(bestMatch ? '🎤 Buscando: ' + bestMatch + ' (corregido)' : '🎤 Buscando: ' + rawQuery);
+        realizarBusquedaVoz(rawQuery);
+        searchAlreadyDone = true;
+        recognition.stop();
       }
-      recognition.stop();
     }
   };
+}
+
+// Función auxiliar que ejecuta la búsqueda (evita código duplicado)
+function realizarBusquedaVoz(query) {
+  const bestMatch = findBestMatch(query, allSongs);
+  const finalQuery = bestMatch || query;
+  searchQuery = finalQuery.toLowerCase();
+  const si = $('searchInput');
+  if (si) si.value = finalQuery;
+  renderCatalog();
+  toast(bestMatch ? '🎤 Buscando: ' + bestMatch + ' (corregido)' : '🎤 Buscando: ' + query);
 }
 
 function toggleVoice(){
