@@ -2720,9 +2720,9 @@ async function renderAnalysis() {
 /* ═══════════════════ KEEP-ALIVE para Render ══════════════════ */
 function keepAlive() {
   // Petición muy ligera a un endpoint que solo devuelve un OK
-  fetch(`${API_BASE}/api/songs?limit=1`)
+  fetch(`${API_BASE}/api/popular`)
     .then(() => console.log('⚡ Keep-alive enviado'))
-    .catch(() => console.warn('Keep-alive falló (servidor posiblemente inactivo)'));
+    .catch(() => {});
 }
 
 // Ejecutar inmediatamente al cargar la página (por si acaso)
