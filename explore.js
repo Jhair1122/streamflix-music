@@ -72,6 +72,19 @@ function requireLogin(feature='esta función'){
   overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
 }
 
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById('page-' + name);
+  const nv = document.getElementById('nav-' + name);
+  if (pg) pg.classList.add('active');
+  if (nv) nv.classList.add('active');
+  if (window.innerWidth <= 768) {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('open');
+  }
+}
+
 // --- Cargar canciones ---
 async function loadSongs(){
   try {
