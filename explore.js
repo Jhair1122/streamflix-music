@@ -583,6 +583,13 @@ function toggleVoice(){
   requireLogin('búsqueda por voz');
 }
 
+/* ═══ KEEP-ALIVE para Render ═══ */
+function keepAlive(){
+  fetch(`${API_BASE}/api/popular`).catch(()=>{});
+}
+keepAlive();
+setInterval(keepAlive, 540000); // cada 9 minutos (Render duerme a los 15)
+
 window.addEventListener('load',async()=>{
   await loadSongs();
   const vizEl=$('audioVisualizer');
