@@ -1859,6 +1859,7 @@ async function playSong(e, songId, context = null){
     }
     audio.play().then(() => {
       $('plDisc').classList.add('spinning');
+      $('plDisc').closest('.pl-disc-wrap')?.classList.add('spinning');
       updatePlayPauseBtn(true);
       if (sourceLinked) startVisRaf(); else startIdleVisualizer();
       ensureAudioContext(audio);
@@ -1971,6 +1972,7 @@ function togglePlayPause(){
   } else {
     audio.pause();
     $('plDisc').classList.remove('spinning');
+    $('plDisc').closest('.pl-disc-wrap')?.classList.remove('spinning');
     updatePlayPauseBtn(false);
     $('expPlayPauseBtn').textContent = '▶';
     $('expDisc')?.classList.remove('spinning');
@@ -2004,19 +2006,47 @@ function updatePlayerLikeBtn() {
 function startVisRaf(){
   stopVisRaf();
   if(!analyser) return;
-  const bars=document.querySelectorAll('.vis-bar');
+  const bars = document.querySelectorAll('.vis-bar');
   if(!bars.length) return;
-  const bufLen=analyser.frequencyBinCount;
-  const dataArr=new Uint8Array(bufLen);
+  const bufLen = analyser.frequencyBinCount;
+  const dataArr = new Uint8Array(bufLen);
+
+  // Paleta de colores por intensidad
+  const getColor = (pct) => {
+    if(pct > .85) return 'linear-gradient(to top,#f72585,#ff9f1c)';
+    if(pct > .6)  return 'linear-gradient(to top,#6c2bd9,#00f5d4)';
+    if(pct > .35) return 'linear-gradient(to top,#9d6fff,#00f5d4)';
+    return 'linear-gradient(to top,#6c2bd9,#9d6fff)';
+  };
+
   function draw(){
     analyser.getByteFrequencyData(dataArr);
-    bars.forEach((bar,i)=>{
-      const idx=Math.floor(i*(bufLen/bars.length));
-      const h=Math.max(3,(dataArr[idx]/255)*26);
-      bar.style.height=h+'px';
+    // Calcular energía promedio
+    const avg = dataArr.reduce((s,v)=>s+v,0) / dataArr.length;
+    const energy = avg / 255;
+
+    bars.forEach((bar, i) => {
+      const idx = Math.floor(i * (bufLen / bars.length));
+      const raw = dataArr[idx] / 255;
+      const h = Math.max(2, raw * 32);
+      bar.style.height = h + 'px';
+      bar.style.background = getColor(raw);
+      bar.style.boxShadow = raw > .6
+        ? `0 0 ${Math.round(raw*12)}px rgba(0,245,212,${(raw-.6)*1.5})`
+        : 'none';
       bar.classList.remove('idle');
     });
-    visRaf=requestAnimationFrame(draw);
+
+    // Efecto de pulso en el disco cuando hay energía alta
+    const discWrap = document.querySelector('.pl-disc-wrap');
+    if(discWrap){
+      const glow = Math.round(energy * 30);
+      discWrap.style.filter = energy > .4
+        ? `drop-shadow(0 0 ${glow}px rgba(157,111,255,${energy*.8}))`
+        : '';
+    }
+
+    visRaf = requestAnimationFrame(draw);
   }
   draw();
 }
@@ -2077,6 +2107,7 @@ function setVolume(val){
 /* ── onAudioEnded ── */
 function onAudioEnded(){
   $('plDisc').classList.remove('spinning');
+  $('plDisc').closest('.pl-disc-wrap')?.classList.remove('spinning');
   updatePlayPauseBtn(false);
   $('expDisc')?.classList.remove('spinning');
   $('expPlayPauseBtn').textContent = '▶';
@@ -2706,7 +2737,7 @@ window.addEventListener('load', async ()=>{
   // NO cargar canciones aquí — bootApp lo hace con manejo de errores
 
   const vizEl = $('audioVisualizer');
-  if (vizEl) vizEl.innerHTML = Array.from({ length: 14 }, (_, i) => `<div class="vis-bar idle" style="--d:${i * 0.06}s"></div>`).join('');
+  if (vizEl) vizEl.innerHTML = Array.from({ length: 20 }, (_, i) => `<div class="vis-bar idle" style="--d:${(i * 0.04).toFixed(2)}s"></div>`).join('');
 
   const audio = $('audioEl');
   if (audio) {
