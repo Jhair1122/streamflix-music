@@ -125,20 +125,16 @@
       </div>
     </div>
 
-    <!-- CHAT (solo lectura) -->
+    <!-- CHAT (bloqueado) -->
     <div class="page" id="page-chat">
-      <div class="page-title">💬 Chat de la comunidad</div>
-      <div class="page-sub">Mensajes públicos. Inicia sesión para participar.</div>
-      <div class="chat-container">
-        <div class="chat-messages-panel" id="chatMessagesPanel"></div>
-        <div class="chat-input-area">
-          <input type="text" placeholder="Inicia sesión para escribir…" disabled>
-          <button class="chat-send-btn" disabled>Enviar</button>
-        </div>
+      <div style="text-align:center;padding:60px 20px;color:#a0aec0">
+        <div style="font-size:56px;margin-bottom:16px">🔒</div>
+        <h2 style="font-family:var(--font-h);margin-bottom:10px">Chat de la comunidad</h2>
+        <p style="margin-bottom:24px">Inicia sesión para leer y enviar mensajes en tiempo real.</p>
+        <button onclick="window.location.href='login.html'" class="btn-shuffle-all" style="margin:0 auto">Iniciar sesión →</button>
       </div>
     </div>
-
-  </main>
+</main>
 
 </div>
 
