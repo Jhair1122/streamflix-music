@@ -760,6 +760,7 @@ async function toggleSongInPlaylist(playlistId, songId) {
 
   await loadUserPlaylist();
   renderAll();
+  sincronizarPanelExpandido(nowPlayingId);
 
   // Refrescar el modal si sigue abierto
   const overlay = document.getElementById('playlistSelectorOverlay');
@@ -1065,7 +1066,7 @@ async function confirmNewPlaylist(songIdToAdd = null) {
 
 /* ═══════════════════ INTERACTIONS (likes/favs con Supabase) ══════════════════ */
 async function toggleLike(e, songId) {
-  e.stopPropagation();
+  if (e && e.stopPropagation) e.stopPropagation();
   const actual = interaccionesMap[songId] || { es_like: false, es_favorito: false };
   const nuevoLike = !actual.es_like;
   const { error } = await supabase.from('interacciones').upsert({
@@ -1079,17 +1080,18 @@ async function toggleLike(e, songId) {
     interaccionesMap[songId] = { ...actual, es_like: nuevoLike };
     toast(nuevoLike ? '❤️ Like añadido' : 'Like eliminado');
     renderAll();
-    updatePlayerLikeBtn();
     actualizarContadoresHeader();
     renderizarRankingGlobal();
     checkAchievements();
+    // ── Actualizar panel expandido si está abierto ──
+    sincronizarPanelExpandido(songId);
   } else {
     toast('Error al actualizar like');
   }
 }
 
 async function toggleFav(e, songId) {
-  e.stopPropagation();
+  if (e && e.stopPropagation) e.stopPropagation();
   const actual = interaccionesMap[songId] || { es_like: false, es_favorito: false };
   const nuevoFav = !actual.es_favorito;
   const { error } = await supabase.from('interacciones').upsert({
@@ -1106,6 +1108,8 @@ async function toggleFav(e, songId) {
     actualizarContadoresHeader();
     renderizarRankingGlobal();
     checkAchievements();
+    // ── Actualizar panel expandido si está abierto ──
+    sincronizarPanelExpandido(songId);
   } else {
     toast('Error al actualizar favorito');
   }
@@ -1910,6 +1914,8 @@ async function playSong(e, songId, context = null){
   applyEnergyEffect(song);
   updateQueue();
   updatePlayerLikeBtn();
+  // Sincronizar panel expandido si está visible
+    sincronizarPanelExpandido(songId);
 }
 
 function updateDiscCover(coverEl, song) {
@@ -2513,6 +2519,80 @@ function openQueueModal() {
 function closeQueue() {
   const modal = document.getElementById('queueModal');
   if (modal) modal.remove();
+}
+
+/* ── Sincroniza botones y cola del panel expandido sin cerrarlo ── */
+function sincronizarPanelExpandido(songIdCambiado) {
+  const panel = document.getElementById('expandedPlayer');
+  if (!panel || panel.classList.contains('hidden')) return;
+
+  // 1. Actualizar botones like / fav / playlist de la canción que cambió
+  if (nowPlayingId === songIdCambiado) {
+    const inter = interaccionesMap[nowPlayingId] || {};
+
+    const likeBtn = document.getElementById('expLikeBtn');
+    if (likeBtn) {
+      likeBtn.textContent  = inter.es_like ? '❤️' : '🤍';
+      likeBtn.style.color  = inter.es_like ? 'var(--red)' : '';
+      // Animación de feedback visual
+      likeBtn.style.transform = 'scale(1.35)';
+      setTimeout(() => { likeBtn.style.transform = ''; }, 200);
+    }
+
+    const favBtn = document.getElementById('expFavBtn');
+    if (favBtn) {
+      favBtn.textContent  = inter.es_favorito ? '⭐' : '☆';
+      favBtn.style.color  = inter.es_favorito ? 'var(--gold)' : '';
+      favBtn.style.transform = 'scale(1.35)';
+      setTimeout(() => { favBtn.style.transform = ''; }, 200);
+    }
+
+    const plBtn = document.getElementById('expPlaylistBtn');
+    if (plBtn) {
+      const inPl = userPlaylists.some(pl => pl.canciones.includes(nowPlayingId));
+      plBtn.textContent = inPl ? '➖' : '➕';
+    }
+
+    // Actualizar también el like en el player bar inferior
+    updatePlayerLikeBtn();
+  }
+
+  // 2. Actualizar la sección "▶ Siguiente" con la cola actual
+  const nextUpDiv = document.getElementById('expNextUp');
+  if (!nextUpDiv) return;
+
+  const ctxSongs = getContextSongs();
+  const idx = ctxSongs.findIndex(s => s.id === nowPlayingId);
+  const upcoming = ctxSongs.slice(idx + 1, idx + 4);
+
+  if (upcoming.length === 0) {
+    nextUpDiv.innerHTML = '';
+    return;
+  }
+
+  nextUpDiv.innerHTML = `
+    <div style="font-size:10px;color:var(--text2);margin-bottom:8px;
+                font-weight:700;text-transform:uppercase;letter-spacing:.5px">▶ Siguiente</div>
+    ${upcoming.map(s => `
+      <div onclick="playSong(null,${s.id});closeExpandedPlayer()"
+        style="display:flex;align-items:center;gap:10px;padding:6px 4px;
+               cursor:pointer;border-radius:8px;transition:.15s"
+        onmouseover="this.style.background='var(--accentA)'"
+        onmouseout="this.style.background=''">
+        ${s.url_imagen
+          ? `<img src="${s.url_imagen}" style="width:34px;height:34px;border-radius:5px;object-fit:cover;flex-shrink:0">`
+          : `<div style="width:34px;height:34px;border-radius:5px;background:${genreGradient(s.genero)};
+                  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">
+               ${genreEmoji(s.genero)}
+             </div>`}
+        <div style="min-width:0">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;
+                      overflow:hidden;text-overflow:ellipsis">${esc(s.titulo)}</div>
+          <div style="font-size:10px;color:var(--text2);white-space:nowrap;
+                      overflow:hidden;text-overflow:ellipsis">${esc(s.artista)}</div>
+        </div>
+      </div>`).join('')}
+  `;
 }
 
 /* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
