@@ -25,6 +25,8 @@ let activeGenre  = null;
 let searchQuery  = '';
 let playlistContext = 'global';   // 'global', 'favorites', 'likes', 'playlist'
 let currentPlaylistFilter = 'playlist';
+let _albumPages = {};   // cache de arrays de IDs para álbumes abiertos
+let _albumPageKey = 0;  // contador para generar claves únicas
 
 /* Web Audio */
 let audioCtx     = null;
@@ -135,8 +137,11 @@ function _attachSectionArrows(scrollId) {
 
 /* Llamar al arrancar y al cargar ranking */
 function initSectionArrows() {
+  // Solo adjuntar flechas a elementos que ya existen en el DOM en este momento
+  // Los demás se adjuntan dentro de sus funciones de render con setTimeout
   _attachSectionArrows('ranking-lo-mas-escuchado');
-  _attachSectionArrows('genero-cards-row');
+  // genero-cards-row, mixes-row y mood-cards-row
+  // se crean dinámicamente y sus funciones de render ya llaman _attachSectionArrows
 }
 
 /* ═══════════════════ BOOT ══════════════════ */
@@ -1384,8 +1389,9 @@ function renderizarExploraGeneros() {
     });
 
     row.appendChild(card);
-    setTimeout(() => _attachSectionArrows('genero-cards-row'), 150);
   });
+
+  setTimeout(() => _attachSectionArrows('genero-cards-row'), 200);
 }
 
 function renderizarTusMixes() {
@@ -1490,8 +1496,9 @@ function renderizarTusMixes() {
     card.addEventListener('click', () => abrirPaginaAlbum('artista', artista));
 
     row.appendChild(card);
-    setTimeout(() => _attachSectionArrows('mixes-row'), 150);
   });
+
+  setTimeout(() => _attachSectionArrows('mixes-row'), 200);
 }
 
 /* ═══════════════════ PÁGINA ÁLBUM ══════════════════ */
@@ -1562,17 +1569,21 @@ function abrirPaginaAlbum(tipo, valor) {
     ? `<img class="album-cover-img" src="${portadaUrl}" alt="${esc(tituloAlbum)}" onerror="this.style.display='none'">`
     : `<div class="album-cover-placeholder" style="background:${colorFondo}">${iconoPortada}</div>`;
 
+  // Guardar IDs en cache global para evitar JSON en onclick HTML
+  const pageKey = 'alb_' + (++_albumPageKey);
+  _albumPages[pageKey] = cancionesAlbum.map(c => c.id);
+
   // Construir lista de pistas
   const pistasHTML = cancionesAlbum.map((c, i) => {
     const inter = interaccionesMap[c.id] || {};
     const liked = inter.es_like;
     const thumbHTML = c.url_imagen
-      ? `<img class="album-track-thumb" src="${c.url_imagen}" alt="${esc(c.titulo)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      ? `<img class="album-track-thumb" src="${esc(c.url_imagen)}" alt="${esc(c.titulo)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
       + `<div class="album-track-thumb-placeholder" style="display:none;background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`
       : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
 
     return `
-      <div class="album-track" onclick="reproducirDesdeAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, ${i}, '${tipo}_${encodeURIComponent(valor)}')">
+      <div class="album-track" data-id="${c.id}" onclick="reproducirDesdeAlbumKey('${pageKey}', ${i})">
         <div class="album-track-num">${i + 1}</div>
         ${thumbHTML}
         <div class="album-track-info">
@@ -1582,7 +1593,7 @@ function abrirPaginaAlbum(tipo, valor) {
         <span class="album-track-genre">${esc(c.genero)}</span>
         <div class="album-track-actions" onclick="event.stopPropagation()">
           <button class="album-track-btn${liked ? ' liked-btn' : ''}" onclick="toggleLike(event,${c.id})" title="Like">${liked ? '❤️' : '🤍'}</button>
-          <button class="album-track-btn" onclick="reproducirDesdeAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, ${i}, '${tipo}_${encodeURIComponent(valor)}');event.stopPropagation()" title="Reproducir">▶</button>
+          <button class="album-track-btn" onclick="reproducirDesdeAlbumKey('${pageKey}',${i});event.stopPropagation()" title="Reproducir">▶</button>
           <button class="album-track-btn" onclick="openContextMenu(event,${c.id})" title="Más">⋮</button>
         </div>
       </div>`;
@@ -1603,8 +1614,8 @@ function abrirPaginaAlbum(tipo, valor) {
     <div style="padding:0 4px;margin-top:16px">
       <div class="album-actions">
         <button class="btn-back-album" onclick="cerrarPaginaAlbum()">← Volver</button>
-        <button class="btn-play-all" onclick="reproducirDesdeAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, 0, '${tipo}_${valor}')">▶ Reproducir todo</button>
-        <button class="btn-shuffle-all" onclick="shuffleYReproducirAlbum(${JSON.stringify(cancionesAlbum.map(c=>c.id))}, '${tipo}_${valor}')">⇌ Aleatorio</button>
+        <button class="btn-play-all" onclick="reproducirDesdeAlbumKey('${pageKey}', 0)">▶ Reproducir todo</button>
+        <button class="btn-shuffle-all" onclick="shuffleYReproducirAlbumKey('${pageKey}')">⇌ Aleatorio</button>
       </div>
       <div style="margin-top:4px">${pistasHTML}</div>
     </div>`;
@@ -1622,6 +1633,19 @@ function reproducirDesdeAlbum(arrayIds, indice, ctxKey) {
   playlistContext = 'album_' + ctxKey;
   // Sobrescribir getContextSongs para este contexto
   playSong(null, arrayIds[indice]);
+}
+
+function reproducirDesdeAlbumKey(pageKey, indice) {
+  const arrayIds = _albumPages[pageKey];
+  if (!arrayIds) return;
+  reproducirDesdeAlbum(arrayIds, indice, pageKey);
+}
+
+function shuffleYReproducirAlbumKey(pageKey) {
+  const arrayIds = _albumPages[pageKey];
+  if (!arrayIds) return;
+  const mezclado = [...arrayIds].sort(() => Math.random() - 0.5);
+  reproducirDesdeAlbum(mezclado, 0, pageKey);
 }
 
 function shuffleYReproducirAlbum(arrayIds, ctxKey) {
@@ -1698,6 +1722,12 @@ async function contextAction(action) {
   const song = allSongs.find(s => s.id === contextSongId);
   if (!song) return;
   switch(action) {
+    case 'like':
+      await toggleLike({ stopPropagation: () => {} }, contextSongId);
+      break;
+    case 'fav':
+      await toggleFav({ stopPropagation: () => {} }, contextSongId);
+      break;
     case 'share':
       const texto = `${song.titulo} - ${song.artista} | SoundMind`;
       if (navigator.share) await navigator.share({ title: song.titulo, text: texto, url: window.location.href });
@@ -2363,10 +2393,62 @@ function clearQueue() {
   toast('Cola vaciada');
 }
 function openQueueModal() {
-  $('queueModal')?.classList.remove('hidden');
+  // Si no existe un modal de cola, mostrar la cola en un toast/overlay temporal
+  const existing = document.getElementById('queueModal');
+  if (existing) { existing.classList.remove('hidden'); return; }
+
+  // Crear modal dinámico si no existe en el HTML
+  const modal = document.createElement('div');
+  modal.id = 'queueModal';
+  modal.style.cssText = `
+    position:fixed;inset:0;z-index:3500;display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(0,0,0,.6);backdrop-filter:blur(6px);
+  `;
+  const ctxSongs = getContextSongs();
+  const idx = ctxSongs.findIndex(s => s.id === nowPlayingId);
+  const upcoming = ctxSongs.slice(idx + 1, idx + 16);
+
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border2);
+                border-radius:24px 24px 0 0;width:100%;max-width:500px;
+                max-height:70vh;display:flex;flex-direction:column;
+                box-shadow:var(--shadow-lg);overflow:hidden">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--border);
+                  display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div style="font-family:var(--font-h);font-size:17px;font-weight:700">☰ Cola de reproducción</div>
+        <button onclick="closeQueue()" style="background:none;border:none;color:var(--text2);
+                font-size:22px;cursor:pointer;padding:4px 8px;border-radius:8px">✕</button>
+      </div>
+      <div style="overflow-y:auto;flex:1;padding:10px 12px">
+        ${upcoming.length === 0
+          ? `<div style="text-align:center;padding:32px;color:var(--text2);font-size:13px">
+               No hay más canciones en la cola
+             </div>`
+          : upcoming.map((s, i) => `
+            <div onclick="playSong(null,${s.id},'${playlistContext}');closeQueue()"
+              style="display:flex;align-items:center;gap:10px;padding:9px 8px;
+                     border-radius:10px;cursor:pointer;transition:.15s"
+              onmouseover="this.style.background='var(--accentA)'"
+              onmouseout="this.style.background=''">
+              <div style="width:18px;text-align:center;font-size:11px;color:var(--text3);flex-shrink:0">${idx + 1 + i + 1}</div>
+              ${s.url_imagen
+                ? `<img src="${s.url_imagen}" style="width:38px;height:38px;border-radius:7px;object-fit:cover;flex-shrink:0">`
+                : `<div style="width:38px;height:38px;border-radius:7px;background:${genreGradient(s.genero)};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${genreEmoji(s.genero)}</div>`}
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.titulo)}</div>
+                <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.artista)}</div>
+              </div>
+            </div>`).join('')}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeQueue(); });
 }
+
 function closeQueue() {
-  $('queueModal')?.classList.add('hidden');
+  const modal = document.getElementById('queueModal');
+  if (modal) modal.remove();
 }
 
 /* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
@@ -2619,16 +2701,25 @@ function updateMoreLikeSection(song) {
 
 /* ═══════════════════ PANEL DERECHO Y BARRA MÓVIL ══════════════════ */
 function updateRightPanel(song) {
+  // Panel derecho eliminado del HTML actual — actualizar solo elementos que existan
   const rightTitle = document.getElementById('rightTitle');
   const rightArtist = document.getElementById('rightArtist');
   if (rightTitle) rightTitle.textContent = song.titulo;
   if (rightArtist) rightArtist.textContent = song.artista;
+  const rightDisc = document.getElementById('rightDisc');
+  if (rightDisc) {
+    const rightCover = document.getElementById('rightDiscCover');
+    if (rightCover) updateDiscCover(rightCover, song);
+    const audio = document.getElementById('audioEl');
+    if (audio && !audio.paused) rightDisc.classList.add('spinning');
+    else rightDisc.classList.remove('spinning');
+  }
   updateRightQueue();
 }
 
 function updateRightQueue() {
   const list = document.getElementById('rightQueueList');
-  if (!list) return;
+  if (!list) return;  // No existe en el HTML actual — salir sin error
   const contextSongs = getContextSongs();
   const upcoming = contextSongs.filter(s => s.id !== nowPlayingId).slice(0, 5);
   list.innerHTML = upcoming.map(s => `
