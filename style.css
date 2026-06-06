@@ -50,7 +50,7 @@
 
   /* Layout */
   --nav:   256px;
-  --bar:   88px;
+  --bar: 110px;   /* antes era 88px */
   --mobile-nav-height: 64px;
 
   /* Sombras */
@@ -356,15 +356,21 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 /* ═══════════════════════════════════════
    REPRODUCTOR INFERIOR — rediseño total
 ═══════════════════════════════════════ */
-#playerBar{
-  position:fixed;bottom:0;left:0;right:0;height:var(--bar);
-  background:rgba(4,4,18,.92);
-  backdrop-filter:blur(60px) saturate(200%);
-  border-top:1px solid rgba(157,111,255,.15);
-  display:flex;align-items:center;
-  padding:0 20px;gap:14px;
-  z-index:500;
-  box-shadow:0 -4px 40px rgba(0,0,0,.6),0 -1px 0 rgba(157,111,255,.08);
+#playerBar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: var(--bar);
+  background: rgba(4, 4, 18, 0.95);
+  backdrop-filter: blur(60px) saturate(200%);
+  border-top: 1px solid rgba(157, 111, 255, 0.15);
+  display: grid;
+  grid-template-columns: 28% 1fr 28%;
+  grid-template-rows: 1fr;
+  align-items: center;
+  padding: 0 20px;
+  gap: 14px;
+  z-index: 500;
+  box-shadow: 0 -4px 40px rgba(0,0,0,.6), 0 -1px 0 rgba(157,111,255,.08);
 }
 /* Línea de acento superior animada */
 #playerBar::before{
@@ -425,7 +431,15 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .pl-artist{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Columna central */
-.player-center{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.player-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  /* El visualizador va DEBAJO de la barra de progreso */
+}
 .pl-controls-btns{display:flex;align-items:center;gap:10px}
 .pl-controls-btns .pl-btn{
   display:flex!important;align-items:center;justify-content:center;
@@ -490,12 +504,12 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   align-items: flex-end;
   justify-content: center;
   gap: 3px;
-  height: 48px;           /* antes era 28px */
+  height: 44px;
   padding: 0 10px;
   flex-shrink: 0;
   position: relative;
-  /* Reflejo espejo sutil por debajo */
-  overflow: visible;
+  width: 100%;          /* ← ocupa todo el ancho del centro */
+  max-width: 600px;     /* ← no se extiende demasiado en pantallas grandes */
 }
 
 /* Reflejo invertido */
@@ -535,13 +549,35 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 
 /* En móvil: un poco más compacto pero con más presencia que antes */
 @media (max-width: 768px) {
-  .pl-visualizer {
-    height: 36px;
-    gap: 2px;
-    padding: 0 6px;
+  :root {
+    --nav: 0px;
+    --bar: 88px;    /* en móvil un poco menos que escritorio */
   }
+
+  #playerBar {
+    bottom: var(--mobile-nav-height);
+    height: var(--bar);
+    padding: 0 10px;
+    gap: 6px;
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .pl-visualizer {
+    height: 28px;     /* más compacto en móvil */
+    gap: 2px;
+    padding: 0 4px;
+    max-width: 100%;
+  }
+
   .vis-bar {
     width: 3px;
+  }
+
+  /* Ocultar visualizador en pantallas muy pequeñas para ganar espacio */
+  @media (max-width: 420px) {
+    .pl-visualizer {
+      display: none;
+    }
   }
 }
 
@@ -1489,3 +1525,7 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
     max-height: 100px;
   }
 }
+/* Orden explícito de elementos en player-center */
+.pl-controls-btns    { order: 1; }
+.pl-progress-wrap    { order: 2; }
+.pl-visualizer       { order: 3; }
