@@ -520,6 +520,16 @@ function filterGenre(btn,genre){
 }
 function onSearch(){
   searchQuery=$('searchInput').value.toLowerCase();
+  const clearBtn=$('clearSearchBtn');
+  if(clearBtn) clearBtn.classList.toggle('hidden', !searchQuery);
+  renderCatalog();
+}
+function clearSearch(){
+  const input=$('searchInput');
+  if(input){ input.value=''; input.focus(); }
+  searchQuery='';
+  const clearBtn=$('clearSearchBtn');
+  if(clearBtn) clearBtn.classList.add('hidden');
   renderCatalog();
 }
 function onSearchBig(){
