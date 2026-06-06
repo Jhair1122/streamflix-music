@@ -1426,7 +1426,7 @@ function renderizarTusMixes() {
 
   contenedor.innerHTML = `
     <div class="section-head">
-      <div class="section-title">🎲 Tus mixes más escuchados</div>
+      <div class="section-title">🎲 Mixes de artistas</div>
     </div>
     <div id="mixes-row" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
   `;
