@@ -4,6 +4,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 let allSongs = [], nowPlayingId = null, searchQuery = '', activeGenre = null;
 let audioCtx = null, analyser = null, sourceNode = null, sourceLinked = false, visRaf = null;
+let recognition = null, isListening = false;
 
 const $ = id => document.getElementById(id);
 function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
@@ -31,8 +32,8 @@ const GENRE_COLORS = {
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
+// --- Modal de login ---
 function requireLogin(feature='esta función'){
-  // Mostrar modal de login
   const existing = document.getElementById('loginPromptOverlay');
   if(existing) existing.remove();
   const overlay = document.createElement('div');
@@ -50,7 +51,7 @@ function requireLogin(feature='esta función'){
         Inicia sesión
       </h3>
       <p style="color:#9090b0;font-size:14px;margin-bottom:24px;line-height:1.6">
-        Necesitas una cuenta para acceder a <strong style="color:#c4b5fd">${feature}</strong>.
+        Necesitas una cuenta para <strong style="color:#c4b5fd">${feature}</strong>.
       </p>
       <div style="display:flex;gap:10px;justify-content:center">
         <button onclick="document.getElementById('loginPromptOverlay').remove()"
@@ -71,13 +72,13 @@ function requireLogin(feature='esta función'){
   overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
 }
 
+// --- Cargar canciones ---
 async function loadSongs(){
   try {
     const res = await fetch(`${API_BASE}/api/songs`);
     const data = await res.json();
     allSongs = data.data || [];
   } catch(e) {
-    // Fallback: cargar directo desde Supabase
     if(window.supabase){
       const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       const { data } = await sb.from('canciones').select('*').order('id',{ascending:true});
@@ -89,6 +90,8 @@ async function loadSongs(){
   renderCatalog();
   renderMoodCards();
   renderTopRanking();
+  renderizarExploraGeneros();
+  renderizarTusMixes();
 }
 
 function buildGenrePills(){
@@ -146,7 +149,7 @@ function renderCatalog(){
         </div>
         <span class="album-track-genre">${esc(s.genero)}</span>
         <div class="album-track-actions" onclick="event.stopPropagation()">
-          <button class="album-track-btn" onclick="requireLogin('likes y favoritos')" title="Like">🤍</button>
+          <button class="album-track-btn" onclick="requireLogin('likes')" title="Like">🤍</button>
           <button class="album-track-btn" onclick="requireLogin('favoritos')" title="Favorito">☆</button>
           <button class="album-track-btn" onclick="requireLogin('playlists')" title="Playlist">➕</button>
           <button class="album-track-btn" onclick="playSong(null,${s.id});event.stopPropagation()" title="Play">▶</button>
@@ -163,10 +166,16 @@ const MOODS=[
   {id:'anime',nombre:'Anime OST',emoji:'⛩️',color:'linear-gradient(135deg,#4c1d95,#6d28d9)',cover:'img/anime_ost.jpg'},
   {id:'latino',nombre:'Latino Hits',emoji:'🎺',color:'linear-gradient(135deg,#064e3b,#065f46)',cover:'img/latino_hits.png'}
 ];
+
 function renderMoodCards(){
-  const row=$('moodCardsRow'); if(!row) return;
+  const container = $('seccion-canciones-mood');
+  if(!container) return;
+  container.innerHTML = `<div class="section-head"><div class="section-title">🎭 Estados de ánimo</div></div>
+    <div class="horizontal-scroll" id="moodCardsRow"></div>`;
+  const row=$('moodCardsRow');
+  if(!row) return;
   row.innerHTML=MOODS.map(m=>`
-    <div onclick="requireLogin('estados de ánimo')"
+    <div onclick="abrirPaginaAlbum('mood','${m.id}')"
       style="min-width:140px;height:100px;border-radius:12px;cursor:pointer;flex-shrink:0;
              position:relative;overflow:hidden;transition:.18s;
              background-image:url(${m.cover}),${m.color};background-size:cover;background-position:center"
@@ -176,14 +185,15 @@ function renderMoodCards(){
       <div style="position:absolute;bottom:8px;left:10px;z-index:1">
         <div style="font-size:16px">${m.emoji}</div>
         <div style="font-weight:700;font-size:13px;color:#fff;line-height:1.2">${m.nombre}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.65)">🔒 Inicia sesión</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.65)">Explorar</div>
       </div>
     </div>`).join('');
 }
 
-/* ── Top ranking preview ── */
+/* ── Top ranking (global) ── */
 async function renderTopRanking(){
-  const el=$('rankingPreview'); if(!el) return;
+  const el=$('ranking-lo-mas-escuchado');
+  if(!el) return;
   try {
     const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     const {data}=await sb.from('interacciones')
@@ -196,7 +206,7 @@ async function renderTopRanking(){
       if(i.es_favorito) scores[i.cancion_id]+=0.5;
     });
     const top=Object.entries(scores)
-      .sort((a,b)=>b[1]-a[1]).slice(0,6)
+      .sort((a,b)=>b[1]-a[1]).slice(0,8)
       .map(([cid,score])=>({cancion:allSongs.find(s=>s.id===parseInt(cid)),score}))
       .filter(r=>r.cancion);
     if(!top.length){
@@ -205,20 +215,172 @@ async function renderTopRanking(){
     }
     el.innerHTML=top.map(({cancion:c,score})=>{
       const img=c.url_imagen
-        ?`<img src="${c.url_imagen}" style="width:72px;height:72px;border-radius:8px;object-fit:cover;margin-bottom:6px">`
-        :`<div style="width:72px;height:72px;border-radius:8px;background:${genreGradient(c.genero)};display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:6px">${genreEmoji(c.genero)}</div>`;
+        ?`<img src="${c.url_imagen}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;margin-bottom:6px">`
+        :`<div style="width:80px;height:80px;border-radius:8px;background:${genreGradient(c.genero)};display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:6px">${genreEmoji(c.genero)}</div>`;
       return `<div onclick="playSong(null,${c.id})"
-        style="min-width:110px;background:rgba(11,11,22,.8);border:1px solid rgba(255,255,255,.07);
+        style="min-width:130px;background:rgba(11,11,22,.8);border:1px solid rgba(255,255,255,.07);
                border-radius:12px;padding:10px;text-align:center;cursor:pointer;flex-shrink:0;transition:.18s"
         onmouseover="this.style.borderColor='#a78bfa';this.style.transform='translateY(-3px)'"
         onmouseout="this.style.borderColor='rgba(255,255,255,.07)';this.style.transform=''">
         ${img}
-        <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.titulo)}</div>
-        <div style="font-size:9px;color:#9090b0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.artista)}</div>
-        <div style="color:#f59e0b;font-size:9px;margin-top:3px">★ ${score.toFixed(1)}</div>
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.titulo)}</div>
+        <div style="font-size:10px;color:#9090b0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.artista)}</div>
+        <div style="color:#f59e0b;font-size:10px;margin-top:3px">★ ${score.toFixed(1)}</div>
       </div>`;
     }).join('');
   } catch(e){ el.innerHTML=''; }
+}
+
+/* ── Géneros ── */
+const COLORES_GENERO = {
+  'Anime': 'linear-gradient(135deg, #4c1d95, #7c3aed)', 'Balada': 'linear-gradient(135deg, #1e3a5f, #2563eb)', 'Electrónica': 'linear-gradient(135deg, #0c4a6e, #0891b2)',
+  'J-Pop': 'linear-gradient(135deg, #4a1d96, #7e22ce)', 'Latino': 'linear-gradient(135deg, #14532d, #16a34a)', 'Phonk': 'linear-gradient(135deg, #18181b, #3f3f46)',
+  'Pop': 'linear-gradient(135deg, #831843, #db2777)', 'Rock': 'linear-gradient(135deg, #431407, #c2410c)', 'Trap': 'linear-gradient(135deg, #1c1917, #57534e)',
+  'Alternativo': 'linear-gradient(135deg, #1e1b4b, #4338ca)'
+};
+
+function renderizarExploraGeneros() {
+  const contenedor = $('seccion-explora-generos');
+  if (!contenedor) return;
+  const generosUnicos = [...new Set(allSongs.map(s => s.genero?.trim()).filter(Boolean))].sort();
+  contenedor.innerHTML = `<div class="section-head"><div class="section-title">🌈 Explora tus géneros</div></div>
+    <div class="horizontal-scroll" id="genero-cards-row"></div>`;
+  const row = $('genero-cards-row');
+  if(!row) return;
+  generosUnicos.forEach(genero => {
+    const cancionesDelGenero = allSongs.filter(s => s.genero?.trim() === genero);
+    const total = cancionesDelGenero.length;
+    const conImagen = cancionesDelGenero.find(s => s.url_imagen);
+    const portadaUrl = conImagen?.url_imagen || null;
+    const colorFondo = COLORES_GENERO[genero] || 'linear-gradient(135deg,#27272a,#52525b)';
+    const card = document.createElement('div');
+    card.style.cssText = `
+      min-width:140px; width:140px; height:100px; border-radius:12px;
+      display:flex; align-items:flex-end; padding:8px 10px;
+      cursor:pointer; flex-shrink:0; position:relative; overflow:hidden;
+      transition:transform 0.18s, box-shadow 0.18s;
+    `;
+    if (portadaUrl) {
+      card.style.backgroundImage = `url(${portadaUrl})`;
+      card.style.backgroundSize = 'cover';
+      card.style.backgroundPosition = 'center';
+    } else {
+      card.style.background = colorFondo;
+    }
+    card.innerHTML = `
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.75) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);border-radius:12px"></div>
+      <div style="position:relative;z-index:1;width:100%">
+        <div style="font-weight:700;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${genero}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:1px">${total} canciones</div>
+      </div>
+    `;
+    card.addEventListener('click', () => { if (genero) abrirPaginaAlbum('genero', genero.trim()); });
+    row.appendChild(card);
+  });
+}
+
+/* ── Mixes (por artista) ── */
+function renderizarTusMixes() {
+  const contenedor = $('seccion-tus-mixes');
+  if (!contenedor) return;
+  const artistas = {};
+  allSongs.forEach(s => {
+    const nombreArtista = s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim();
+    if (!artistas[nombreArtista]) artistas[nombreArtista] = [];
+    artistas[nombreArtista].push(s);
+  });
+  const mixesDisponibles = Object.entries(artistas).filter(([_, canciones]) => canciones.length >= 2).sort((a, b) => b[1].length - a[1].length).slice(0, 8);
+  if (mixesDisponibles.length === 0) return;
+  contenedor.innerHTML = `<div class="section-head"><div class="section-title">🎲 Mixes de artistas</div></div>
+    <div class="horizontal-scroll" id="mixes-row"></div>`;
+  const row = $('mixes-row');
+  if(!row) return;
+  mixesDisponibles.forEach(([artista, canciones]) => {
+    const conImagen = canciones.find(s => s.url_imagen);
+    const portadaUrl = conImagen?.url_imagen || null;
+    const colorFondo = 'linear-gradient(135deg,#3730a3,#7c3aed)';
+    const card = document.createElement('div');
+    card.style.cssText = `
+      min-width:140px; width:140px; height:100px; border-radius:12px;
+      display:flex; align-items:flex-end; padding:8px 10px;
+      cursor:pointer; flex-shrink:0; position:relative; overflow:hidden;
+      transition:transform 0.18s, box-shadow 0.18s;
+    `;
+    if (portadaUrl) {
+      card.style.backgroundImage = `url(${portadaUrl})`;
+      card.style.backgroundSize = 'cover';
+      card.style.backgroundPosition = 'center';
+    } else {
+      card.style.background = colorFondo;
+    }
+    card.innerHTML = `
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.1) 60%,transparent 100%);border-radius:12px"></div>
+      <div style="position:relative;z-index:1;width:100%">
+        <div style="font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="Mix de ${artista}">Mix de ${artista}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.65);margin-top:1px">${canciones.length} canciones</div>
+      </div>
+    `;
+    card.addEventListener('click', () => abrirPaginaAlbum('artista', artista));
+    row.appendChild(card);
+  });
+}
+
+/* ── Página álbum ── */
+function abrirPaginaAlbum(tipo, valor) {
+  let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '';
+  if (tipo === 'genero') {
+    const generoNormalizado = valor.trim();
+    cancionesAlbum = allSongs.filter(s => s.genero && s.genero.trim() === generoNormalizado);
+    tituloAlbum = generoNormalizado;
+    subtituloAlbum = cancionesAlbum.length + ' canciones';
+  } else if (tipo === 'mood') {
+    const mood = MOODS.find(m => m.id === valor);
+    if (mood) {
+      cancionesAlbum = allSongs.filter(s => s.mood === mood.id); // Mood exacto
+      tituloAlbum = mood.nombre;
+      subtituloAlbum = mood.emoji + ' · ' + cancionesAlbum.length + ' canciones';
+    }
+  } else if (tipo === 'artista') {
+    cancionesAlbum = allSongs.filter(s => s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim() === valor.trim());
+    tituloAlbum = 'Mix de ' + valor;
+    subtituloAlbum = cancionesAlbum.length + ' canciones';
+  }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pagina = $('page-album');
+  pagina.classList.add('active');
+  if (cancionesAlbum.length === 0) {
+    pagina.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#a0aec0">
+      <div style="font-size:56px;margin-bottom:16px">🎵</div>
+      <h2>${tituloAlbum}</h2>
+      <p>No se encontraron canciones.</p>
+      <button onclick="showPage('home')" class="btn-shuffle-all" style="margin:20px auto">← Volver</button>
+    </div>`;
+    return;
+  }
+  pagina.innerHTML = `
+    <div style="padding:16px">
+      <button onclick="showPage('home')" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">←</button>
+      <h2 style="font-family:var(--font-h);font-size:22px;margin-bottom:12px">${tituloAlbum}</h2>
+      <p style="color:var(--text2);margin-bottom:20px">${subtituloAlbum}</p>
+      <div class="album-track-list">
+        ${cancionesAlbum.map((c,i) => {
+          const playing = nowPlayingId === c.id;
+          const thumb = c.url_imagen
+            ? `<img class="album-track-thumb" src="${c.url_imagen}" alt="${esc(c.titulo)}">`
+            : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
+          return `
+            <div class="album-track${playing?' playing':''}" onclick="playSong(null,${c.id})">
+              <div class="album-track-num">${playing?'▶':i+1}</div>
+              ${thumb}
+              <div class="album-track-info">
+                <div class="album-track-title">${esc(c.titulo)}</div>
+                <div class="album-track-artist">${esc(c.artista)}</div>
+              </div>
+              <span class="album-track-genre">${esc(c.genero)}</span>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
 }
 
 /* ── Player ── */
@@ -365,7 +527,7 @@ function closeExpandedPlayer(){ $('expandedPlayer').classList.add('hidden'); }
 /* ── Chat solo lectura ── */
 function initChatReadOnly(){
   fetch(`${API_BASE}/api/messages`).then(r=>r.json()).then(data=>{
-    const c=$('chatMessages'); if(!c) return;
+    const c=$('chatMessagesPanel'); if(!c) return;
     c.innerHTML='';
     (data.messages||[]).forEach(m=>addMsgUI(m));
     c.scrollTop=c.scrollHeight;
@@ -374,17 +536,51 @@ function initChatReadOnly(){
   const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   sb.channel('explore-chat').on('postgres_changes',{event:'INSERT',schema:'public',table:'mensajes'},p=>{
     addMsgUI(p.new);
-    const c=$('chatMessages'); if(c) c.scrollTop=c.scrollHeight;
+    const c=$('chatMessagesPanel'); if(c) c.scrollTop=c.scrollHeight;
   }).subscribe();
 }
 function addMsgUI(msg){
-  const c=$('chatMessages'); if(!c) return;
+  const c=$('chatMessagesPanel'); if(!c) return;
   const d=document.createElement('div');
   d.className='msg-bubble';
   d.innerHTML=`<div class="msg-user">${esc(msg.username)}</div>${esc(msg.mensaje)}`;
   c.appendChild(d);
 }
-function toggleChat(){ $('chatPanel')?.classList.toggle('hidden'); }
+
+/* ── Navegación ── */
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=$('page-'+name), nv=$('nav-'+name);
+  if(pg) pg.classList.add('active');
+  if(nv) nv.classList.add('active');
+  if(window.innerWidth<=768) $('sidebar')?.classList.remove('open');
+  if(name==='chat') initChatReadOnly();
+}
+function toggleSidebar(){ $('sidebar')?.classList.toggle('open'); }
+
+/* ── Voz ── */
+function initVoiceSearch(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  recognition = new SR();
+  recognition.lang = 'es-ES';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onstart = () => { isListening = true; $('voiceOverlay').classList.add('show'); };
+  recognition.onend = () => { isListening = false; $('voiceOverlay').classList.remove('show'); };
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    $('searchInput').value = transcript;
+    onSearch();
+    toast('🎤 Buscando: ' + transcript);
+  };
+  recognition.onerror = () => { isListening = false; $('voiceOverlay').classList.remove('show'); };
+}
+function toggleVoice(){
+  if (!recognition) { initVoiceSearch(); }
+  if (isListening) { recognition.stop(); } else { recognition.start(); }
+}
 
 window.addEventListener('load',async()=>{
   await loadSongs();
