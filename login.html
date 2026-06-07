@@ -84,7 +84,7 @@
   </div>
 
   <script>
-    const API_BASE = 'https://streamflix-music.onrender.com';   // ← cambia por tu URL real
+    const API_BASE = 'https://streamflix-music.onrender.com';
 
     function saveSession(user) {
       localStorage.setItem('soundmind_user', JSON.stringify(user));
@@ -112,7 +112,6 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
-        // Si la respuesta no es OK, lanzamos un error para capturarlo
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
           throw new Error(errorData.error || 'Error de conexión');
