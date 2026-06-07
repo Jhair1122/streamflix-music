@@ -59,7 +59,6 @@
       <option value="Otro">
     </datalist>
 
-    <!-- Estados de ánimo (subgéneros) - hasta 5 opcionales -->
     <label>Estado de ánimo 1 (opcional)</label>
     <select id="mood1">
       <option value="">Ninguno</option>
@@ -166,7 +165,6 @@
       const artista = document.getElementById('artista').value.trim();
       const genero = document.getElementById('genero').value;
 
-      // Leer los 5 mood (subgéneros)
       const mood1 = document.getElementById('mood1').value || null;
       const mood2 = document.getElementById('mood2').value || null;
       const mood3 = document.getElementById('mood3').value || null;
@@ -197,7 +195,6 @@
         const audioUrl = supabase.storage.from('musica').getPublicUrl(audioPath).data.publicUrl;
         const imageUrl = supabase.storage.from('musica').getPublicUrl(imagePath).data.publicUrl;
 
-        // Insertar incluyendo los 5 moods
         const { error: insertError } = await supabase
           .from('canciones')
           .insert({
