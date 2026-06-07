@@ -11,13 +11,10 @@
 </head>
 <body>
 
-<!-- HAMBURGER (solo móvil) -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
-<!-- CONTENEDOR PRINCIPAL -->
 <div id="app" class="">
 
-  <!-- ═══════════ SIDEBAR IZQUIERDO (Escritorio) ═══════════ -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-brand-content">
@@ -42,12 +39,9 @@
     </div>
   </nav>
 
-  <!-- ═══════════ PANEL CENTRAL ═══════════ -->
   <main class="main-content">
 
-    <!-- HOME (Inicio) -->
     <div class="page active" id="page-home">
-      <!-- CABECERA DE BIENVENIDA (pública) -->
       <div class="user-header">
         <div class="user-header-info">
           <div class="user-avatar" style="background: linear-gradient(135deg, #7c3aed, #a78bfa);">🎧</div>
@@ -63,7 +57,6 @@
         </div>
       </div>
 
-      <!-- 🎧 LO MÁS ESCUCHADO (horizontal) -->
       <div class="section">
         <div class="section-head">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -76,16 +69,12 @@
         </div>
       </div>
 
-      <!-- NUEVO: Canciones para tu estado de ánimo (preview) -->
       <div class="section" id="seccion-canciones-mood"></div>
 
-      <!-- NUEVO: Explora tus géneros -->
       <div class="section" id="seccion-explora-generos"></div>
 
-      <!-- NUEVO: Tus mixes más escuchados -->
       <div class="section" id="seccion-tus-mixes"></div>
 
-      <!-- 🎵 Catálogo completo + buscador y chips de género -->
       <div class="section">
         <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
         <div class="top-bar" style="margin-top:12px">
@@ -102,7 +91,6 @@
       </div>
     </div>
 
-<!-- RECOMENDACIONES IA (requiere inicio de sesión) -->
 <div class="page" id="page-recomendaciones">
   <div style="display:flex;align-items:center;justify-content:center;min-height:62vh;padding:20px">
     <div style="background:rgba(11,11,22,.92);border:1px solid rgba(157,111,255,.25);border-radius:28px;
@@ -152,10 +140,8 @@
   </div>
 </div>
 
-    <!-- PÁGINA ÁLBUM (dinámica, controlada por JS) -->
     <div class="page" id="page-album"></div>
 
-    <!-- DISCOVER WEEKLY (requiere inicio de sesión) -->
 <div class="page" id="page-weekly">
   <div style="display:flex;align-items:center;justify-content:center;min-height:62vh;padding:20px">
     <div style="background:rgba(11,11,22,.92);border:1px solid rgba(0,245,212,.2);border-radius:28px;
@@ -205,7 +191,6 @@
   </div>
 </div>
 
-    <!-- CHAT (requiere inicio de sesión) -->
 <div class="page" id="page-chat">
   <div style="display:flex;align-items:center;justify-content:center;min-height:62vh;padding:20px">
     <div style="background:rgba(11,11,22,.92);border:1px solid rgba(247,37,133,.2);border-radius:28px;
@@ -258,7 +243,6 @@
 
 </div>
 
-<!-- ═══════════ REPRODUCTOR INFERIOR (Fijo) ═══════════ -->
 <div id="playerBar" class="hidden">
   <div class="player-left">
     <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
@@ -294,7 +278,6 @@
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- EXPANDED PLAYER (igual que en index) -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
@@ -328,10 +311,8 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
-<!-- VOICE OVERLAY (igual) -->
 <div id="voiceOverlay">
   <div class="voice-modal">
     <div class="voice-waves">
@@ -345,7 +326,6 @@
   </div>
 </div>
 
-<!-- ═══════════ BARRA DE NAVEGACIÓN MÓVIL ═══════════ -->
 <nav class="mobile-nav" id="mobileNav">
   <button class="mobile-nav-item active" onclick="showPage('home')">🏠<span>Inicio</span></button>
   <button class="mobile-nav-item" onclick="showPage('weekly')">📅<span>Semanal</span></button>
