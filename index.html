@@ -171,7 +171,13 @@
       <div class="chat-container">
         <div class="chat-messages-panel" id="chatMessagesPanel"></div>
         <div class="chat-input-area">
-          <input type="text" id="chatInput" placeholder="Escribe un mensaje…" onkeypress="if(event.key==='Enter') sendMessage()">
+          <div class="emoji-picker-container">
+            <button class="emoji-toggle-btn" onclick="toggleEmojiPanel()" title="Emojis">😊</button>
+            <div class="emoji-grid-panel" id="emojiPanel"></div>
+          </div>
+          <input type="text" id="chatInput" 
+          placeholder="Escribe un mensaje…" 
+          onkeypress="if(event.key==='Enter') sendMessage()">
           <button class="chat-send-btn" onclick="sendMessage()">Enviar</button>
         </div>
       </div>
