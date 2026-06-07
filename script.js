@@ -1078,6 +1078,13 @@ async function toggleLike(e, songId) {
   }, { onConflict: 'usuario_id,cancion_id' });
   if (!error) {
     interaccionesMap[songId] = { ...actual, es_like: nuevoLike };
+    // ── Sincronizar myInter con el nuevo estado ──
+    const idxInter = myInter.findIndex(i => i.cancion_id === songId);
+    if (idxInter >= 0) {
+      myInter[idxInter] = { ...myInter[idxInter], es_like: nuevoLike };
+    } else {
+      myInter.push({ cancion_id: songId, es_like: nuevoLike, es_favorito: actual.es_favorito });
+    }
     toast(nuevoLike ? '❤️ Like añadido' : 'Like eliminado');
     renderAll();
     actualizarContadoresHeader();
@@ -1104,6 +1111,13 @@ async function toggleFav(e, songId) {
   }, { onConflict: 'usuario_id,cancion_id' });
   if (!error) {
     interaccionesMap[songId] = { ...actual, es_favorito: nuevoFav };
+    // ── Sincronizar myInter con el nuevo estado ──
+    const idxInter = myInter.findIndex(i => i.cancion_id === songId);
+    if (idxInter >= 0) {
+      myInter[idxInter] = { ...myInter[idxInter], es_favorito: nuevoFav };
+    } else {
+      myInter.push({ cancion_id: songId, es_like: actual.es_like, es_favorito: nuevoFav });
+    }
     toast(nuevoFav ? '⭐ Favorito añadido' : 'Favorito eliminado');
     renderAll();
     actualizarContadoresHeader();
