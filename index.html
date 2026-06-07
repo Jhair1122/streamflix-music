@@ -11,13 +11,10 @@
 </head>
 <body>
 
-<!-- HAMBURGER (solo móvil) -->
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
-<!-- CONTENEDOR PRINCIPAL -->
 <div id="app" class="hidden">
 
-  <!-- ═══════════ SIDEBAR IZQUIERDO (Escritorio) ═══════════ -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="sidebar-brand-content">
@@ -42,12 +39,9 @@
     </div>
   </nav>
 
-  <!-- ═══════════ PANEL CENTRAL ═══════════ -->
   <main class="main-content">
 
-    <!-- HOME (Inicio) -->
     <div class="page active" id="page-home">
-      <!-- CABECERA UNIFICADA (usuario + saludo + stats) -->
        <div class="user-header">
         <div class="user-header-info">
             <div class="user-avatar" id="userAvatar"></div>
@@ -64,7 +58,6 @@
         </div>
     </div>
 
-      <!-- 🎧 LO MÁS ESCUCHADO (horizontal) -->
        <div class="section">
         <div class="section-head">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -77,22 +70,17 @@
         </div>
       </div>
 
-      <!-- NUEVO: Más como [artista] -->
       <div class="section" id="moreLikeSection" style="display:none;">
         <div class="section-head"><div class="section-title" id="moreLikeTitle">Más como </div></div>
         <div class="horizontal-scroll" id="moreLikeCards"></div>
       </div>
 
-      <!-- NUEVO: Canciones para tu estado de ánimo -->
       <div class="section" id="seccion-canciones-mood"></div>
 
-      <!-- NUEVO: Explora tus géneros -->
       <div class="section" id="seccion-explora-generos"></div>
 
-      <!-- NUEVO: Tus mixes más escuchados -->
       <div class="section" id="seccion-tus-mixes"></div>
 
-      <!-- 🎵 Catálogo completo + buscador y chips de género -->
       <div class="section">
         <div class="section-head"><div class="section-title">🎵 Catálogo completo</div></div>
         <div class="top-bar" style="margin-top:12px">
@@ -109,17 +97,14 @@
       </div>
     </div>
 
-    <!-- RECOMENDACIONES IA -->
     <div class="page" id="page-recomendaciones">
       <div class="page-title">🎯 Para ti</div>
       <p class="page-sub">Basado en tus likes (prioridad) y favoritos. <span class="ai-badge">IA activa</span></p>
       <div class="cards-grid" id="homeRecCards"><div class="loading"><div class="spin"></div> Analizando tus gustos…</div></div>
     </div>
 
-    <!-- PÁGINA ÁLBUM (dinámica, controlada por JS) -->
     <div class="page" id="page-album"></div>
 
-    <!-- BUSCAR (nueva página) -->
     <div class="page" id="page-search">
       <div class="search-page-header">
         <h2>Buscar</h2>
@@ -140,14 +125,12 @@
       </div>
     </div>
 
-    <!-- DISCOVER WEEKLY -->
     <div class="page" id="page-weekly">
       <div class="page-title">📅 Discover Weekly</div>
       <div class="page-sub">Playlist renovada cada lunes basada en tus canciones favoritas.</div>
       <div class="cards-grid" id="weeklyCards"><div class="loading"><div class="spin"></div> Generando…</div></div>
     </div>
 
-    <!-- PLAYLIST -->
      <div class="page" id="page-playlist">
       <div class="playlist-header">
         <button class="back-btn" onclick="showPage('home')">←</button>
@@ -164,7 +147,6 @@
       </div>
     </div>
 
-    <!-- CHAT -->
     <div class="page" id="page-chat">
       <div class="page-title">💬 Chat de la comunidad</div>
       <div class="page-sub">Conéctate con otros usuarios en tiempo real.</div>
@@ -183,7 +165,6 @@
       </div>
     </div>
 
-    <!-- PROFILE -->
      <div class="page" id="page-profile">
       <div class="page-title">👤 Mi perfil</div>
       <div class="page-sub">Estadísticas de escucha y logros.</div>
@@ -208,8 +189,6 @@
       </div>
     </div>
 
-    <!-- ANALYSIS (Panel IA) -->
-    <!-- ANALYSIS (Panel IA) -->
 <div class="page" id="page-analysis">
   <div class="page-title">📊 Panel de Inteligencia Artificial</div>
   <div class="page-sub" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -217,7 +196,6 @@
     <span id="panelLiveIndicator" class="ai-badge">⏳ Cargando…</span>
   </div>
 
-  <!-- Métricas del sistema -->
   <div class="section">
     <div class="section-title" style="margin-bottom:14px">📈 Métricas del sistema</div>
     <div class="metrics-row">
@@ -230,7 +208,6 @@
     </div>
   </div>
 
-  <!-- Top canciones de la comunidad (TIEMPO REAL) -->
   <div class="section">
     <div class="section-head">
       <div class="section-title">🏆 Top canciones de la comunidad</div>
@@ -241,7 +218,6 @@
     </div>
   </div>
 
-  <!-- Géneros más escuchados por la comunidad (TIEMPO REAL) -->
   <div class="section">
     <div class="section-head">
       <div class="section-title">🌍 Géneros de la comunidad</div>
@@ -250,14 +226,12 @@
     <div class="bar-chart" id="panelCommunityGenreBar"></div>
   </div>
 
-  <!-- Mis géneros favoritos (personales) -->
   <div class="section">
     <div class="section-title" style="margin-bottom:8px">🎨 Mis géneros favoritos</div>
     <div class="page-sub" style="margin-bottom:12px">Distribución de likes por género según tu historial personal.</div>
     <div class="bar-chart" id="genreBar"></div>
   </div>
 
-  <!-- Árbol de decisión -->
   <div class="section">
     <div class="section-head">
       <div class="section-title">🌳 Árbol de decisión — reglas aprendidas</div>
@@ -266,7 +240,6 @@
     <div class="tree-viz" id="treeViz">Calculando…</div>
   </div>
 
-  <!-- Validación cruzada k=5 -->
   <div class="section">
     <div class="section-head">
       <div class="section-title">🔬 Validación cruzada k=5</div>
@@ -283,7 +256,6 @@
     </table>
   </div>
 
-  <!-- SoundMind IA vs. Sistema básico -->
   <div class="section">
     <div class="section-title" style="margin-bottom:14px">📊 SoundMind IA vs. Sistema básico</div>
     <table class="comp-table">
@@ -302,7 +274,6 @@
     </table>
   </div>
 
-  <!-- Infraestructura tecnológica (corregida) -->
   <div class="section">
     <div class="section-title" style="margin-bottom:14px">🖥️ Infraestructura tecnológica</div>
     <div class="infra-list">
@@ -323,7 +294,6 @@
 
 </div>
 
-<!-- ═══════════ REPRODUCTOR INFERIOR (Fijo) ═══════════ -->
 <div id="playerBar" class="hidden">
   <div class="player-left">
     <div class="pl-disc-wrap" id="discClickArea" onclick="openExpandedPlayer()">
@@ -379,7 +349,6 @@
   <audio id="audioEl" preload="none"></audio>
 </div>
 
-<!-- EXPANDED PLAYER -->
 <div id="expandedPlayer" class="hidden">
   <div class="expanded-bg" onclick="closeExpandedPlayer()"></div>
   <div class="expanded-card">
@@ -429,10 +398,8 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
-<!-- VOICE OVERLAY -->
 <div id="voiceOverlay">
   <div class="voice-modal">
     <div class="voice-waves">
@@ -446,7 +413,6 @@
   </div>
 </div>
 
-<!-- ═══════════ MENÚ CONTEXTUAL (Bottom Sheet / Dropdown) ═══════════ -->
 <div id="contextMenu" class="hidden">
   <div class="context-overlay" onclick="closeContextMenu()"></div>
   <div class="context-sheet" id="contextSheet">
@@ -459,12 +425,10 @@
       </div>
     </div>
     <div class="context-options">
-      <!-- Se llenan dinámicamente desde JS -->
     </div>
   </div>
 </div>
 
-<!-- ═══════════ BARRA DE NAVEGACIÓN MÓVIL ═══════════ -->
 <nav class="mobile-nav" id="mobileNav">
   <button class="mobile-nav-item active" onclick="showPage('home')">🏠<span>Inicio</span></button>
   <button class="mobile-nav-item" onclick="showPage('weekly')">📅<span>Semanal</span></button>
