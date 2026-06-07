@@ -102,13 +102,53 @@
       </div>
     </div>
 
-    <!-- RECOMENDACIONES IA (requiere inicio de sesión) -->
+<!-- RECOMENDACIONES IA (requiere inicio de sesión) -->
 <div class="page" id="page-recomendaciones">
-  <div style="text-align:center;padding:60px 20px;color:#a0aec0">
-    <div style="font-size:56px;margin-bottom:16px">🎯</div>
-    <h2 style="font-family:var(--font-h);margin-bottom:10px">Recomendaciones personalizadas</h2>
-    <p style="margin-bottom:24px">Inicia sesión para recibir música basada en tus gustos.</p>
-    <button onclick="window.location.href='login.html'" class="btn-shuffle-all" style="margin:0 auto">Iniciar sesión →</button>
+  <div style="display:flex;align-items:center;justify-content:center;min-height:62vh;padding:20px">
+    <div style="background:rgba(11,11,22,.92);border:1px solid rgba(157,111,255,.25);border-radius:28px;
+                padding:44px 36px;max-width:420px;width:100%;text-align:center;
+                box-shadow:0 24px 80px rgba(0,0,0,.8),0 0 40px rgba(157,111,255,.08);
+                backdrop-filter:blur(30px);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(157,111,255,.12),transparent 70%);pointer-events:none"></div>
+      <div style="font-size:48px;margin-bottom:6px">🎯</div>
+      <div style="font-size:22px;margin-bottom:12px">🔒</div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:10px;
+                 background:linear-gradient(135deg,#fff,#c8a9ff);-webkit-background-clip:text;
+                 -webkit-text-fill-color:transparent;background-clip:text;">
+        Recomendaciones IA
+      </h2>
+      <p style="color:#8888bb;font-size:13px;margin-bottom:24px;line-height:1.7">
+        Inicia sesión para recibir música personalizada basada en tus gustos mediante inteligencia artificial.
+      </p>
+      <ul style="text-align:left;list-style:none;margin-bottom:28px;display:flex;flex-direction:column;gap:10px">
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#c8a9ff">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(157,111,255,.2);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Filtrado colaborativo KNN personalizado
+        </li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#c8a9ff">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(157,111,255,.2);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Aprende con cada like y favorito
+        </li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#c8a9ff">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(157,111,255,.2);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Árbol de decisión J48 para clasificar gustos
+        </li>
+      </ul>
+      <button onclick="window.location.href='login.html'"
+        style="width:100%;padding:14px;border-radius:50px;
+               background:linear-gradient(135deg,#6c2bd9,#9d6fff);
+               color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;
+               box-shadow:0 6px 24px rgba(157,111,255,.45);font-family:'Syne',sans-serif;
+               transition:transform .2s,box-shadow .2s;"
+        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 32px rgba(157,111,255,.6)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px rgba(157,111,255,.45)'">
+        Iniciar sesión →
+      </button>
+    </div>
   </div>
 </div>
 
@@ -117,21 +157,101 @@
 
     <!-- DISCOVER WEEKLY (requiere inicio de sesión) -->
 <div class="page" id="page-weekly">
-  <div style="text-align:center;padding:60px 20px;color:#a0aec0">
-    <div style="font-size:56px;margin-bottom:16px">📅</div>
-    <h2 style="font-family:var(--font-h);margin-bottom:10px">Discover Weekly</h2>
-    <p style="margin-bottom:24px">Cada lunes, una playlist nueva basada en tus gustos. Inicia sesión para activarla.</p>
-    <button onclick="window.location.href='login.html'" class="btn-shuffle-all" style="margin:0 auto">Iniciar sesión →</button>
+  <div style="display:flex;align-items:center;justify-content:center;min-height:62vh;padding:20px">
+    <div style="background:rgba(11,11,22,.92);border:1px solid rgba(0,245,212,.2);border-radius:28px;
+                padding:44px 36px;max-width:420px;width:100%;text-align:center;
+                box-shadow:0 24px 80px rgba(0,0,0,.8),0 0 40px rgba(0,245,212,.06);
+                backdrop-filter:blur(30px);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-60px;left:-60px;width:200px;height:200px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(0,245,212,.08),transparent 70%);pointer-events:none"></div>
+      <div style="font-size:48px;margin-bottom:6px">📅</div>
+      <div style="font-size:22px;margin-bottom:12px">🔒</div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:10px;
+                 background:linear-gradient(135deg,#fff,#00f5d4);-webkit-background-clip:text;
+                 -webkit-text-fill-color:transparent;background-clip:text;">
+        Discover Weekly
+      </h2>
+      <p style="color:#8888bb;font-size:13px;margin-bottom:24px;line-height:1.7">
+        Cada lunes una playlist nueva de 12 canciones generada automáticamente desde tu canción favorita.
+      </p>
+      <ul style="text-align:left;list-style:none;margin-bottom:28px;display:flex;flex-direction:column;gap:10px">
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#a0f5e8">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(0,245,212,.15);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Playlist generada por algoritmo recursivo
+        </li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#a0f5e8">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(0,245,212,.15);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Basada en tu canción con más likes y favoritos
+        </li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#a0f5e8">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(0,245,212,.15);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Se renueva automáticamente cada lunes
+        </li>
+      </ul>
+      <button onclick="window.location.href='login.html'"
+        style="width:100%;padding:14px;border-radius:50px;
+               background:linear-gradient(135deg,#0891b2,#00f5d4);
+               color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;
+               box-shadow:0 6px 24px rgba(0,245,212,.3);font-family:'Syne',sans-serif;
+               transition:transform .2s,box-shadow .2s;"
+        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 32px rgba(0,245,212,.45)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px rgba(0,245,212,.3)'">
+        Iniciar sesión →
+      </button>
+    </div>
   </div>
 </div>
 
     <!-- CHAT (requiere inicio de sesión) -->
 <div class="page" id="page-chat">
-  <div style="text-align:center;padding:60px 20px;color:#a0aec0">
-    <div style="font-size:56px;margin-bottom:16px">🔒</div>
-    <h2 style="font-family:var(--font-h);margin-bottom:10px">Chat de la comunidad</h2>
-    <p style="margin-bottom:24px">Inicia sesión para leer y enviar mensajes en tiempo real.</p>
-    <button onclick="window.location.href='login.html'" class="btn-shuffle-all" style="margin:0 auto">Iniciar sesión →</button>
+  <div style="display:flex;align-items:center;justify-content:center;min-height:62vh;padding:20px">
+    <div style="background:rgba(11,11,22,.92);border:1px solid rgba(247,37,133,.2);border-radius:28px;
+                padding:44px 36px;max-width:420px;width:100%;text-align:center;
+                box-shadow:0 24px 80px rgba(0,0,0,.8),0 0 40px rgba(247,37,133,.06);
+                backdrop-filter:blur(30px);position:relative;overflow:hidden;">
+      <div style="position:absolute;bottom:-60px;right:-40px;width:180px;height:180px;border-radius:50%;
+                  background:radial-gradient(circle,rgba(247,37,133,.08),transparent 70%);pointer-events:none"></div>
+      <div style="font-size:48px;margin-bottom:6px">💬</div>
+      <div style="font-size:22px;margin-bottom:12px">🔒</div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:10px;
+                 background:linear-gradient(135deg,#fff,#ff85b3);-webkit-background-clip:text;
+                 -webkit-text-fill-color:transparent;background-clip:text;">
+        Chat de la comunidad
+      </h2>
+      <p style="color:#8888bb;font-size:13px;margin-bottom:24px;line-height:1.7">
+        Únete a la conversación en tiempo real con otros usuarios de SoundMind.
+      </p>
+      <ul style="text-align:left;list-style:none;margin-bottom:28px;display:flex;flex-direction:column;gap:10px">
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#ffaac8">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(247,37,133,.15);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Mensajes en tiempo real vía Supabase Realtime
+        </li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#ffaac8">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(247,37,133,.15);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Comparte tus canciones favoritas con la comunidad
+        </li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#ffaac8">
+          <span style="width:22px;height:22px;border-radius:50%;background:rgba(247,37,133,.15);
+                       display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✓</span>
+          Historial de los últimos 100 mensajes
+        </li>
+      </ul>
+      <button onclick="window.location.href='login.html'"
+        style="width:100%;padding:14px;border-radius:50px;
+               background:linear-gradient(135deg,#be185d,#f72585);
+               color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;
+               box-shadow:0 6px 24px rgba(247,37,133,.35);font-family:'Syne',sans-serif;
+               transition:transform .2s,box-shadow .2s;"
+        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 32px rgba(247,37,133,.5)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='0 6px 24px rgba(247,37,133,.35)'">
+        Iniciar sesión →
+      </button>
+    </div>
   </div>
 </div>
 </main>
@@ -152,9 +272,9 @@
   <div class="player-center">
     <div class="pl-controls-btns">
       <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
-      <button class="pl-btn" onclick="playPrevSong()">⏮</button>
+      <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="playPauseBtn" onclick="togglePlayPause()">▶</button>
-      <button class="pl-btn" onclick="playNextSong()">⏭</button>
+      <button class="pl-btn" onclick="playNextInContext()">⏭</button>
       <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
     </div>
     <div class="pl-progress-wrap">
@@ -190,9 +310,9 @@
     </div>
     <div class="expanded-controls">
       <button class="pl-btn skip-btn" onclick="skipBackward()">-15</button>
-      <button class="pl-btn" onclick="playPrevSong()">⏮</button>
+      <button class="pl-btn" onclick="playPrevInContext()">⏮</button>
       <button class="pl-btn play-pause" id="expPlayPauseBtn" onclick="togglePlayPause()">▶</button>
-      <button class="pl-btn" onclick="playNextSong()">⏭</button>
+      <button class="pl-btn" onclick="playNextInContext()">⏭</button>
       <button class="pl-btn skip-btn" onclick="skipForward()">+15</button>
     </div>
     <div class="expanded-progress">
