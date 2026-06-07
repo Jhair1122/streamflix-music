@@ -184,6 +184,8 @@ async function bootApp(){
   showPage('home');
   initVoiceSearch();
   initChat();
+  // Inicializar panel de emojis
+  initEmojiPanel();
   initRealtimeRanking();   // ← añadir esta línea
 
   // Inicializar nuevas secciones estáticas
@@ -2849,6 +2851,60 @@ function addMessageToUI(msg) {
   requestAnimationFrame(() => {
     container.scrollTop = container.scrollHeight;
   });
+}
+
+/* ═══════════════════ EMOJI PICKER ══════════════════ */
+const EMOJI_LIST = [
+  '😀','😂','🤣','😍','🥰','😎','🤩','😜','🤔','😴',
+  '😭','😤','😡','🤯','🥳','😱','🫠','🫡','🥹','😇',
+  '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','💕',
+  '🔥','✨','⭐','🎵','🎶','🎸','🎤','🎧','🎹','🥁',
+  '👍','👎','👏','🙌','🤝','🫶','💪','🙏','✌️','🤟',
+  '🎉','🎊','🏆','🥇','🎯','💡','💎','🌈','⚡','🌙',
+  '🍕','🍔','🍟','🍣','🍦','🍰','☕','🧃','🍺','🥤',
+  '😸','🐶','🦊','🐻','🦁','🐯','🐸','🦋','🌸','🌺'
+];
+
+function initEmojiPanel() {
+  const panel = document.getElementById('emojiPanel');
+  if (!panel) return;
+  panel.innerHTML = EMOJI_LIST.map(emoji =>
+    `<button onclick="insertEmoji('${emoji}')" title="${emoji}">${emoji}</button>`
+  ).join('');
+}
+
+function toggleEmojiPanel() {
+  const panel = document.getElementById('emojiPanel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  // Cerrar al hacer click fuera
+  if (panel.classList.contains('open')) {
+    setTimeout(() => {
+      document.addEventListener('click', closeEmojiOnOutside, { once: true });
+    }, 10);
+  }
+}
+
+function closeEmojiOnOutside(e) {
+  const panel = document.getElementById('emojiPanel');
+  const btn   = e.target.closest('.emoji-toggle-btn');
+  if (!panel || btn) return;
+  if (!panel.contains(e.target)) {
+    panel.classList.remove('open');
+  }
+}
+
+function insertEmoji(emoji) {
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const start = input.selectionStart || input.value.length;
+  const end   = input.selectionEnd   || input.value.length;
+  input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+  // Mover cursor después del emoji
+  const newPos = start + emoji.length;
+  input.setSelectionRange(newPos, newPos);
+  input.focus();
+  // No cerrar el panel para poder añadir más emojis
 }
 
 async function sendMessage() {
