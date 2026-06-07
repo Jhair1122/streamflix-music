@@ -5,7 +5,6 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let allSongs = [], nowPlayingId = null, searchQuery = '', activeGenre = null;
 let audioCtx = null, analyser = null, sourceNode = null, sourceLinked = false, visRaf = null;
 let recognition = null, isListening = false;
-/* ── Contexto de reproducción ── */
 let playlistContext    = 'global';
 let currentCatalogIds  = [];
 let _albumPages        = {};
@@ -39,7 +38,6 @@ const GENRE_COLORS = {
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
-// --- Modal de login ---
 function requireLogin(feature='esta función'){
   const existing = document.getElementById('loginPromptOverlay');
   if(existing) existing.remove();
@@ -79,7 +77,6 @@ function requireLogin(feature='esta función'){
   overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
 }
 
-// --- Navegación entre páginas ---
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -94,7 +91,6 @@ function showPage(name) {
 }
 function toggleSidebar(){ $('sidebar')?.classList.toggle('open'); }
 
-// --- Cargar canciones ---
 async function loadSongs(){
   try {
     const res = await fetch(`${API_BASE}/api/songs`);
@@ -183,7 +179,6 @@ function renderCatalog() {
   }).join('');
 }
 
-/* ── Moods preview ── */
 const MOODS=[
   {id:'tristes',nombre:'Canciones tristes',emoji:'😢',color:'linear-gradient(135deg,#1e3a5f,#3730a3)',cover:'img/sad_album.jpg'},
   {id:'estudiar',nombre:'Para estudiar',emoji:'📚',color:'linear-gradient(135deg,#0c4a6e,#1e40af)',cover:'img/para_estudiar.jpg'},
@@ -215,7 +210,6 @@ function renderMoodCards(){
     </div>`).join('');
 }
 
-/* ── Top ranking (global) ── */
 async function renderTopRanking(){
   const el=$('ranking-lo-mas-escuchado');
   if(!el) return;
@@ -256,7 +250,6 @@ async function renderTopRanking(){
   } catch(e){ el.innerHTML=''; }
 }
 
-/* ── Géneros ── */
 const COLORES_GENERO = {
   'Anime': 'linear-gradient(135deg, #4c1d95, #7c3aed)', 'Balada': 'linear-gradient(135deg, #1e3a5f, #2563eb)', 'Electrónica': 'linear-gradient(135deg, #0c4a6e, #0891b2)',
   'J-Pop': 'linear-gradient(135deg, #4a1d96, #7e22ce)', 'Latino': 'linear-gradient(135deg, #14532d, #16a34a)', 'Phonk': 'linear-gradient(135deg, #18181b, #3f3f46)',
@@ -304,7 +297,6 @@ function renderizarExploraGeneros() {
   });
 }
 
-/* ── Mixes (por artista) ── */
 function renderizarTusMixes() {
   const contenedor = $('seccion-tus-mixes');
   if (!contenedor) return;
@@ -350,7 +342,6 @@ function renderizarTusMixes() {
   });
 }
 
-/* ── Página álbum ── */
 function abrirPaginaAlbum(tipo, valor) {
   paginaAnterior = document.querySelector('.page.active')?.id || 'page-home';
   let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '', tipoLabel = '';
@@ -417,7 +408,6 @@ function abrirPaginaAlbum(tipo, valor) {
     ? `<img class="album-cover-img" src="${portadaUrl}" alt="${esc(tituloAlbum)}">`
     : `<div class="album-cover-placeholder" style="background:${colorFondo}">${iconoPortada}</div>`;
 
-  // Registrar clave de álbum para contexto
   const pageKey = 'alb_' + (++_albumPageKey);
   _albumPages[pageKey] = cancionesAlbum.map(c => c.id);
 
@@ -498,7 +488,6 @@ function cerrarPaginaAlbum() {
   else $('page-home').classList.add('active');
 }
 
-/* ── Player ── */
 function playSong(e, songId, context = null) {
   if(e && e.stopPropagation) e.stopPropagation();
   const song = allSongs.find(s => s.id === songId);
@@ -680,7 +669,6 @@ function openExpandedPlayer(){
 }
 function closeExpandedPlayer(){ $('expandedPlayer').classList.add('hidden'); }
 
-/* ── Chat solo lectura ── */
 function initChatReadOnly(){
   fetch(`${API_BASE}/api/messages`).then(r=>r.json()).then(data=>{
     const c=$('chatMessagesPanel'); if(!c) return;
@@ -703,7 +691,6 @@ function addMsgUI(msg){
   c.appendChild(d);
 }
 
-/* ── Voz ── */
 function initVoiceSearch(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
@@ -725,12 +712,11 @@ function toggleVoice(){
   requireLogin('búsqueda por voz');
 }
 
-/* ═══ KEEP-ALIVE para Render ═══ */
 function keepAlive(){
   fetch(`${API_BASE}/api/popular`).catch(()=>{});
 }
 keepAlive();
-setInterval(keepAlive, 540000); // cada 9 minutos (Render duerme a los 15)
+setInterval(keepAlive, 540000);
 
 window.addEventListener('load',async()=>{
   await loadSongs();
