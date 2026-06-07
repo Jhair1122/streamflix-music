@@ -254,6 +254,10 @@ async function doLogout(){
     rankingSubscription.unsubscribe();
     rankingSubscription = null;
   }
+  if (panelSubscription) {
+    panelSubscription.unsubscribe();
+    panelSubscription = null;
+  }
 
   window.location.href = 'explore.html';
 }
@@ -2731,6 +2735,7 @@ function closeExpandedPlayer() {
 /* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
 let chatSubscription = null;
 let rankingSubscription = null;   // ← nueva
+let panelSubscription   = null;   // suscripción tiempo real del Panel IA
 
 function initChat() {
   loadChatMessages();
@@ -2984,43 +2989,198 @@ function showPage(name){
 function toggleSidebar(){ $('sidebar').classList.toggle('open') }
 
 async function renderAnalysis() {
+  const indicator = document.getElementById('panelLiveIndicator');
+  if (indicator) { indicator.textContent = '🟡 Cargando…'; indicator.style.color = 'var(--gold)'; }
+
   try {
+    // ── 1. Backend: métricas del usuario, árbol y validación cruzada ──
     const res = await fetch(`${API_BASE}/api/analysis?user_id=${currentUser.id}`);
     const data = await res.json();
-    txt('mUsers', data.metrics.users);
-    txt('mSongs', data.metrics.songs);
-    txt('mInter', data.metrics.interactions);
-    txt('mLikes', data.metrics.likes);
-    txt('mAcc', data.metrics.accuracy);
-    txt('mAvg', data.metrics.avg_likes_per_user);
-    const genreChart = data.genre_chart || {};
-    const sorted = Object.entries(genreChart).sort((a,b) => b[1] - a[1]);
-    const maxVal = Math.max(1, ...sorted.map(e => e[1]));
-    let html = '';
-    sorted.forEach(([genre, count]) => {
-      const pct = (count / maxVal) * 100;
-      html += `<div class="bar-col">
-        <div class="bar-fill" style="height:${pct}%; background:${genreGradient(genre)}"></div>
-        <div class="bar-lbl">${genreEmoji(genre)} ${genre}</div>
-        <div class="bar-num">${count}</div>
-      </div>`;
-    });
-    if (!html) html = '<p style="color:var(--text2);padding:20px">No tienes suficientes interacciones para mostrar gráfico.</p>';
-    $('genreBar').innerHTML = html;
-    $('treeViz').textContent = data.tree_rules;
+
+    txt('mUsers', data.metrics?.users   ?? '—');
+    txt('mSongs', data.metrics?.songs   ?? '—');
+    txt('mInter', data.metrics?.interactions ?? '—');
+    txt('mLikes', data.metrics?.likes   ?? '—');
+    txt('mAcc',   data.metrics?.accuracy ?? '—');
+    txt('mAvg',   data.metrics?.avg_likes_per_user ?? '—');
+
+    // Mis géneros favoritos (personales)
+    _renderGenreBar('genreBar', data.genre_chart || {},
+      'No tienes suficientes interacciones para mostrar el gráfico.');
+
+    // Árbol de decisión
+    const treeEl = $('treeViz');
+    if (treeEl) treeEl.textContent = data.tree_rules || 'Sin datos suficientes.';
+
+    // Validación cruzada
     const cvBody = $('cvBody');
-    let rows = '';
-    data.cross_validation.forEach(cv => {
-      rows += `<tr>
-        <td>${cv.fold}</td><td>${cv.train}</td><td>${cv.test}</td>
-        <td class="${cv.accuracy>=70?'good':cv.accuracy>=50?'mid':''}">${cv.accuracy}%</td>
-        <td>${cv.detected}</td>
-      </tr>`;
-    });
-    cvBody.innerHTML = rows;
-  } catch (e) {
-    toast('Error al cargar análisis');
+    if (cvBody) {
+      const folds = data.cross_validation || [];
+      if (!folds.length) {
+        cvBody.innerHTML = '<tr><td colspan="5" style="color:var(--text2);padding:20px">Sin datos suficientes para validación cruzada.</td></tr>';
+      } else {
+        cvBody.innerHTML = folds.map(cv => `
+          <tr>
+            <td>${cv.fold}</td>
+            <td>${cv.train}</td>
+            <td>${cv.test}</td>
+            <td class="${cv.accuracy >= 70 ? 'good' : cv.accuracy >= 50 ? 'mid' : ''}">${cv.accuracy}%</td>
+            <td>${cv.detected}</td>
+          </tr>`).join('');
+      }
+    }
+
+  } catch(e) {
+    console.error('Error al cargar análisis del backend:', e);
+    if (indicator) { indicator.textContent = '🔴 Backend no disponible'; indicator.style.color = 'var(--red)'; }
   }
+
+  // ── 2. Supabase directo: top canciones y géneros comunitarios ──
+  await _renderPanelCommunityData();
+
+  if (indicator) { indicator.textContent = '🟢 En tiempo real'; indicator.style.color = 'var(--green)'; }
+
+  // ── 3. Suscripción en tiempo real (solo si no está activa) ──
+  _subscribePanelRealtime();
+}
+
+/* ── Datos comunitarios en tiempo real ── */
+async function _renderPanelCommunityData() {
+  try {
+    const { data: interData } = await supabase
+      .from('interacciones')
+      .select('cancion_id, es_like, es_favorito')
+      .or('es_like.eq.true,es_favorito.eq.true');
+
+    if (!interData || interData.length === 0) {
+      const topEl  = document.getElementById('panelTopSongs');
+      const commEl = document.getElementById('panelCommunityGenreBar');
+      if (topEl)  topEl.innerHTML  = '<div class="empty-state"><div class="empty-icon">🎵</div><p>Aún no hay suficientes interacciones en la comunidad.</p></div>';
+      if (commEl) commEl.innerHTML = '<p style="color:var(--text2);padding:20px;font-size:13px">Sin datos comunitarios aún.</p>';
+      return;
+    }
+
+    // Calcular scores globales por canción
+    const scores = {};
+    interData.forEach(i => {
+      if (!scores[i.cancion_id]) scores[i.cancion_id] = 0;
+      if (i.es_like)      scores[i.cancion_id] += 1.0;
+      if (i.es_favorito)  scores[i.cancion_id] += 0.5;
+    });
+
+    const topSongs = Object.entries(scores)
+      .map(([cid, score]) => ({ cancion: allSongs.find(s => s.id === parseInt(cid)), score }))
+      .filter(r => r.cancion)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    _renderPanelTopSongs(topSongs);
+
+    // Géneros de la comunidad: suma de scores por género
+    const genreScores = {};
+    interData.forEach(i => {
+      const s = allSongs.find(s => s.id === parseInt(i.cancion_id));
+      if (!s) return;
+      genreScores[s.genero] = (genreScores[s.genero] || 0) + (i.es_like ? 1 : 0.5);
+    });
+    _renderGenreBar('panelCommunityGenreBar', genreScores,
+      'Sin datos comunitarios aún.');
+
+  } catch(e) {
+    console.error('Error cargando datos comunitarios del panel:', e);
+  }
+}
+
+/* ── Renderiza el top 10 en formato lista ── */
+function _renderPanelTopSongs(topSongs) {
+  const container = document.getElementById('panelTopSongs');
+  if (!container) return;
+
+  if (!topSongs || topSongs.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏆</div><p>Sin canciones populares aún.</p></div>';
+    return;
+  }
+
+  const MEDALS = ['🥇', '🥈', '🥉'];
+  container.className = 'album-track-list';
+  container.innerHTML = topSongs.map((item, i) => {
+    const c    = item.cancion;
+    const inter = interaccionesMap[c.id] || {};
+    const liked   = inter.es_like;
+    const playing = nowPlayingId === c.id;
+    const thumb = c.url_imagen
+      ? `<img class="album-track-thumb" src="${esc(c.url_imagen)}" alt="${esc(c.titulo)}" onerror="this.style.display='none'">`
+      : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
+
+    return `
+      <div class="album-track${playing ? ' playing' : ''}" data-id="${c.id}" onclick="playSong(null,${c.id})">
+        <div class="album-track-num" style="color:${i < 3 ? 'var(--gold)' : 'var(--text3)'}">
+          ${playing ? '▶' : (i < 3 ? MEDALS[i] : i + 1)}
+        </div>
+        ${thumb}
+        <div class="album-track-info">
+          <div class="album-track-title">${esc(c.titulo)}</div>
+          <div class="album-track-artist">${esc(c.artista)}</div>
+        </div>
+        <span class="album-track-genre">${esc(c.genero)}</span>
+        <span style="font-size:11px;color:var(--gold);font-weight:700;white-space:nowrap;flex-shrink:0;">
+          ★ ${item.score.toFixed(1)}
+        </span>
+        <div class="album-track-actions" onclick="event.stopPropagation()">
+          <button class="album-track-btn${liked ? ' liked-btn' : ''}"
+            onclick="toggleLike(event,${c.id})" title="Like">${liked ? '❤️' : '🤍'}</button>
+          <button class="album-track-btn"
+            onclick="playSong(null,${c.id});event.stopPropagation()" title="Reproducir">▶</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ── Renderiza cualquier bar chart de géneros ── */
+function _renderGenreBar(containerId, genreData, emptyMsg = 'Sin datos.') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  const sorted  = Object.entries(genreData).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const maxVal  = Math.max(1, ...sorted.map(e => e[1]));
+
+  if (!sorted.length) {
+    el.innerHTML = `<p style="color:var(--text2);padding:20px;font-size:13px">${emptyMsg}</p>`;
+    return;
+  }
+
+  el.innerHTML = sorted.map(([genre, count]) => {
+    const pct  = (count / maxVal) * 100;
+    const label = typeof count === 'number'
+      ? (Number.isInteger(count) ? count : count.toFixed(1))
+      : count;
+    return `
+      <div class="bar-col">
+        <div class="bar-fill" style="height:${pct}%; background:${genreGradient(genre)}; transition:.6s ease;"></div>
+        <div class="bar-lbl">${genreEmoji(genre)} ${genre}</div>
+        <div class="bar-num">${label}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ── Suscripción Supabase Realtime para el Panel IA ── */
+function _subscribePanelRealtime() {
+  if (panelSubscription) return; // ya suscrito, no duplicar
+
+  panelSubscription = supabase
+    .channel('panel-ia-interacciones')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'interacciones' },
+      async () => {
+        // Solo re-renderiza la parte comunitaria si el panel está visible
+        const panelPage = document.getElementById('page-analysis');
+        if (panelPage && panelPage.classList.contains('active')) {
+          await _renderPanelCommunityData();
+        }
+      }
+    )
+    .subscribe();
 }
 
 /* ═══════════════════ KEEP-ALIVE para Render ══════════════════ */
