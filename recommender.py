@@ -1,9 +1,7 @@
 import math
 import random
 
-# ── Filtrado colaborativo KNN (pesos: like=1, favorito=0.5) ──
 def collaborative_filtering(user_id, my_inter, all_inter, all_songs):
-    # Construir perfil de pesos del usuario
     my_weights = {}
     for inter in my_inter:
         if inter["es_like"]:
@@ -14,7 +12,6 @@ def collaborative_filtering(user_id, my_inter, all_inter, all_songs):
     if not my_weights:
         return []
 
-    # Perfiles de otros usuarios
     others = {}
     for inter in all_inter:
         if inter["usuario_id"] == user_id:
@@ -25,7 +22,6 @@ def collaborative_filtering(user_id, my_inter, all_inter, all_songs):
         w = 1 if inter["es_like"] else 0.5
         others[uid][inter["cancion_id"]] = others[uid].get(inter["cancion_id"], 0) + w
 
-    # Similitud coseno
     sims = []
     for uid, nw in others.items():
         intersection = 0.0
@@ -39,7 +35,6 @@ def collaborative_filtering(user_id, my_inter, all_inter, all_songs):
             sims.append((uid, sim, nw))
     sims.sort(key=lambda x: x[1], reverse=True)
 
-    # Ponderar candidatos
     candidates = {}
     for _, sim, nw in sims[:3]:
         for sid, w in nw.items():
@@ -51,7 +46,6 @@ def collaborative_filtering(user_id, my_inter, all_inter, all_songs):
     return [s for s in all_songs if s["id"] in rec_ids]
 
 
-# ── Árbol de decisión J48 simplificado (solo para análisis) ──
 def build_decision_tree(all_inter, all_songs):
     datos = []
     for inter in all_inter:
@@ -112,7 +106,6 @@ def predict_tree(song, model):
     return score >= 4
 
 
-# ── Playlist recursiva BASADA SOLO EN GÉNERO ──
 def recursive_playlist(seed_id, depth, visited, all_songs):
     if depth == 0 or not seed_id:
         return []
@@ -121,7 +114,6 @@ def recursive_playlist(seed_id, depth, visited, all_songs):
         return []
     visited.add(seed_id)
 
-    # Puntuación simple: 3 si coincide el género, 0 en caso contrario
     candidates = [
         {
             "s": s,
@@ -132,12 +124,10 @@ def recursive_playlist(seed_id, depth, visited, all_songs):
     if not candidates:
         return []
 
-    # En caso de empate, usamos popularidad como desempate (si existe)
     best = max(candidates, key=lambda x: (x["score"], x["s"].get("popularidad", 0)))
     return [best["s"]] + recursive_playlist(best["s"]["id"], depth - 1, visited, all_songs)
 
 
-# ── Validación cruzada k=5 ──
 def cross_validation(all_inter, all_songs, k=5):
     data = []
     for inter in all_inter:
