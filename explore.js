@@ -5,6 +5,13 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let allSongs = [], nowPlayingId = null, searchQuery = '', activeGenre = null;
 let audioCtx = null, analyser = null, sourceNode = null, sourceLinked = false, visRaf = null;
 let recognition = null, isListening = false;
+/* ── Contexto de reproducción ── */
+let playlistContext    = 'global';
+let currentCatalogIds  = [];
+let _albumPages        = {};
+let _albumPageKey      = 0;
+let albumQueue         = [];
+let paginaAnterior     = 'page-home';
 
 const $ = id => document.getElementById(id);
 function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
@@ -135,27 +142,30 @@ function clearSearch(){
   renderCatalog();
 }
 
-function renderCatalog(){
-  let songs=allSongs;
-  if(activeGenre) songs=songs.filter(s=>s.genero===activeGenre);
-  if(searchQuery) songs=songs.filter(s=>
-    s.titulo.toLowerCase().includes(searchQuery)||s.artista.toLowerCase().includes(searchQuery)
+function renderCatalog() {
+  let songs = allSongs;
+  if(activeGenre) songs = songs.filter(s => s.genero === activeGenre);
+  if(searchQuery) songs = songs.filter(s =>
+    s.titulo.toLowerCase().includes(searchQuery) ||
+    s.artista.toLowerCase().includes(searchQuery)
   );
-  txt('catalogCount', songs.length+' canciones');
-  const el=$('catalogCards'); if(!el) return;
-  if(!songs.length){
-    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🎵</div><p>No se encontraron canciones.</p></div>`;
+  txt('catalogCount', songs.length + ' canciones');
+  currentCatalogIds = songs.map(s => s.id);
+  const el = $('catalogCards'); if(!el) return;
+  if(!songs.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🎵</div><p>No se encontraron canciones.</p></div>`;
     return;
   }
-  el.className='album-track-list';
-  el.innerHTML=songs.map((s,i)=>{
-    const playing=nowPlayingId===s.id;
-    const thumbHTML=s.url_imagen
-      ?`<img class="album-track-thumb" src="${esc(s.url_imagen)}" alt="${esc(s.titulo)}" onerror="this.style.display='none'">`
-      :`<div class="album-track-thumb-placeholder" style="background:${genreGradient(s.genero)}">${genreEmoji(s.genero)}</div>`;
+  el.className = 'album-track-list';
+  el.innerHTML = songs.map((s, i) => {
+    const playing  = nowPlayingId === s.id;
+    const thumbHTML = s.url_imagen
+      ? `<img class="album-track-thumb" src="${esc(s.url_imagen)}" alt="${esc(s.titulo)}" onerror="this.style.display='none'">`
+      : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(s.genero)}">${genreEmoji(s.genero)}</div>`;
     return `
-      <div class="album-track${playing?' playing':''}" data-id="${s.id}" onclick="playSong(null,${s.id})">
-        <div class="album-track-num">${playing?'▶':i+1}</div>
+      <div class="album-track${playing ? ' playing' : ''}" data-id="${s.id}"
+           onclick="playSong(null,${s.id},'catalog')">
+        <div class="album-track-num">${playing ? '▶' : i + 1}</div>
         ${thumbHTML}
         <div class="album-track-info">
           <div class="album-track-title">${esc(s.titulo)}</div>
@@ -166,7 +176,8 @@ function renderCatalog(){
           <button class="album-track-btn" onclick="requireLogin('likes')" title="Like">🤍</button>
           <button class="album-track-btn" onclick="requireLogin('favoritos')" title="Favorito">☆</button>
           <button class="album-track-btn" onclick="requireLogin('playlists')" title="Playlist">➕</button>
-          <button class="album-track-btn" onclick="playSong(null,${s.id});event.stopPropagation()" title="Play">▶</button>
+          <button class="album-track-btn"
+            onclick="playSong(null,${s.id},'catalog');event.stopPropagation()" title="Play">▶</button>
         </div>
       </div>`;
   }).join('');
@@ -231,7 +242,7 @@ async function renderTopRanking(){
       const img=c.url_imagen
         ?`<img src="${c.url_imagen}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;margin-bottom:6px">`
         :`<div style="width:80px;height:80px;border-radius:8px;background:${genreGradient(c.genero)};display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:6px">${genreEmoji(c.genero)}</div>`;
-      return `<div onclick="playSong(null,${c.id})"
+      return `<div onclick="playSong(null,${c.id},'global')"
         style="min-width:130px;background:rgba(11,11,22,.8);border:1px solid rgba(255,255,255,.07);
                border-radius:12px;padding:10px;text-align:center;cursor:pointer;flex-shrink:0;transition:.18s"
         onmouseover="this.style.borderColor='#a78bfa';this.style.transform='translateY(-3px)'"
@@ -341,89 +352,188 @@ function renderizarTusMixes() {
 
 /* ── Página álbum ── */
 function abrirPaginaAlbum(tipo, valor) {
-  let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '';
-  if (tipo === 'genero') {
-    const generoNormalizado = valor.trim();
-    cancionesAlbum = allSongs.filter(s => s.genero && s.genero.trim() === generoNormalizado);
-    tituloAlbum = generoNormalizado;
+  paginaAnterior = document.querySelector('.page.active')?.id || 'page-home';
+  let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '', tipoLabel = '';
+
+  if(tipo === 'genero') {
+    const gen = valor.trim();
+    cancionesAlbum = allSongs.filter(s => s.genero && s.genero.trim() === gen);
+    tituloAlbum    = gen;
     subtituloAlbum = cancionesAlbum.length + ' canciones';
-  } else if (tipo === 'mood') {
+    tipoLabel      = 'GÉNERO';
+  } else if(tipo === 'mood') {
     const mood = MOODS.find(m => m.id === valor);
-    if (mood) {
-      cancionesAlbum = allSongs.filter(s => s.mood === mood.id);
-      tituloAlbum = mood.nombre;
+    if(mood) {
+      cancionesAlbum = allSongs.filter(s =>
+        s.mood === mood.id || s.mood2 === mood.id ||
+        s.mood3 === mood.id || s.mood4 === mood.id || s.mood5 === mood.id
+      );
+      tituloAlbum    = mood.nombre;
       subtituloAlbum = mood.emoji + ' · ' + cancionesAlbum.length + ' canciones';
+      tipoLabel      = 'ESTADO DE ÁNIMO';
     }
-  } else if (tipo === 'artista') {
-    cancionesAlbum = allSongs.filter(s => s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim() === valor.trim());
-    tituloAlbum = 'Mix de ' + valor;
+  } else if(tipo === 'artista') {
+    cancionesAlbum = allSongs.filter(s =>
+      s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim() === valor.trim()
+    );
+    tituloAlbum    = 'Mix de ' + valor;
     subtituloAlbum = cancionesAlbum.length + ' canciones';
+    tipoLabel      = 'MIX DEL ARTISTA';
   }
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  document.querySelectorAll('.page').forEach(p => { p.classList.remove('active'); p.style.display = ''; });
   const pagina = $('page-album');
   pagina.classList.add('active');
-  if (cancionesAlbum.length === 0) {
-    pagina.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#a0aec0">
-      <div style="font-size:56px;margin-bottom:16px">🎵</div>
-      <h2>${tituloAlbum}</h2>
-      <p>No se encontraron canciones.</p>
-      <button onclick="showPage('home')" class="btn-shuffle-all" style="margin:20px auto">← Volver</button>
-    </div>`;
+
+  if(cancionesAlbum.length === 0) {
+    pagina.innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:#a0aec0">
+        <div style="font-size:56px;margin-bottom:16px">🎵</div>
+        <h2 style="font-family:var(--font-h);margin-bottom:10px">${esc(tituloAlbum)}</h2>
+        <p style="margin-bottom:24px">No se encontraron canciones en esta categoría.</p>
+        <button onclick="cerrarPaginaAlbum()" class="btn-shuffle-all" style="margin:0 auto">← Volver</button>
+      </div>`;
     return;
   }
+
+  const COLORES_ALBUM = {
+    'Anime':'linear-gradient(135deg,#4c1d95,#7c3aed)','Balada':'linear-gradient(135deg,#1e3a5f,#2563eb)',
+    'Electrónica':'linear-gradient(135deg,#0c4a6e,#0891b2)','J-Pop':'linear-gradient(135deg,#4a1d96,#7e22ce)',
+    'Latino':'linear-gradient(135deg,#14532d,#16a34a)','Phonk':'linear-gradient(135deg,#18181b,#3f3f46)',
+    'Pop':'linear-gradient(135deg,#831843,#db2777)','Rock':'linear-gradient(135deg,#431407,#c2410c)',
+    'Trap':'linear-gradient(135deg,#1c1917,#57534e)','Alternativo':'linear-gradient(135deg,#1e1b4b,#4338ca)'
+  };
+
+  const conImagen    = cancionesAlbum.find(s => s.url_imagen);
+  const portadaUrl   = conImagen?.url_imagen || null;
+  const iconoPortada = tipo === 'mood'
+    ? (MOODS.find(m => m.id === valor)?.emoji || '🎵')
+    : genreEmoji(valor);
+  const colorFondo   = tipo === 'mood'
+    ? (MOODS.find(m => m.id === valor)?.color || 'linear-gradient(135deg,#4c1d95,#7c3aed)')
+    : (COLORES_ALBUM[valor] || 'linear-gradient(135deg,#4c1d95,#7c3aed)');
+  const heroBgStyle  = portadaUrl ? `background-image:url(${portadaUrl})` : `background:${colorFondo}`;
+  const portadaHTML  = portadaUrl
+    ? `<img class="album-cover-img" src="${portadaUrl}" alt="${esc(tituloAlbum)}">`
+    : `<div class="album-cover-placeholder" style="background:${colorFondo}">${iconoPortada}</div>`;
+
+  // Registrar clave de álbum para contexto
+  const pageKey = 'alb_' + (++_albumPageKey);
+  _albumPages[pageKey] = cancionesAlbum.map(c => c.id);
+
+  const pistasHTML = cancionesAlbum.map((c, i) => {
+    const playing = nowPlayingId === c.id;
+    const thumb = c.url_imagen
+      ? `<img class="album-track-thumb" src="${esc(c.url_imagen)}" alt="${esc(c.titulo)}"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        + `<div class="album-track-thumb-placeholder" style="display:none;background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`
+      : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
+    return `
+      <div class="album-track${playing ? ' playing' : ''}" data-id="${c.id}"
+           onclick="reproducirDesdeAlbumKey('${pageKey}',${i})">
+        <div class="album-track-num">${playing ? '▶' : i + 1}</div>
+        ${thumb}
+        <div class="album-track-info">
+          <div class="album-track-title">${esc(c.titulo)}</div>
+          <div class="album-track-artist">${esc(c.artista)}</div>
+        </div>
+        <span class="album-track-genre">${esc(c.genero)}</span>
+        <div class="album-track-actions" onclick="event.stopPropagation()">
+          <button class="album-track-btn" onclick="requireLogin('likes')" title="Like">🤍</button>
+          <button class="album-track-btn"
+            onclick="reproducirDesdeAlbumKey('${pageKey}',${i});event.stopPropagation()"
+            title="Reproducir">▶</button>
+        </div>
+      </div>`;
+  }).join('');
+
   pagina.innerHTML = `
-    <div style="padding:16px">
-      <button onclick="showPage('home')" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">←</button>
-      <h2 style="font-family:var(--font-h);font-size:22px;margin-bottom:12px">${tituloAlbum}</h2>
-      <p style="color:var(--text2);margin-bottom:20px">${subtituloAlbum}</p>
-      <div class="album-track-list">
-        ${cancionesAlbum.map((c,i) => {
-          const playing = nowPlayingId === c.id;
-          const thumb = c.url_imagen
-            ? `<img class="album-track-thumb" src="${c.url_imagen}" alt="${esc(c.titulo)}">`
-            : `<div class="album-track-thumb-placeholder" style="background:${genreGradient(c.genero)}">${genreEmoji(c.genero)}</div>`;
-          return `
-            <div class="album-track${playing?' playing':''}" onclick="playSong(null,${c.id})">
-              <div class="album-track-num">${playing?'▶':i+1}</div>
-              ${thumb}
-              <div class="album-track-info">
-                <div class="album-track-title">${esc(c.titulo)}</div>
-                <div class="album-track-artist">${esc(c.artista)}</div>
-              </div>
-              <span class="album-track-genre">${esc(c.genero)}</span>
-            </div>`;
-        }).join('')}
+    <div class="album-hero">
+      <div class="album-hero-bg" style="${heroBgStyle}"></div>
+      <div class="album-hero-content">
+        ${portadaHTML}
+        <div class="album-meta">
+          <div class="album-type">${tipoLabel}</div>
+          <h2>${esc(tituloAlbum)}</h2>
+          <div class="album-sub">${subtituloAlbum}</div>
+        </div>
       </div>
+    </div>
+    <div style="padding:0 4px;margin-top:16px">
+      <div class="album-actions">
+        <button class="btn-back-album" onclick="cerrarPaginaAlbum()">← Volver</button>
+        <button class="btn-play-all"
+          onclick="reproducirDesdeAlbumKey('${pageKey}',0)">▶ Reproducir todo</button>
+        <button class="btn-shuffle-all"
+          onclick="shuffleYReproducirAlbumKey('${pageKey}')">⇌ Aleatorio</button>
+      </div>
+      <div style="margin-top:4px">${pistasHTML}</div>
     </div>`;
 }
 
+function reproducirDesdeAlbumKey(pageKey, indice) {
+  const arrayIds = _albumPages[pageKey];
+  if(!arrayIds || !arrayIds.length) return;
+  albumQueue = arrayIds.slice();
+  playSong(null, arrayIds[indice], 'album_' + pageKey);
+}
+
+function shuffleYReproducirAlbumKey(pageKey) {
+  const arrayIds = _albumPages[pageKey];
+  if(!arrayIds || !arrayIds.length) return;
+  const mezclado = [...arrayIds].sort(() => Math.random() - 0.5);
+  const newKey   = 'alb_' + (++_albumPageKey);
+  _albumPages[newKey] = mezclado;
+  albumQueue = mezclado.slice();
+  playSong(null, mezclado[0], 'album_' + newKey);
+}
+
+function cerrarPaginaAlbum() {
+  const pagina = $('page-album');
+  pagina.classList.remove('active');
+  pagina.style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => { p.style.display = ''; });
+  const anterior = $(paginaAnterior);
+  if(anterior) anterior.classList.add('active');
+  else $('page-home').classList.add('active');
+}
+
 /* ── Player ── */
-function playSong(e,songId){
-  if(e&&e.stopPropagation) e.stopPropagation();
-  const song=allSongs.find(s=>s.id===songId);
+function playSong(e, songId, context = null) {
+  if(e && e.stopPropagation) e.stopPropagation();
+  const song = allSongs.find(s => s.id === songId);
   if(!song) return;
-  nowPlayingId=songId;
-  txt('plTitle',song.titulo); txt('plArtist',song.artista);
-  updateDiscCover($('plDiscCover'),song);
-  if(!$('expandedPlayer').classList.contains('hidden')){
-    updateDiscCover($('expDiscCover'),song);
-    $('expDisc').classList.remove('spinning');
-    $('expPlayPauseBtn').textContent='▶';
-    txt('expTitle',song.titulo); txt('expArtist',song.artista);
+  if(context !== null) {
+    playlistContext = context;
+    if(typeof context === 'string' && context.startsWith('album_')) {
+      const key = context.replace('album_', '');
+      albumQueue = (_albumPages[key] || []).slice();
+    }
   }
-  const audio=$('audioEl');
-  if(song.url_preview){
-    audio.src=song.url_preview;
-    audio.crossOrigin='anonymous';
+  nowPlayingId = songId;
+  txt('plTitle', song.titulo);
+  txt('plArtist', song.artista);
+  updateDiscCover($('plDiscCover'), song);
+  if(!$('expandedPlayer').classList.contains('hidden')) {
+    updateDiscCover($('expDiscCover'), song);
+    $('expDisc').classList.remove('spinning');
+    $('expPlayPauseBtn').textContent = '▶';
+    txt('expTitle', song.titulo);
+    txt('expArtist', song.artista);
+  }
+  const audio = $('audioEl');
+  if(song.url_preview) {
+    audio.src = song.url_preview;
+    audio.crossOrigin = 'anonymous';
     audio.load();
-    if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
-    audio.play().then(()=>{
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+    audio.play().then(() => {
       $('plDisc').classList.add('spinning');
       updatePlayPauseBtn(true);
       if(sourceLinked) startVisRaf(); else startIdleVisualizer();
       ensureAudioContext(audio);
-      toast('▶ '+song.titulo);
-    }).catch(()=>toast('⚠️ No se pudo reproducir'));
+      toast('▶ ' + song.titulo);
+    }).catch(() => toast('⚠️ No se pudo reproducir'));
   } else {
     audio.pause(); audio.removeAttribute('src');
     $('plDisc').classList.remove('spinning');
@@ -441,15 +551,34 @@ function updateDiscCover(el,song){
     el.appendChild(img);
   } else { el.textContent=genreEmoji(song.genero); }
 }
-function playPrevSong(){
-  if(!nowPlayingId||!allSongs.length) return;
-  const idx=allSongs.findIndex(s=>s.id===nowPlayingId);
-  playSong(null,allSongs[idx>0?idx-1:allSongs.length-1].id);
+function getContextSongs() {
+  if(typeof playlistContext === 'string' && playlistContext.startsWith('album_')) {
+    const key = playlistContext.replace('album_', '');
+    const ids = _albumPages[key] || albumQueue;
+    return ids.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+  }
+  if(playlistContext === 'catalog') {
+    return currentCatalogIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
+  }
+  return allSongs;
 }
-function playNextSong(){
-  if(!nowPlayingId||!allSongs.length) return;
-  const idx=allSongs.findIndex(s=>s.id===nowPlayingId);
-  playSong(null,allSongs[idx<allSongs.length-1?idx+1:0].id);
+
+function playPrevInContext() {
+  const savedCtx = playlistContext;
+  const list = getContextSongs();
+  if(!nowPlayingId || !list.length) return;
+  const idx = list.findIndex(s => s.id === nowPlayingId);
+  const prevIdx = idx > 0 ? idx - 1 : list.length - 1;
+  playSong(null, list[prevIdx].id, savedCtx);
+}
+
+function playNextInContext() {
+  const savedCtx = playlistContext;
+  const list = getContextSongs();
+  if(!nowPlayingId || !list.length) return;
+  const idx = list.findIndex(s => s.id === nowPlayingId);
+  const nextIdx = idx < list.length - 1 ? idx + 1 : 0;
+  playSong(null, list[nextIdx].id, savedCtx);
 }
 function skipBackward(){ const a=$('audioEl'); if(a&&a.src) a.currentTime=Math.max(0,a.currentTime-15); }
 function skipForward(){ const a=$('audioEl'); if(a&&a.src) a.currentTime=Math.min(a.duration||0,a.currentTime+15); }
@@ -523,7 +652,20 @@ function setVolume(val){
   $('volumeRange').value=val; $('expVolumeRange').value=val;
   const i=$('volIcon'); if(i) i.textContent=val==0?'🔇':val<0.5?'🔉':'🔊';
 }
-function onAudioEnded(){ $('plDisc').classList.remove('spinning'); updatePlayPauseBtn(false); playNextSong(); }
+function onAudioEnded() {
+  $('plDisc').classList.remove('spinning');
+  updatePlayPauseBtn(false);
+  if($('expDisc')) $('expDisc').classList.remove('spinning');
+  const savedCtx = playlistContext;
+  const list = getContextSongs();
+  if(!list.length) return;
+  const idx = list.findIndex(s => s.id === nowPlayingId);
+  if(idx >= 0 && idx < list.length - 1) {
+    playSong(null, list[idx + 1].id, savedCtx);
+  } else {
+    playSong(null, list[0].id, savedCtx);
+  }
+}
 function openExpandedPlayer(){
   if(!nowPlayingId) return;
   const song=allSongs.find(s=>s.id===nowPlayingId); if(!song) return;
