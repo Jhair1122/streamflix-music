@@ -1,34 +1,20 @@
-/* ════════════════════════════════════════════════════
-   SoundMind — script.js (v20.1 CORREGIDO)
-   - Función renderPlaylist() añadida
-   - función crearNuevaPlaylist() añadida
-   - IDs correctos: stat-canciones, stat-likes, stat-favoritos
-   - Migración a Supabase completa
-   - Todas las funciones previas intactas
-   - Sidebar colapsable añadido
-   - Portadas de moods mejoradas
-   - Navegación robusta (no se bloquea al fallar una página)
-════════════════════════════════════════════════════ */
-
-const API_BASE = 'https://streamflix-music.onrender.com';   // ← Cambia por tu URL real
+const API_BASE = 'https://streamflix-music.onrender.com';
 const SUPABASE_URL = 'https://jhlktvdylbiieeuwykgj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobGt0dmR5bGJpaWVldXd5a2dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzIwNjMsImV4cCI6MjA5NTkwODA2M30.jie5MZF36VXhsfEZggCCWJ3M5HQVShGmyss6f-nLa3s';
 var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ── State ── */
 let currentUser  = null;
 let allSongs     = [];
-let myInter      = [];          // interacciones del usuario
-let interaccionesMap = {};      // acceso rápido por cancion_id
+let myInter      = [];     
+let interaccionesMap = {};      
 let nowPlayingId = null;
 let activeGenre  = null;
 let searchQuery  = '';
-let playlistContext = 'global';   // 'global', 'favorites', 'likes', 'playlist'
+let playlistContext = 'global';   
 let currentPlaylistFilter = 'playlist';
-let _albumPages = {};   // cache de arrays de IDs para álbumes abiertos
-let _albumPageKey = 0;  // contador para generar claves únicas
+let _albumPages = {};   
+let _albumPageKey = 0;  
 
-/* Web Audio */
 let audioCtx     = null;
 let analyser     = null;
 let sourceNode   = null;
@@ -37,20 +23,17 @@ let visRaf       = null;
 let recognition  = null;
 let isListening  = false;
 
-/* Variables extra */
 let displayedMessageIds = new Set();
 let pendingTempMessages = new Map();
 let sleepTimer = null;
 let queue = [];
 let userPlaylist = [];   
-let currentCatalogIds = [];   // IDs del catálogo filtrado actual            // IDs de canciones en la playlist local (ahora en Supabase)
-let paginaAnterior = 'page-home';    // para la página álbum
+let currentCatalogIds = [];  
+let paginaAnterior = 'page-home'; 
 
-/* Variables para el scroll horizontal del ranking */
 let rankingScrollEnabled = false;
 let rankingArrowsAdded = false;
 
-/* ── Helpers DOM ── */
 const $ = id => document.getElementById(id);
 function esc(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
 function txt(id,v){ const e=$(id); if(e) e.textContent=v }
@@ -65,7 +48,6 @@ function toast(msg, color=''){
   t._to=setTimeout(()=>t.classList.remove('show'),2600);
 }
 
-/* ── Genre helpers ── */
 const GENRE_EMOJI = {
   'Pop':'🎤','Electrónica':'🎛️','Anime':'⛩️','Rock':'🎸',
   'Latino':'💃','Alternativo':'🌊','Trap':'🎧','Balada':'🎻','J-Pop':'🎌','Phonk':'💜','default':'🎵'
@@ -79,7 +61,6 @@ const GENRE_COLORS = {
 function genreEmoji(g){ return GENRE_EMOJI[g]||GENRE_EMOJI.default }
 function genreGradient(g){ const c=GENRE_COLORS[g]||GENRE_COLORS.default; return `linear-gradient(135deg,${c[0]},${c[1]})` }
 
-/* ═══════════════════ SESSION ══════════════════ */
 const SESSION_KEY = 'soundmind_user';
 function saveSession(user){ localStorage.setItem(SESSION_KEY, JSON.stringify(user)) }
 function loadSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY)||'null') }catch(_){ return null } }
@@ -92,18 +73,15 @@ function checkSession(){
   return true;
 }
 
-/* ═══════ FLECHAS DE SECCIÓN HORIZONTAL ═══════ */
 function _attachSectionArrows(scrollId) {
   const scroll = document.getElementById(scrollId);
   if (!scroll) return;
 
-  // Buscar el section-head más cercano (hermano anterior o padre)
   const section = scroll.closest('.section');
   if (!section) return;
   const head = section.querySelector('.section-head');
   if (!head) return;
 
-  // Evitar duplicar
   if (head.querySelector('.section-arrows')) return;
 
   const arrows = document.createElement('div');
@@ -131,20 +109,13 @@ function _attachSectionArrows(scrollId) {
   btnL.addEventListener('click', () => { scroll.scrollBy({ left: -280, behavior: 'smooth' }); setTimeout(update, 320); });
   btnR.addEventListener('click', () => { scroll.scrollBy({ left: 280, behavior: 'smooth' }); setTimeout(update, 320); });
   scroll.addEventListener('scroll', update, { passive: true });
-  // Esperar a que el contenido esté renderizado
   setTimeout(update, 100);
 }
 
-/* Llamar al arrancar y al cargar ranking */
 function initSectionArrows() {
-  // Solo adjuntar flechas a elementos que ya existen en el DOM en este momento
-  // Los demás se adjuntan dentro de sus funciones de render con setTimeout
   _attachSectionArrows('ranking-lo-mas-escuchado');
-  // genero-cards-row, mixes-row y mood-cards-row
-  // se crean dinámicamente y sus funciones de render ya llaman _attachSectionArrows
 }
 
-/* ═══════════════════ BOOT ══════════════════ */
 async function bootApp(){
   if (!checkSession()) return;
   $('app').classList.remove('hidden');
@@ -184,11 +155,9 @@ async function bootApp(){
   showPage('home');
   initVoiceSearch();
   initChat();
-  // Inicializar panel de emojis
   initEmojiPanel();
-  initRealtimeRanking();   // ← añadir esta línea
+  initRealtimeRanking();
 
-  // Inicializar nuevas secciones estáticas
     try {
     renderizarCancionesMood();
     renderizarExploraGeneros();
@@ -199,7 +168,6 @@ async function bootApp(){
   }
   setTimeout(() => _attachSectionArrows('genero-cards-row'), 50);
 
-  // Asegurar que el scroll horizontal del ranking funcione también si el ranking se cargó exitosamente
   enableRankingScroll();
   initSectionArrows();
   initSidebarToggle();
@@ -207,7 +175,6 @@ async function bootApp(){
   await actualizarContadoresHeader();
 }
 
-/* ═══════════════════ SIDEBAR COLAPSABLE ══════════════════ */
 function initSidebarToggle() {
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
@@ -236,7 +203,6 @@ function initSidebarToggle() {
   });
 }
 
-/* ═══════════════════ LOGOUT ══════════════════ */
 async function doLogout(){
   currentUser=null; myInter=[]; allSongs=[]; nowPlayingId=null;
   clearSession();
@@ -247,7 +213,6 @@ async function doLogout(){
   updatePlayPauseBtn(false);
   resetEnergyEffect();
 
-  // Limpiar suscripciones en tiempo real
   if (chatSubscription) {
     chatSubscription.unsubscribe();
     chatSubscription = null;
@@ -264,17 +229,16 @@ async function doLogout(){
   window.location.href = 'explore.html';
 }
 
-/* ═══════════════════ VOICE SEARCH (local) ══════════════════ */
 function initVoiceSearch(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { const vb=$('voiceBtn'); if(vb) vb.style.opacity='.35'; return; }
   recognition = new SR();
   recognition.lang = 'es-ES';
-  recognition.continuous = true;       // seguir escuchando aunque haya pausas
-  recognition.interimResults = true;  // mostrar resultados parciales
+  recognition.continuous = true;  
+  recognition.interimResults = true; 
 
-  let lastTranscript = '';             // acumula lo escuchado en esta sesión
-  let searchAlreadyDone = false;      // evita doble búsqueda
+  let lastTranscript = '';             
+  let searchAlreadyDone = false;     
 
   recognition.onstart = () => {
     isListening = true;
@@ -290,7 +254,6 @@ function initVoiceSearch(){
     $('voiceBtn').classList.remove('listening');
     $('voiceOverlay').classList.remove('show');
 
-    // Si al terminar de escuchar hay texto y no se hizo búsqueda, buscar con todo el texto
     if (!searchAlreadyDone && lastTranscript.trim()) {
       realizarBusquedaVoz(lastTranscript.trim());
     }
@@ -304,7 +267,6 @@ function initVoiceSearch(){
   };
 
   recognition.onresult = (e) => {
-    // Reconstruir el transcript completo desde el resultado más reciente
     let newTranscript = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       newTranscript += e.results[i][0].transcript;
@@ -312,7 +274,6 @@ function initVoiceSearch(){
     lastTranscript = newTranscript;
     txt('voiceTranscript', '"' + newTranscript + '"');
 
-    // Opcional: seguir permitiendo la palabra clave "buscar" para búsqueda inmediata
     const lower = newTranscript.toLowerCase();
     const keywordIndex = lower.lastIndexOf('buscar');
     if (keywordIndex !== -1) {
@@ -326,7 +287,6 @@ function initVoiceSearch(){
   };
 }
 
-// Función auxiliar que ejecuta la búsqueda (evita código duplicado)
 function realizarBusquedaVoz(query) {
   const bestMatch = findBestMatch(query, allSongs);
   const finalQuery = bestMatch || query;
@@ -385,11 +345,9 @@ function findBestMatch(query, songs) {
   return bestMatch;
 }
 
-/* ═══════════════════ RENDER ALL ══════════════════ */
 function renderAll(){
   updateHeroStats();
   updateBadges();
-  // renderHomePopular();   // Eliminado (sección "Más populares" ya no existe)
   renderHomeRec();
   renderCatalog();
   renderPlaylist();
@@ -419,7 +377,6 @@ function updateBadges(){
   }
 }
 
-/* ── Song Card (con botón de playlist y menú contextual) ── */
 function songCard(s, context = 'global'){
   const inter = interaccionesMap[s.id] || {};
   const liked = inter.es_like;
@@ -469,7 +426,6 @@ function renderCards(songs,containerId,emptyMsg='No hay canciones aquí aún.', 
   el.innerHTML=songs.map(s => songCard(s, context)).join('');
 }
 
-// ── Renderiza canciones en formato lista (igual que álbum) ──
 function renderAlbumTrackList(songs, containerId, emptyMsg = 'No hay canciones aquí aún.', context = 'global') {
   const el = $(containerId);
   if (!el) return;
@@ -509,7 +465,6 @@ function renderAlbumTrackList(songs, containerId, emptyMsg = 'No hay canciones a
   }).join('');
 }
 
-/* ── Populars (API) ── (ya no se usa, pero se mantiene por si acaso) */
 async function renderHomePopular() {
   try {
     const res = await fetch(`${API_BASE}/api/popular`);
@@ -524,7 +479,6 @@ async function renderHomePopular() {
   }
 }
 
-/* ── Home Rec (IA) ── */
 async function renderHomeRec() {
   try {
     const res = await fetch(`${API_BASE}/api/recommend?user_id=${currentUser.id}`);
@@ -536,7 +490,6 @@ async function renderHomeRec() {
   }
 }
 
-/* ── Catalog ── */
 function buildGenrePills(){
   const genres=[...new Set(allSongs.map(s=>s.genero))].sort();
   const el=$('genrePills'); if(!el) return;
@@ -575,13 +528,11 @@ function renderCatalog() {
     s.artista.toLowerCase().includes(searchQuery)
   );
   txt('catalogCount', songs.length + ' canciones');
-  // Guardar IDs del catálogo actual para contexto de reproducción
   currentCatalogIds = songs.map(s => s.id);
   renderAlbumTrackList(songs, 'catalogCards', 'No se encontraron canciones.', 'catalog');
 }
 
-/* ── Playlist (Supabase) ── */
-let userPlaylists = [];   // Array de { id, nombre, canciones: [ids] }
+let userPlaylists = [];  
 
 async function loadUserPlaylist() {
   if (!currentUser) return;
@@ -609,17 +560,14 @@ async function loadUserPlaylist() {
       .in('playlist_id', playlistIds)
       .order('posicion', { ascending: true });
 
-    // Normalizar TODOS los IDs a Number desde Supabase
     const pcRows = (pcRaw || []).map(r => ({
       playlist_id: Number(r.playlist_id),
       cancion_id:  Number(r.cancion_id),
       posicion:    Number(r.posicion)
     }));
 
-    // Agrupar canciones por playlist
-    // Filtrar solo cancion_id que realmente existan en allSongs
     const songMap = {};
-    playlistIds.forEach(pid => { songMap[pid] = []; }); // pid ya es Number
+    playlistIds.forEach(pid => { songMap[pid] = []; });
     pcRows.forEach(row => {
       const pid = Number(row.playlist_id);
       const cid = Number(row.cancion_id);
@@ -639,7 +587,6 @@ async function loadUserPlaylist() {
       canciones: (songMap[Number(pl.id)] || []).map(Number)
     }));
 
-    // userPlaylist = todas las canciones en cualquier playlist (para ➕/➖)
     const allCanciones = new Set();
     userPlaylists.forEach(pl => pl.canciones.forEach(id => allCanciones.add(id)));
     userPlaylist = [...allCanciones];
@@ -655,11 +602,9 @@ async function toggleAddToPlaylist(e, songId) {
   if (e && e.stopPropagation) e.stopPropagation();
   if (!currentUser) return;
 
-  // Cargar playlists del usuario
   const { data: playlists } = await supabase
     .from('playlists').select('id, nombre').eq('usuario_id', currentUser.id);
 
-  // Si no hay playlists, crear una por defecto y agregar
   if (!playlists || playlists.length === 0) {
     const { data: newPl } = await supabase
       .from('playlists')
@@ -678,7 +623,6 @@ async function toggleAddToPlaylist(e, songId) {
     return;
   }
 
-  // Mostrar modal selector de playlist
   const existing = document.getElementById('playlistSelectorOverlay');
   if (existing) existing.remove();
 
@@ -759,7 +703,6 @@ async function toggleSongInPlaylist(playlistId, songId) {
     toast('➕ Añadida a ' + pl.nombre);
   }
 
-  // Actualizar userPlaylist (primera playlist para compatibilidad)
   if (userPlaylists.length > 0) {
     userPlaylist = userPlaylists[0].canciones;
   }
@@ -768,7 +711,6 @@ async function toggleSongInPlaylist(playlistId, songId) {
   renderAll();
   sincronizarPanelExpandido(nowPlayingId);
 
-  // Refrescar el modal si sigue abierto
   const overlay = document.getElementById('playlistSelectorOverlay');
   if (overlay) {
     overlay.remove();
@@ -779,7 +721,6 @@ async function toggleSongInPlaylist(playlistId, songId) {
 function renderPlaylist(filtro) {
   if (filtro !== undefined) currentPlaylistFilter = filtro;
 
-  // Normalizar IDs a número en toda la estructura
   userPlaylists = userPlaylists.map(pl => ({
     ...pl,
     id: Number(pl.id),
@@ -842,7 +783,6 @@ function renderPlaylist(filtro) {
   updateBadges();
 }
 
-// Buscador modal para agregar canciones a una playlist específica
 function abrirBuscadorParaPlaylist(playlistId) {
   const pl = userPlaylists.find(p => p.id === playlistId);
   if (!pl) return;
@@ -991,7 +931,6 @@ function filterPlaylist(tipo) {
   renderPlaylist(tipo);
 }
 
-// ── Función crearNuevaPlaylist (para los botones del HTML) ──
 async function crearNuevaPlaylist(songIdToAdd = null) {
   const existing = document.getElementById('newPlaylistOverlay');
   if (existing) existing.remove();
@@ -1056,7 +995,6 @@ async function confirmNewPlaylist(songIdToAdd = null) {
 
   await loadUserPlaylist();
 
-  // Si se pasó una canción, añadirla automáticamente
   if (songIdToAdd) {
     await supabase.from('playlist_canciones').upsert(
       { playlist_id: data.id, cancion_id: songIdToAdd, posicion: 0 },
@@ -1070,7 +1008,6 @@ async function confirmNewPlaylist(songIdToAdd = null) {
   if (document.getElementById('page-playlist').classList.contains('active')) renderPlaylist();
 }
 
-/* ═══════════════════ INTERACTIONS (likes/favs con Supabase) ══════════════════ */
 async function toggleLike(e, songId) {
   if (e && e.stopPropagation) e.stopPropagation();
   const actual = interaccionesMap[songId] || { es_like: false, es_favorito: false };
@@ -1084,7 +1021,6 @@ async function toggleLike(e, songId) {
   }, { onConflict: 'usuario_id,cancion_id' });
   if (!error) {
     interaccionesMap[songId] = { ...actual, es_like: nuevoLike };
-    // ── Sincronizar myInter con el nuevo estado ──
     const idxInter = myInter.findIndex(i => i.cancion_id === songId);
     if (idxInter >= 0) {
       myInter[idxInter] = { ...myInter[idxInter], es_like: nuevoLike };
@@ -1097,7 +1033,6 @@ async function toggleLike(e, songId) {
     renderizarRankingGlobal();
     checkAchievements();
     sincronizarPanelExpandido(songId);
-    // ── Refrescar secciones que muestran contadores de likes/favs ──
     _refrescarSeccionesInteraccion();
   } else {
     toast('Error al actualizar like');
@@ -1117,7 +1052,6 @@ async function toggleFav(e, songId) {
   }, { onConflict: 'usuario_id,cancion_id' });
   if (!error) {
     interaccionesMap[songId] = { ...actual, es_favorito: nuevoFav };
-    // ── Sincronizar myInter con el nuevo estado ──
     const idxInter = myInter.findIndex(i => i.cancion_id === songId);
     if (idxInter >= 0) {
       myInter[idxInter] = { ...myInter[idxInter], es_favorito: nuevoFav };
@@ -1130,14 +1064,12 @@ async function toggleFav(e, songId) {
     renderizarRankingGlobal();
     checkAchievements();
     sincronizarPanelExpandido(songId);
-    // ── Refrescar secciones que muestran contadores de likes/favs ──
     _refrescarSeccionesInteraccion();
   } else {
     toast('Error al actualizar favorito');
   }
 }
 
-/* ═══════════════════ RANKING GLOBAL ══════════════════ */
 async function calcularRankingGlobal() {
   const { data } = await supabase.from('interacciones')
     .select('cancion_id, es_like, es_favorito')
@@ -1193,16 +1125,13 @@ async function renderizarRankingGlobal() {
     contenedor.innerHTML = `<div style="text-align:center;padding:32px;color:#a0aec0">⚠️ No se pudo cargar el ranking.</div>`;
   }
 
-  // Añadir flechas al section-head del ranking
   _attachSectionArrows('ranking-lo-mas-escuchado');
 }
 
-/* ═══════ Scroll horizontal con flechas (PC) ═══════ */
 function enableRankingScroll() {
   const container = document.getElementById('ranking-lo-mas-escuchado');
   if (!container || rankingScrollEnabled) return;
 
-  // Scroll con la rueda del ratón
   container.addEventListener('wheel', (e) => {
     if (e.deltaY !== 0) {
       e.preventDefault();
@@ -1212,7 +1141,6 @@ function enableRankingScroll() {
 
   rankingScrollEnabled = true;
 
-  // Añadir flechas solo en escritorio (>768px)
   addRankingArrows();
   window.addEventListener('resize', handleRankingArrowsResize);
 }
@@ -1229,7 +1157,6 @@ function addRankingArrows() {
   const section = container.closest('.section');
   if (!section) return;
 
-  // Crear flecha izquierda
   const leftArrow = document.createElement('button');
   leftArrow.className = 'ranking-arrow ranking-arrow-left';
   leftArrow.innerHTML = '◀';
@@ -1245,7 +1172,6 @@ function addRankingArrows() {
     container.scrollBy({ left: -250, behavior: 'smooth' });
   });
 
-  // Flecha derecha
   const rightArrow = document.createElement('button');
   rightArrow.className = 'ranking-arrow ranking-arrow-right';
   rightArrow.innerHTML = '▶';
@@ -1265,7 +1191,6 @@ function addRankingArrows() {
   section.appendChild(leftArrow);
   section.appendChild(rightArrow);
 
-  // Actualizar visibilidad de las flechas al hacer scroll
   const updateArrows = () => {
     const canScrollLeft = container.scrollLeft > 0;
     const canScrollRight = container.scrollLeft + container.clientWidth < container.scrollWidth;
@@ -1275,7 +1200,6 @@ function addRankingArrows() {
   };
 
   container.addEventListener('scroll', updateArrows);
-  // Llamada inicial
   updateArrows();
 
   rankingArrowsAdded = true;
@@ -1296,7 +1220,6 @@ function handleRankingArrowsResize() {
   }
 }
 
-/* ═══════════════════ MOODS, GÉNEROS, MIXES ══════════════════ */
 const MOODS = [
   { id: 'tristes', nombre: 'Canciones tristes', emoji: '😢', color: 'linear-gradient(135deg, #1e3a5f, #3730a3)', generos: ['Balada', 'Alternativo'], keywords: ['sad','alone','goodbye','heartbreak','lost','pain','beautiful pain','let me down','love is gone','you broke'], cover: 'img/sad_album.jpg' },
   { id: 'estudiar', nombre: 'Para estudiar', emoji: '📚', color: 'linear-gradient(135deg, #0c4a6e, #1e40af)', generos: ['Electrónica'], keywords: ['faded','lost','dynasty','fearless','past lives','on my way','softcore'], cover: 'img/para_estudiar.jpg' },
@@ -1307,7 +1230,6 @@ const MOODS = [
 
 function obtenerCancionesPorMood(mood) {
   return allSongs.filter(s => {
-    // Si alguna de las columnas mood coincide, la canción pertenece a ese estado de ánimo
     return s.mood === mood.id ||
            s.mood2 === mood.id ||
            s.mood3 === mood.id ||
@@ -1368,11 +1290,8 @@ function renderizarExploraGeneros() {
   const row = document.getElementById('genero-cards-row');
 
   generosUnicos.forEach(genero => {
-    // Buscar canciones de este género
     const cancionesDelGenero = allSongs.filter(s => s.genero?.trim() === genero);
     const total = cancionesDelGenero.length;
-
-    // Elegir portada: primera canción que tenga imagen
     const conImagen = cancionesDelGenero.find(s => s.url_imagen);
     const portadaUrl = conImagen?.url_imagen || null;
     const colorFondo = COLORES_GENERO[genero] || 'linear-gradient(135deg,#27272a,#52525b)';
@@ -1385,7 +1304,6 @@ function renderizarExploraGeneros() {
       transition:transform 0.18s, box-shadow 0.18s;
     `;
 
-    // Fondo: imagen si existe, sino gradiente de color
     if (portadaUrl) {
       card.style.backgroundImage = `url(${portadaUrl})`;
       card.style.backgroundSize = 'cover';
@@ -1424,10 +1342,8 @@ function renderizarTusMixes() {
   const contenedor = document.getElementById('seccion-tus-mixes');
   if (!contenedor) return;
 
-  // Obtener estadísticas de reproducción guardadas localmente
-  const stats = getStats(); // { cancion_id: { plays, totalTime } }
+  const stats = getStats(); 
 
-  // Agrupar canciones por artista principal (antes de "ft." o ",")
   const grupos = {};
   allSongs.forEach(s => {
     const artistaPrincipal = s.artista.split(/\s*ft\.\s*|\s*,\s*/)[0].trim();
@@ -1436,7 +1352,6 @@ function renderizarTusMixes() {
     }
     grupos[artistaPrincipal].canciones.push(s);
 
-    // Acumular estadísticas de escucha
     const stat = stats[s.id.toString()];
     if (stat) {
       grupos[artistaPrincipal].tiempoTotal += stat.totalTime || 0;
@@ -1444,11 +1359,9 @@ function renderizarTusMixes() {
     }
   });
 
-  // Filtrar grupos con al menos 2 canciones y ordenar por tiempo escuchado (desc)
   const mixesOrdenados = Object.entries(grupos)
     .filter(([_, g]) => g.canciones.length >= 2)
     .sort((a, b) => {
-      // Priorizar tiempo escuchado; si empatan, por cantidad de canciones
       if (b[1].tiempoTotal !== a[1].tiempoTotal) return b[1].tiempoTotal - a[1].tiempoTotal;
       return b[1].canciones.length - a[1].canciones.length;
     })
@@ -1468,11 +1381,9 @@ function renderizarTusMixes() {
   mixesOrdenados.forEach(([artista, grupo]) => {
     const canciones = grupo.canciones;
 
-    // Portada: primera canción del grupo que tenga imagen
     const conImagen = canciones.find(s => s.url_imagen);
     const portadaUrl = conImagen?.url_imagen || null;
 
-    // Genero predominante (el más frecuente en el grupo)
     const conteoGeneros = {};
     canciones.forEach(s => {
       const g = s.genero || 'default';
@@ -1481,7 +1392,6 @@ function renderizarTusMixes() {
     const generoPredominante = Object.entries(conteoGeneros).sort((a,b) => b[1]-a[1])[0][0];
     const colorFondo = COLORES_GENERO[generoPredominante] || 'linear-gradient(135deg,#3730a3,#7c3aed)';
 
-    // Etiqueta de tiempo escuchado
     const minutos = Math.round(grupo.tiempoTotal / 60);
     const etiquetaTiempo = minutos > 0
       ? (minutos >= 60 ? `${Math.floor(minutos/60)}h ${minutos%60}m` : `${minutos} min`)
@@ -1527,7 +1437,6 @@ function renderizarTusMixes() {
   setTimeout(() => _attachSectionArrows('mixes-row'), 200);
 }
 
-/* ═══════════════════ PÁGINA ÁLBUM ══════════════════ */
 function abrirPaginaAlbum(tipo, valor) {
   paginaAnterior = document.querySelector('.page.active')?.id || 'page-home';
   let cancionesAlbum = [], tituloAlbum = '', subtituloAlbum = '', tipoLabel = '';
@@ -1553,7 +1462,6 @@ function abrirPaginaAlbum(tipo, valor) {
     tipoLabel = 'MIX DEL ARTISTA';
   }
 
-  // Ocultar todas las páginas
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
     p.style.display = '';
@@ -1562,11 +1470,9 @@ function abrirPaginaAlbum(tipo, valor) {
   const pagina = document.getElementById('page-album');
   pagina.classList.add('active');
 
-  // Portada: primera canción con imagen
   const conImagen = cancionesAlbum.find(s => s.url_imagen);
   const portadaUrl = conImagen?.url_imagen || null;
 
-  // Color de fondo de respaldo
   const colorFondo = tipo === 'mood'
     ? (MOODS.find(m => m.id === valor)?.color || 'linear-gradient(135deg,#4c1d95,#7c3aed)')
     : (COLORES_GENERO[valor] || 'linear-gradient(135deg,#4c1d95,#7c3aed)');
@@ -1586,7 +1492,6 @@ function abrirPaginaAlbum(tipo, valor) {
     return;
   }
 
-  // Construir portada del hero
   const heroBgStyle = portadaUrl
     ? `background-image:url(${portadaUrl})`
     : `background:${colorFondo}`;
@@ -1595,11 +1500,9 @@ function abrirPaginaAlbum(tipo, valor) {
     ? `<img class="album-cover-img" src="${portadaUrl}" alt="${esc(tituloAlbum)}" onerror="this.style.display='none'">`
     : `<div class="album-cover-placeholder" style="background:${colorFondo}">${iconoPortada}</div>`;
 
-  // Guardar IDs en cache global para evitar JSON en onclick HTML
   const pageKey = 'alb_' + (++_albumPageKey);
   _albumPages[pageKey] = cancionesAlbum.map(c => c.id);
 
-  // Construir lista de pistas
   const pistasHTML = cancionesAlbum.map((c, i) => {
     const inter = interaccionesMap[c.id] || {};
     const liked = inter.es_like;
@@ -1647,17 +1550,14 @@ function abrirPaginaAlbum(tipo, valor) {
     </div>`;
 }
 
-// Cola temporal para reproducción de álbum
 let albumQueue = [];
-let _activePlaylistIds = [];   // IDs de la playlist activa al reproducir
+let _activePlaylistIds = []; 
 let albumQueueContext = '';
 
 function reproducirDesdeAlbum(arrayIds, indice, ctxKey) {
   albumQueue = arrayIds;
   albumQueueContext = ctxKey;
-  // Guardar en playlistContext especial
   playlistContext = 'album_' + ctxKey;
-  // Sobrescribir getContextSongs para este contexto
   playSong(null, arrayIds[indice]);
 }
 
@@ -1684,9 +1584,8 @@ function cerrarPaginaAlbum() {
   pagina.classList.remove('active');
   pagina.style.display = 'none';
 
-  // Limpiar todos los inline display antes de restaurar
   document.querySelectorAll('.page').forEach(p => {
-    p.style.display = '';   // ← NUEVA LÍNEA
+    p.style.display = '';
   });
 
   const anterior = document.getElementById(paginaAnterior);
@@ -1710,7 +1609,6 @@ function reproducirDesde(arrayIds, indice) {
   });
 }
 
-/* ═══════════════════ MENÚ CONTEXTUAL ══════════════════ */
 let contextSongId = null;
 function openContextMenu(e, songId) {
   if (e && e.stopPropagation) e.stopPropagation();
@@ -1800,12 +1698,10 @@ async function actualizarPanelSiguiente() {
   `).join('');
 }
 
-/* ═══════════════════ HISTORIAL ══════════════════ */
 async function registrarEnHistorial(usuarioId, cancionId) {
   await supabase.from('historial_reproduccion').insert({ usuario_id: usuarioId, cancion_id: cancionId });
 }
 
-/* ═══════════════════ CONTADORES HEADER ══════════════════ */
 async function actualizarContadoresHeader() {
   if (!currentUser) return;
   try {
@@ -1822,7 +1718,6 @@ async function actualizarContadoresHeader() {
   }
 }
 
-/* ═══════════════════ PLAYER ══════════════════ */
 function setPlaylistContext(context){ playlistContext = context; }
 function getContextSongs() {
   if (playlistContext && typeof playlistContext === 'string' && playlistContext.startsWith('playlist_')) {
@@ -1836,7 +1731,6 @@ function getContextSongs() {
       }
     }
 
-    // Fallback _activePlaylistIds
     if (_activePlaylistIds.length > 0) {
       return _activePlaylistIds.map(id => allSongs.find(s => s.id === id)).filter(Boolean);
     }
@@ -1878,7 +1772,6 @@ async function playSong(e, songId, context = null){
   if (!song) return;
   if (context !== null) {
     playlistContext = context;
-    // Si el nuevo contexto es una playlist específica, actualizar _activePlaylistIds
     if (typeof context === 'string' && context.startsWith('playlist_')) {
       const plId = parseInt(context.replace('playlist_', ''));
       if (!isNaN(plId)) {
@@ -1936,7 +1829,6 @@ async function playSong(e, songId, context = null){
   applyEnergyEffect(song);
   updateQueue();
   updatePlayerLikeBtn();
-  // Sincronizar panel expandido si está visible
     sincronizarPanelExpandido(songId);
 }
 
@@ -2007,7 +1899,6 @@ function refreshCardHighlight(){
       if(cover){ const b=document.createElement('div'); b.className='now-playing-badge'; b.textContent='Reproduciendo'; cover.appendChild(b); }
     } else if(id!==nowPlayingId&&badge){ badge.remove(); }
   });
-  // Actualizar album-track items
   document.querySelectorAll('.album-track').forEach((track, _, list) => {
     const id = parseInt(track.dataset.id);
     track.classList.toggle('playing', id === nowPlayingId);
@@ -2049,7 +1940,6 @@ function updatePlayPauseBtn(playing){
   }
 }
 
-// ── Nuevo: actualiza el corazón del reproductor ──
 function updatePlayerLikeBtn() {
   const btn = $('playerLikeBtn');
   if (!btn) return;
@@ -2060,8 +1950,7 @@ function updatePlayerLikeBtn() {
   btn.style.fontSize = '18px';
 }
 
-/* ── Visualizador reactivo mejorado ── */
-let _visSmoothed = null;   // array de valores suavizados (persistente entre frames)
+let _visSmoothed = null;
 
 function startVisRaf() {
   stopVisRaf();
@@ -2073,30 +1962,24 @@ function startVisRaf() {
   const dataArr = new Uint8Array(bufLen);
   const BAR_COUNT = bars.length;
 
-  // Inicializar suavizado
   if (!_visSmoothed || _visSmoothed.length !== BAR_COUNT) {
     _visSmoothed = new Float32Array(BAR_COUNT).fill(0);
   }
 
-  // Altura máxima real del contenedor
   const vizEl = document.getElementById('audioVisualizer');
   const MAX_H = vizEl ? (vizEl.offsetHeight || 48) : 48;
 
-  // Factor de suavizado: 0 = sin suavizado, 1 = sin cambio
-  // Subida rápida (0.35), bajada lenta (0.72) → efecto "bounce natural"
   const RISE  = 0.35;
   const FALL  = 0.72;
 
-  // Paleta de colores por intensidad
   function getColor(pct) {
-    if (pct > 0.88) return 'linear-gradient(to top, #ff2d78, #ff9f00)';   // rojo-naranja: muy alta energía
-    if (pct > 0.70) return 'linear-gradient(to top, #f72585, #c77dff)';   // rosa-violeta: alta
-    if (pct > 0.48) return 'linear-gradient(to top, #6c2bd9, #00f5d4)';   // violeta-cyan: media-alta
-    if (pct > 0.28) return 'linear-gradient(to top, #9d6fff, #00e5ff)';   // violeta claro-cyan: media
-    return             'linear-gradient(to top, #4a2080, #9d6fff)';        // violeta oscuro: baja
+    if (pct > 0.88) return 'linear-gradient(to top, #ff2d78, #ff9f00)';  
+    if (pct > 0.70) return 'linear-gradient(to top, #f72585, #c77dff)';  
+    if (pct > 0.48) return 'linear-gradient(to top, #6c2bd9, #00f5d4)';   
+    if (pct > 0.28) return 'linear-gradient(to top, #9d6fff, #00e5ff)';   
+    return             'linear-gradient(to top, #4a2080, #9d6fff)';       
   }
 
-  // Glow por intensidad
   function getGlow(pct, h) {
     if (pct > 0.80) return `0 0 ${Math.round(h * 0.6)}px rgba(255,45,120,0.7), 0 0 ${Math.round(h * 0.3)}px rgba(255,159,0,0.4)`;
     if (pct > 0.55) return `0 0 ${Math.round(h * 0.5)}px rgba(108,43,217,0.6), 0 0 ${Math.round(h * 0.25)}px rgba(0,245,212,0.3)`;
@@ -2107,12 +1990,10 @@ function startVisRaf() {
   function draw() {
     analyser.getByteFrequencyData(dataArr);
 
-    // Energía promedio global (para efectos secundarios)
     let totalEnergy = 0;
     for (let i = 0; i < bufLen; i++) totalEnergy += dataArr[i];
     const avgEnergy = totalEnergy / bufLen / 255;
 
-    // Pulso en el disco cuando hay picos de energía alta
     const discWrap = document.querySelector('.pl-disc-wrap');
     if (discWrap) {
       if (avgEnergy > 0.45) {
@@ -2123,19 +2004,14 @@ function startVisRaf() {
       }
     }
 
-    // Distribuir frecuencias entre las barras con escala logarítmica
-    // (graves a la izquierda con más peso, agudos a la derecha más comprimidos)
     bars.forEach((bar, i) => {
-      // Mapeo logarítmico: da más espacio visual a graves (más importantes perceptivamente)
       const logMin = Math.log(1);
       const logMax = Math.log(bufLen);
       const logIdx = Math.exp(logMin + (logMax - logMin) * (i / (BAR_COUNT - 1)));
       const idx = Math.min(bufLen - 1, Math.floor(logIdx));
 
-      // Valor raw normalizado [0, 1]
       const raw = dataArr[idx] / 255;
 
-      // Suavizado asimétrico (subida rápida, bajada lenta)
       const prev = _visSmoothed[i];
       _visSmoothed[i] = raw > prev
         ? prev + (raw - prev) * (1 - RISE)
@@ -2143,7 +2019,6 @@ function startVisRaf() {
 
       const smooth = _visSmoothed[i];
 
-      // Altura: escalar al contenedor real, mínimo 3px
       const h = Math.max(3, smooth * MAX_H * 0.95);
 
       bar.style.height = h + 'px';
@@ -2162,13 +2037,11 @@ function stopVisRaf(){
 }
 function startIdleVisualizer() {
   stopVisRaf();
-  // Limpiar suavizado
   if (_visSmoothed) _visSmoothed.fill(0);
 
   const bars = document.querySelectorAll('.vis-bar');
   const n = bars.length;
   bars.forEach((bar, i) => {
-    // Delay en arco: el centro anima primero
     const center = n / 2;
     const dist = Math.abs(i - center) / center;
     const delay = (dist * 0.4).toFixed(2);
@@ -2179,12 +2052,10 @@ function startIdleVisualizer() {
     bar.style.background = '';
   });
 
-  // Limpiar glow del disco cuando se pausa
   const discWrap = document.querySelector('.pl-disc-wrap');
   if (discWrap) discWrap.style.filter = '';
 }
 
-/* Progress */
 function updateProgress(){
   const audio=$('audioEl');
   if(!audio.duration) return;
@@ -2226,7 +2097,6 @@ function setVolume(val){
   if(icon) icon.textContent=val==0?'🔇':val<0.5?'🔉':'🔊';
 }
 
-/* ── onAudioEnded ── */
 function onAudioEnded(){
   $('plDisc').classList.remove('spinning');
   $('plDisc').closest('.pl-disc-wrap')?.classList.remove('spinning');
@@ -2239,22 +2109,18 @@ function onAudioEnded(){
     updateStats(nowPlayingId, duration);
     checkAchievements();
 
-    const savedCtx = playlistContext; // guardar antes de que playSong lo pueda mutar
+    const savedCtx = playlistContext;
     const list = getContextSongs();
     if (list.length === 0) return;
     const idx = list.findIndex(s => s.id === nowPlayingId);
     if (idx >= 0 && idx < list.length - 1) {
       playSong(null, list[idx + 1].id, savedCtx);
     } else {
-      // Llegó al final → volver al principio
       playSong(null, list[0].id, savedCtx);
     }
   }
 }
 
-/* ═══════════════════ NUEVAS FUNCIONES ══════════════════ */
-
-// ── Discover Weekly ──
 async function generateWeekly() {
   const res = await fetch(`${API_BASE}/api/weekly?user_id=${currentUser.id}`);
   const data = await res.json();
@@ -2289,7 +2155,6 @@ async function renderWeekly() {
   }
 }
 
-// ── Estadísticas y logros ──
 function getStats() {
   try { return JSON.parse(localStorage.getItem('playStats')) || {}; } catch { return {}; }
 }
@@ -2319,7 +2184,6 @@ function renderProfile() {
   const favArtist = Object.entries(artistCount).sort((a,b) => b[1] - a[1])[0];
   txt('profileArtist', favArtist ? favArtist[0] : '—');
 
-  // Géneros más escuchados
   const genreCount = {};
   myInter.filter(i => i.es_like || i.es_favorito).forEach(inter => {
     const song = allSongs.find(s => s.id === inter.cancion_id);
@@ -2335,7 +2199,6 @@ function renderProfile() {
   const logrosDiv = $('achievementsList');
   if (logrosDiv) logrosDiv.innerHTML = achievements.map(a => `<span class="achievement-badge">${a.icon} ${a.name}</span>`).join('');
 
-  // Canciones con like
   renderAlbumTrackList(getLikedSongs(), 'profileLikedSongs', 'Aún no has dado like a ninguna canción.', 'likes');
 }
 
@@ -2369,7 +2232,6 @@ function checkAchievements() {
   saveAchievements(achieved);
 }
 
-// ── Sleep Timer (mejorado) ──
 function toggleSleepMenu() {
   const menu = $('sleepMenu');
   if (menu) menu.classList.toggle('hidden');
@@ -2425,7 +2287,6 @@ function clearSleepTimer() {
   $('expCancelSleepBtn')?.classList.add('hidden');
 }
 
-// ── Efectos visuales por energía ──
 function applyEnergyEffect(song) {
   if (!song) return;
   const energy = song.energia || 0.5;
@@ -2438,7 +2299,6 @@ function resetEnergyEffect() {
   document.body.style.transition = '';
 }
 
-// ── Cola de reproducción (local) ──
 function recursivePlaylistLocal(seedId, depth, visited = new Set()) {
   if (depth === 0 || !seedId) return [];
   const seed = allSongs.find(s => s.id === seedId);
@@ -2485,11 +2345,10 @@ function clearQueue() {
   toast('Cola vaciada');
 }
 function openQueueModal() {
-  // Si no existe un modal de cola, mostrar la cola en un toast/overlay temporal
+
   const existing = document.getElementById('queueModal');
   if (existing) { existing.classList.remove('hidden'); return; }
 
-  // Crear modal dinámico si no existe en el HTML
   const modal = document.createElement('div');
   modal.id = 'queueModal';
   modal.style.cssText = `
@@ -2543,12 +2402,9 @@ function closeQueue() {
   if (modal) modal.remove();
 }
 
-/* ── Refresca en tiempo real las secciones que dependen de likes/favs ── */
 function _refrescarSeccionesInteraccion() {
-  // 1. Si la página de perfil está visible, actualizar contadores y lista de likes
   const pagePerfil = document.getElementById('page-profile');
   if (pagePerfil && pagePerfil.classList.contains('active')) {
-    // Actualizar contadores numéricos directamente (sin re-render completo)
     const totalLikes = myInter.filter(i => i.es_like).length;
     const totalFavs  = myInter.filter(i => i.es_favorito).length;
     const likeCountEl = document.getElementById('profileLikeCount');
@@ -2556,7 +2412,6 @@ function _refrescarSeccionesInteraccion() {
     if (likeCountEl) likeCountEl.textContent = totalLikes;
     if (favCountEl)  favCountEl.textContent  = totalFavs;
 
-    // Actualizar artista favorito y géneros
     const artistCount = {};
     myInter.forEach(inter => {
       const song = allSongs.find(s => s.id === inter.cancion_id);
@@ -2576,7 +2431,6 @@ function _refrescarSeccionesInteraccion() {
     const genreEl = document.getElementById('profileGenre');
     if (genreEl) genreEl.textContent = topGenres || '—';
 
-    // Re-renderizar lista de canciones con like
     renderAlbumTrackList(
       getLikedSongs(),
       'profileLikedSongs',
@@ -2585,25 +2439,21 @@ function _refrescarSeccionesInteraccion() {
     );
   }
 
-  // 2. Si la página de playlist está visible, re-renderizar la vista activa
   const pagePlaylist = document.getElementById('page-playlist');
   if (pagePlaylist && pagePlaylist.classList.contains('active')) {
     renderPlaylist();
   }
 
-  // 3. Si la página de recomendaciones está visible, re-renderizarla
   const pageRec = document.getElementById('page-recomendaciones');
   if (pageRec && pageRec.classList.contains('active')) {
     renderHomeRec();
   }
 }
 
-/* ── Sincroniza botones y cola del panel expandido sin cerrarlo ── */
 function sincronizarPanelExpandido(songIdCambiado) {
   const panel = document.getElementById('expandedPlayer');
   if (!panel || panel.classList.contains('hidden')) return;
 
-  // 1. Actualizar botones like / fav / playlist de la canción que cambió
   if (nowPlayingId === songIdCambiado) {
     const inter = interaccionesMap[nowPlayingId] || {};
 
@@ -2611,7 +2461,6 @@ function sincronizarPanelExpandido(songIdCambiado) {
     if (likeBtn) {
       likeBtn.textContent  = inter.es_like ? '❤️' : '🤍';
       likeBtn.style.color  = inter.es_like ? 'var(--red)' : '';
-      // Animación de feedback visual
       likeBtn.style.transform = 'scale(1.35)';
       setTimeout(() => { likeBtn.style.transform = ''; }, 200);
     }
@@ -2630,11 +2479,9 @@ function sincronizarPanelExpandido(songIdCambiado) {
       plBtn.textContent = inPl ? '➖' : '➕';
     }
 
-    // Actualizar también el like en el player bar inferior
     updatePlayerLikeBtn();
   }
 
-  // 2. Actualizar la sección "▶ Siguiente" con la cola actual
   const nextUpDiv = document.getElementById('expNextUp');
   if (!nextUpDiv) return;
 
@@ -2672,7 +2519,6 @@ function sincronizarPanelExpandido(songIdCambiado) {
   `;
 }
 
-/* ═══════════════════ PANEL EXPANDIDO ══════════════════ */
 function openExpandedPlayer() {
   if (!nowPlayingId) return;
   const song = allSongs.find(s => s.id === nowPlayingId);
@@ -2680,11 +2526,9 @@ function openExpandedPlayer() {
   txt('expTitle', song.titulo);
   txt('expArtist', song.artista);
 
-  // Genre badge
   const genreBadge = $('expGenreBadge');
   if (genreBadge) genreBadge.innerHTML = `<span class="album-track-genre" style="font-size:11px">${esc(song.genero)}</span>`;
 
-  // Botones like/fav/playlist
   const inter = interaccionesMap[nowPlayingId] || {};
   const likeBtn = $('expLikeBtn');
   const favBtn = $('expFavBtn');
@@ -2701,7 +2545,6 @@ function openExpandedPlayer() {
   $('expVolumeRange').value = audio ? audio.volume : 0.8;
   txt('expVolPercent', Math.round((audio?.volume || 0.8)*100)+'%');
 
-  // Siguiente en cola
   const nextUpDiv = $('expNextUp');
   if (nextUpDiv) {
     const ctxSongs = getContextSongs();
@@ -2727,22 +2570,20 @@ function openExpandedPlayer() {
   $('expandedPlayer').classList.remove('hidden');
 }
 
-// REEMPLAZAR o AGREGAR después de openExpandedPlayer()
 function closeExpandedPlayer() {
   document.getElementById('expandedPlayer').classList.add('hidden');
   const disc = document.getElementById('expDisc');
   if (disc) disc.classList.remove('spinning');
 }
 
-/* ═══════════════════ CHAT EN TIEMPO REAL ══════════════════ */
 let chatSubscription = null;
-let rankingSubscription = null;   // ← nueva
-let panelSubscription   = null;   // suscripción tiempo real del Panel IA
+let rankingSubscription = null;  
+let panelSubscription   = null;  
 
 function initChat() {
   loadChatMessages();
 
-  if (chatSubscription) return;   // evitar doble suscripción
+  if (chatSubscription) return;  
 
   console.log('🔔 Iniciando suscripción de chat en tiempo real...');
   chatSubscription = supabase
@@ -2754,10 +2595,8 @@ function initChat() {
         const newMsg = payload.new;
         console.log('📩 Nuevo mensaje recibido:', newMsg);
         
-        // Buscar si hay un mensaje temporal que coincida (mismo usuario y texto)
         for (const [tempId, tempData] of pendingTempMessages.entries()) {
           if (tempData.username === newMsg.username && tempData.texto === newMsg.mensaje) {
-            // Reemplazar el elemento temporal con el real
             const tempElement = tempData.element;
             if (tempElement) {
               tempElement.setAttribute('data-msg-id', newMsg.id);
@@ -2772,11 +2611,10 @@ function initChat() {
             }
             pendingTempMessages.delete(tempId);
             displayedMessageIds.add(newMsg.id);
-            return; // ya reemplazado
+            return; 
           }
         }
 
-        // Si no era un mensaje temporal nuestro, simplemente añadirlo
         addMessageToUI(newMsg);
         const container = document.getElementById('chatMessagesPanel');
         if (container) container.scrollTop = container.scrollHeight;
@@ -2788,7 +2626,7 @@ function initChat() {
 }
 
 function initRealtimeRanking() {
-  if (rankingSubscription) return; // evitar duplicados
+  if (rankingSubscription) return; 
 
   console.log('🔄 Iniciando suscripción de ranking en tiempo real...');
   rankingSubscription = supabase
@@ -2797,7 +2635,6 @@ function initRealtimeRanking() {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'interacciones' },
       () => {
-        // Solo actualizamos si existe el contenedor del ranking (puede estar en otra página pero igual lo pintamos)
         renderizarRankingGlobal();
       }
     )
@@ -2813,7 +2650,7 @@ function loadChatMessages() {
       const container = document.getElementById('chatMessagesPanel');
       if (container) {
         container.innerHTML = '';
-        displayedMessageIds.clear();   // Limpiar IDs para que se muestre el historial completo
+        displayedMessageIds.clear();  
         (data.messages || []).forEach(msg => addMessageToUI(msg));
         container.scrollTop = container.scrollHeight;
       }
@@ -2847,13 +2684,11 @@ function addMessageToUI(msg) {
   }
   container.appendChild(div);
 
-  // Scroll automático al último mensaje (siempre)
   requestAnimationFrame(() => {
     container.scrollTop = container.scrollHeight;
   });
 }
 
-/* ═══════════════════ EMOJI PICKER ══════════════════ */
 const EMOJI_LIST = [
   '😀','😂','🤣','😍','🥰','😎','🤩','😜','🤔','😴',
   '😭','😤','😡','🤯','🥳','😱','🫠','🫡','🥹','😇',
@@ -2877,7 +2712,6 @@ function toggleEmojiPanel() {
   const panel = document.getElementById('emojiPanel');
   if (!panel) return;
   panel.classList.toggle('open');
-  // Cerrar al hacer click fuera
   if (panel.classList.contains('open')) {
     setTimeout(() => {
       document.addEventListener('click', closeEmojiOnOutside, { once: true });
@@ -2900,11 +2734,9 @@ function insertEmoji(emoji) {
   const start = input.selectionStart || input.value.length;
   const end   = input.selectionEnd   || input.value.length;
   input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
-  // Mover cursor después del emoji
   const newPos = start + emoji.length;
   input.setSelectionRange(newPos, newPos);
   input.focus();
-  // No cerrar el panel para poder añadir más emojis
 }
 
 async function sendMessage() {
@@ -2924,7 +2756,6 @@ async function sendMessage() {
   addMessageToUI(tempMsg);
   input.value = '';
 
-  // Scroll inmediato al enviar
   const container = document.getElementById('chatMessagesPanel');
   if (container) container.scrollTop = container.scrollHeight;
 
@@ -2968,16 +2799,12 @@ function hashCode(str) {
   return Math.abs(hash);
 }
 
-/* ═══════════════════ MÁS COMO [ARTISTA] ══════════════════ */
 function updateMoreLikeSection(song) {
-  // Sección deshabilitada por petición del usuario
   const section = document.getElementById('moreLikeSection');
   if (section) section.style.display = 'none';
 }
 
-/* ═══════════════════ PANEL DERECHO Y BARRA MÓVIL ══════════════════ */
 function updateRightPanel(song) {
-  // Panel derecho eliminado del HTML actual — actualizar solo elementos que existan
   const rightTitle = document.getElementById('rightTitle');
   const rightArtist = document.getElementById('rightArtist');
   if (rightTitle) rightTitle.textContent = song.titulo;
@@ -2995,7 +2822,7 @@ function updateRightPanel(song) {
 
 function updateRightQueue() {
   const list = document.getElementById('rightQueueList');
-  if (!list) return;  // No existe en el HTML actual — salir sin error
+  if (!list) return; 
   const contextSongs = getContextSongs();
   const upcoming = contextSongs.filter(s => s.id !== nowPlayingId).slice(0, 5);
   list.innerHTML = upcoming.map(s => `
@@ -3006,12 +2833,11 @@ function updateRightQueue() {
   `).join('');
 }
 
-/* ═══════════════════ NAVEGACIÓN Y PANEL IA ══════════════════ */
 function showPage(name){
   try {
     document.querySelectorAll('.page').forEach(p => {
       p.classList.remove('active');
-      p.style.display = '';   // ← NUEVA LÍNEA: limpia el inline display
+      p.style.display = '';  
     });
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const pg = $('page-' + name), nv = $('nav-' + name);
@@ -3049,7 +2875,6 @@ async function renderAnalysis() {
   if (indicator) { indicator.textContent = '🟡 Cargando…'; indicator.style.color = 'var(--gold)'; }
 
   try {
-    // ── 1. Backend: métricas del usuario, árbol y validación cruzada ──
     const res = await fetch(`${API_BASE}/api/analysis?user_id=${currentUser.id}`);
     const data = await res.json();
 
@@ -3060,15 +2885,12 @@ async function renderAnalysis() {
     txt('mAcc',   data.metrics?.accuracy ?? '—');
     txt('mAvg',   data.metrics?.avg_likes_per_user ?? '—');
 
-    // Mis géneros favoritos (personales)
     _renderGenreBar('genreBar', data.genre_chart || {},
       'No tienes suficientes interacciones para mostrar el gráfico.');
 
-    // Árbol de decisión
     const treeEl = $('treeViz');
     if (treeEl) treeEl.textContent = data.tree_rules || 'Sin datos suficientes.';
 
-    // Validación cruzada
     const cvBody = $('cvBody');
     if (cvBody) {
       const folds = data.cross_validation || [];
@@ -3091,16 +2913,13 @@ async function renderAnalysis() {
     if (indicator) { indicator.textContent = '🔴 Backend no disponible'; indicator.style.color = 'var(--red)'; }
   }
 
-  // ── 2. Supabase directo: top canciones y géneros comunitarios ──
   await _renderPanelCommunityData();
 
   if (indicator) { indicator.textContent = '🟢 En tiempo real'; indicator.style.color = 'var(--green)'; }
 
-  // ── 3. Suscripción en tiempo real (solo si no está activa) ──
   _subscribePanelRealtime();
 }
 
-/* ── Datos comunitarios en tiempo real ── */
 async function _renderPanelCommunityData() {
   try {
     const { data: interData } = await supabase
@@ -3116,7 +2935,6 @@ async function _renderPanelCommunityData() {
       return;
     }
 
-    // Calcular scores globales por canción
     const scores = {};
     interData.forEach(i => {
       if (!scores[i.cancion_id]) scores[i.cancion_id] = 0;
@@ -3132,7 +2950,6 @@ async function _renderPanelCommunityData() {
 
     _renderPanelTopSongs(topSongs);
 
-    // Géneros de la comunidad: suma de scores por género
     const genreScores = {};
     interData.forEach(i => {
       const s = allSongs.find(s => s.id === parseInt(i.cancion_id));
@@ -3147,7 +2964,6 @@ async function _renderPanelCommunityData() {
   }
 }
 
-/* ── Renderiza el top 10 en formato lista ── */
 function _renderPanelTopSongs(topSongs) {
   const container = document.getElementById('panelTopSongs');
   if (!container) return;
@@ -3192,7 +3008,6 @@ function _renderPanelTopSongs(topSongs) {
   }).join('');
 }
 
-/* ── Renderiza cualquier bar chart de géneros ── */
 function _renderGenreBar(containerId, genreData, emptyMsg = 'Sin datos.') {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -3219,9 +3034,8 @@ function _renderGenreBar(containerId, genreData, emptyMsg = 'Sin datos.') {
   }).join('');
 }
 
-/* ── Suscripción Supabase Realtime para el Panel IA ── */
 function _subscribePanelRealtime() {
-  if (panelSubscription) return; // ya suscrito, no duplicar
+  if (panelSubscription) return; 
 
   panelSubscription = supabase
     .channel('panel-ia-interacciones')
@@ -3229,7 +3043,6 @@ function _subscribePanelRealtime() {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'interacciones' },
       async () => {
-        // Solo re-renderiza la parte comunitaria si el panel está visible
         const panelPage = document.getElementById('page-analysis');
         if (panelPage && panelPage.classList.contains('active')) {
           await _renderPanelCommunityData();
@@ -3239,30 +3052,23 @@ function _subscribePanelRealtime() {
     .subscribe();
 }
 
-/* ═══════════════════ KEEP-ALIVE para Render ══════════════════ */
 function keepAlive() {
-  // Petición muy ligera a un endpoint que solo devuelve un OK
   fetch(`${API_BASE}/api/popular`)
     .then(() => console.log('⚡ Keep-alive enviado'))
     .catch(() => {});
 }
 
-// Ejecutar inmediatamente al cargar la página (por si acaso)
 keepAlive();
 
-// Repetir cada 10 minutos (600.000 ms)
 setInterval(keepAlive, 600000);
 
-/* ═══════════════════ INIT ══════════════════ */
 window.addEventListener('load', async ()=>{
   if (!loadSession()) { window.location.href = 'explore.html'; return; }
-  // NO cargar canciones aquí — bootApp lo hace con manejo de errores
 
   const vizEl = $('audioVisualizer');
   if (vizEl) {
   const BAR_N = 28;
   vizEl.innerHTML = Array.from({ length: BAR_N }, (_, i) => {
-    // Delay escalonado: primero sube el centro, luego los extremos (efecto "arco")
     const center = BAR_N / 2;
     const dist = Math.abs(i - center) / center;
     const delay = (dist * 0.4).toFixed(2);
@@ -3295,7 +3101,6 @@ window.addEventListener('load', async ()=>{
   if (volRange) { volRange.value = 0.8; setVolume(0.8); }
 
   await bootApp();
-  // ── Prevenir que el botón "atrás" del navegador cierre sesión ──
   history.pushState(null, '', window.location.href);
   window.addEventListener('popstate', function() {
     history.pushState(null, '', window.location.href);
