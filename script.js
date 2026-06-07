@@ -1083,8 +1083,9 @@ async function toggleLike(e, songId) {
     actualizarContadoresHeader();
     renderizarRankingGlobal();
     checkAchievements();
-    // ── Actualizar panel expandido si está abierto ──
     sincronizarPanelExpandido(songId);
+    // ── Refrescar secciones que muestran contadores de likes/favs ──
+    _refrescarSeccionesInteraccion();
   } else {
     toast('Error al actualizar like');
   }
@@ -1108,8 +1109,9 @@ async function toggleFav(e, songId) {
     actualizarContadoresHeader();
     renderizarRankingGlobal();
     checkAchievements();
-    // ── Actualizar panel expandido si está abierto ──
     sincronizarPanelExpandido(songId);
+    // ── Refrescar secciones que muestran contadores de likes/favs ──
+    _refrescarSeccionesInteraccion();
   } else {
     toast('Error al actualizar favorito');
   }
@@ -2519,6 +2521,61 @@ function openQueueModal() {
 function closeQueue() {
   const modal = document.getElementById('queueModal');
   if (modal) modal.remove();
+}
+
+/* ── Refresca en tiempo real las secciones que dependen de likes/favs ── */
+function _refrescarSeccionesInteraccion() {
+  // 1. Si la página de perfil está visible, actualizar contadores y lista de likes
+  const pagePerfil = document.getElementById('page-profile');
+  if (pagePerfil && pagePerfil.classList.contains('active')) {
+    // Actualizar contadores numéricos directamente (sin re-render completo)
+    const totalLikes = myInter.filter(i => i.es_like).length;
+    const totalFavs  = myInter.filter(i => i.es_favorito).length;
+    const likeCountEl = document.getElementById('profileLikeCount');
+    const favCountEl  = document.getElementById('profileFavCount');
+    if (likeCountEl) likeCountEl.textContent = totalLikes;
+    if (favCountEl)  favCountEl.textContent  = totalFavs;
+
+    // Actualizar artista favorito y géneros
+    const artistCount = {};
+    myInter.forEach(inter => {
+      const song = allSongs.find(s => s.id === inter.cancion_id);
+      if (song) artistCount[song.artista] = (artistCount[song.artista] || 0) + 1;
+    });
+    const favArtist = Object.entries(artistCount).sort((a, b) => b[1] - a[1])[0];
+    const artistEl = document.getElementById('profileArtist');
+    if (artistEl) artistEl.textContent = favArtist ? favArtist[0] : '—';
+
+    const genreCount = {};
+    myInter.filter(i => i.es_like || i.es_favorito).forEach(inter => {
+      const song = allSongs.find(s => s.id === inter.cancion_id);
+      if (song) genreCount[song.genero] = (genreCount[song.genero] || 0) + 1;
+    });
+    const topGenres = Object.entries(genreCount)
+      .sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => g).join(', ');
+    const genreEl = document.getElementById('profileGenre');
+    if (genreEl) genreEl.textContent = topGenres || '—';
+
+    // Re-renderizar lista de canciones con like
+    renderAlbumTrackList(
+      getLikedSongs(),
+      'profileLikedSongs',
+      'Aún no has dado like a ninguna canción.',
+      'likes'
+    );
+  }
+
+  // 2. Si la página de playlist está visible, re-renderizar la vista activa
+  const pagePlaylist = document.getElementById('page-playlist');
+  if (pagePlaylist && pagePlaylist.classList.contains('active')) {
+    renderPlaylist();
+  }
+
+  // 3. Si la página de recomendaciones está visible, re-renderizarla
+  const pageRec = document.getElementById('page-recomendaciones');
+  if (pageRec && pageRec.classList.contains('active')) {
+    renderHomeRec();
+  }
 }
 
 /* ── Sincroniza botones y cola del panel expandido sin cerrarlo ── */
