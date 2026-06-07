@@ -1,16 +1,8 @@
-/* ═══════════════════════════════════════════════════════
-   SOUNDMIND — style.css  ·  "Liquid Dark Rave" Edition
-   Tipografías: Syne (display) + DM Sans (body)
-   Estética: Glassmorphism profundo · Audio-reactivo
-   Fondo: Malla de gradientes animada · Sin colores planos
-═══════════════════════════════════════════════════════ */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
-/* ── Variables ── */
 :root{
-  /* Colores base */
   --bg:        #04040e;
   --bg1:       #08081a;
   --bg2:       #0e0e24;
@@ -18,59 +10,49 @@
   --bg4:       #1c1c3a;
   --bg5:       #232348;
 
-  /* Acento principal: violeta eléctrico */
   --accent:    #9d6fff;
   --accent2:   #6c2bd9;
   --accent3:   #c8a9ff;
   --accentA:   rgba(157,111,255,.18);
   --accentB:   rgba(157,111,255,.07);
 
-  /* Colores secundarios */
   --cyan:      #00f5d4;
   --pink:      #f72585;
   --gold:      #ffd166;
   --green:     #06d6a0;
   --red:       #ff6b6b;
 
-  /* Texto */
   --text:      #f0f0ff;
   --text2:     #8888bb;
   --text3:     #44446a;
 
-  /* Bordes / vidrio */
   --border:    rgba(157,111,255,.12);
   --border2:   rgba(157,111,255,.28);
   --glass:     rgba(255,255,255,.025);
   --glass-bg:  rgba(8,8,26,.7);
   --glass-border: rgba(255,255,255,.07);
 
-  /* Tipografía */
   --font-h: 'Syne', sans-serif;
   --font-b: 'DM Sans', sans-serif;
 
-  /* Layout */
   --nav:   256px;
-  --bar: 110px;   /* antes era 88px */
+  --bar: 110px; 
   --mobile-nav-height: 64px;
 
-  /* Sombras */
   --shadow-sm:   0 2px 8px rgba(0,0,0,.4);
   --shadow-md:   0 8px 32px rgba(0,0,0,.5);
   --shadow-lg:   0 20px 60px rgba(0,0,0,.7);
   --shadow-glow: 0 0 40px rgba(157,111,255,.25);
   --shadow-cyan: 0 0 30px rgba(0,245,212,.2);
 
-  /* Gradientes */
   --grad-hero:   linear-gradient(135deg,rgba(108,43,217,.3),rgba(247,37,133,.15),rgba(0,245,212,.08));
   --grad-card:   linear-gradient(145deg,rgba(157,111,255,.1),rgba(0,245,212,.04));
 
-  /* Transiciones */
   --ease:   cubic-bezier(.23,1,.32,1);
   --fast:   .18s cubic-bezier(.23,1,.32,1);
   --smooth: .32s cubic-bezier(.23,1,.32,1);
 }
 
-/* ── Reset base ── */
 html{scroll-behavior:smooth;font-size:16px}
 body{
   font-family:var(--font-b);
@@ -82,7 +64,6 @@ body{
   position:relative;
 }
 
-/* Fondo animado con malla de colores */
 body::before{
   content:'';
   position:fixed;inset:0;
@@ -101,7 +82,6 @@ body::before{
   100%{background-position:10% 80%, 90% 10%, 40% 70%}
 }
 
-/* Grain overlay sutil */
 body::after{
   content:'';
   position:fixed;inset:0;
@@ -109,7 +89,6 @@ body::after{
   pointer-events:none;z-index:0;opacity:.4;
 }
 
-/* Todos los elementos encima del fondo */
 #app,#playerBar,#expandedPlayer,#toast,#voiceOverlay,
 #contextMenu,.mobile-nav,.hamburger{position:relative;z-index:1}
 
@@ -123,17 +102,12 @@ input,select{font-family:var(--font-b)}
 .hidden{display:none!important}
 code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;border-radius:4px}
 
-/* ── Páginas ── */
 .page{display:none}
 .page.active{display:block;animation:pageIn .35s var(--ease)}
 @keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
-/* ══════════════════════════════════════════
-   LAYOUT
-══════════════════════════════════════════ */
 #app{display:flex;min-height:calc(100vh - var(--bar))}
 
-/* ── Sidebar ── */
 .sidebar{
   width:var(--nav);flex-shrink:0;
   background:rgba(6,6,20,.85);
@@ -214,7 +188,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .sidebar.collapsed .nav-badge{display:none}
 
-/* ── Panel central ── */
 .main-content{
   flex:1;min-width:0;
   padding:22px 26px;
@@ -223,9 +196,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   scroll-behavior:smooth;
 }
 
-/* ═══════════════════════════════════════
-   CABECERA DE USUARIO (rediseñada)
-═══════════════════════════════════════ */
 .user-header{
   position:relative;overflow:hidden;
   background:var(--grad-hero);
@@ -309,9 +279,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .btn-logout-header:hover{background:rgba(255,107,107,.25);border-color:var(--red);transform:scale(1.04)}
 
-/* ═══════════════════════════════════════
-   SECCIONES
-═══════════════════════════════════════ */
 .section{margin-bottom:34px}
 .section-title{
   font-family:var(--font-h);font-size:17px;font-weight:700;
@@ -345,7 +312,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 @keyframes badgePulse{0%,100%{box-shadow:0 0 0 rgba(0,245,212,0)}50%{box-shadow:0 0 12px rgba(0,245,212,.2)}}
 
-/* ─── Horizontal scroll ─── */
 .horizontal-scroll{
   display:flex;gap:12px;overflow-x:auto;
   padding-bottom:6px;scrollbar-width:none;
@@ -353,9 +319,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .horizontal-scroll::-webkit-scrollbar{display:none}
 
-/* ═══════════════════════════════════════
-   REPRODUCTOR INFERIOR — rediseño total
-═══════════════════════════════════════ */
 #playerBar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -372,7 +335,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   z-index: 500;
   box-shadow: 0 -4px 40px rgba(0,0,0,.6), 0 -1px 0 rgba(157,111,255,.08);
 }
-/* Línea de acento superior animada */
 #playerBar::before{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
   background:linear-gradient(90deg,
@@ -384,7 +346,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   to{background-position:100% 0%}
 }
 
-/* Columna izquierda */
 .player-left{
   flex:0 0 28%;display:flex;align-items:center;gap:12px;min-width:0;
 }
@@ -411,7 +372,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .pl-disc-wrap:has(.pl-disc.spinning)::before{
   animation-play-state:running;
 }
-/* hack: detectar spinning via JS añadiendo clase al wrap también */
 .pl-disc-wrap.spinning::before{animation-play-state:running}
 
 .pl-disc-cover{
@@ -430,7 +390,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .pl-title{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pl-artist{font-size:11px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* Columna central */
 .player-center {
   flex: 1;
   display: flex;
@@ -438,7 +397,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   align-items: center;
   gap: 4px;
   min-width: 0;
-  /* El visualizador va DEBAJO de la barra de progreso */
 }
 .pl-controls-btns{display:flex;align-items:center;gap:10px}
 .pl-controls-btns .pl-btn{
@@ -494,11 +452,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .pl-progress:hover .pl-progress-fill::after{opacity:1}
 
-/* ═══════════════════════════════════════
-   VISUALIZADOR DE AUDIO — Presencia total
-═══════════════════════════════════════ */
-
-/* Contenedor principal del visualizador en el player bar */
 .pl-visualizer {
   display: flex;
   align-items: flex-end;
@@ -508,11 +461,10 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   padding: 0 10px;
   flex-shrink: 0;
   position: relative;
-  width: 100%;          /* ← ocupa todo el ancho del centro */
-  max-width: 600px;     /* ← no se extiende demasiado en pantallas grandes */
+  width: 100%;         
+  max-width: 600px;     
 }
 
-/* Reflejo invertido */
 .pl-visualizer::after {
   content: '';
   position: absolute;
@@ -526,7 +478,7 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 
 .vis-bar {
-  width: 4px;             /* antes 3px */
+  width: 4px;          
   border-radius: 4px 4px 1px 1px;
   min-height: 3px;
   transform-origin: bottom center;
@@ -535,7 +487,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   flex-shrink: 0;
 }
 
-/* Estado idle: animación escalonada suave */
 .vis-bar.idle {
   animation: idleVis calc(0.6s + var(--d, 0s)) ease-in-out infinite alternate;
   background: linear-gradient(to top, var(--accent2), var(--accent));
@@ -547,11 +498,10 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   to   { height: 16px; opacity: 0.75; }
 }
 
-/* En móvil: un poco más compacto pero con más presencia que antes */
 @media (max-width: 768px) {
   :root {
     --nav: 0px;
-    --bar: 88px;    /* en móvil un poco menos que escritorio */
+    --bar: 88px;   
   }
 
   #playerBar {
@@ -563,7 +513,7 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   }
 
   .pl-visualizer {
-    height: 28px;     /* más compacto en móvil */
+    height: 28px; 
     gap: 2px;
     padding: 0 4px;
     max-width: 100%;
@@ -573,7 +523,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
     width: 3px;
   }
 
-  /* Ocultar visualizador en pantallas muy pequeñas para ganar espacio */
   @media (max-width: 420px) {
     .pl-visualizer {
       display: none;
@@ -601,7 +550,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 @keyframes idleVis{from{height:2px;opacity:.4}to{height:12px;opacity:.9}}
 
-/* Columna derecha */
 .player-right{flex:0 0 28%;display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .pl-volume{display:flex;align-items:center;gap:6px}
 .pl-vol-icon{font-size:14px;color:var(--text2)}
@@ -619,7 +567,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .vol-percent{font-size:10px;color:var(--accent3);font-weight:600;min-width:30px}
 
-/* ── Sleep timer ── */
 .sleep-timer-wrap{position:relative;display:flex;align-items:center;gap:4px}
 .sleep-menu{
   position:absolute;bottom:52px;left:50%;transform:translateX(-50%);
@@ -638,9 +585,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 @keyframes discSpin{to{transform:rotate(360deg)}}
 @keyframes discRing{to{transform:rotate(360deg)}}
 
-/* ═══════════════════════════════════════
-   EXPANDED PLAYER — rediseño total
-═══════════════════════════════════════ */
 #expandedPlayer{
   position:fixed;inset:0;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -755,7 +699,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   width:100%;text-align:left;position:relative;z-index:1;
 }
 
-/* ── Móvil expanded ── */
 @media(max-width:768px){
   .expanded-card{padding:24px 16px 20px;max-height:94vh;overflow-y:auto;border-radius:24px;width:96%}
   .expanded-disc-img{width:120px;height:120px}
@@ -772,9 +715,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   .expanded-controls .pl-btn.play-pause{width:42px!important;height:42px!important}
 }
 
-/* ═══════════════════════════════════════
-   SONG CARDS — rediseño total
-═══════════════════════════════════════ */
 .cards-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
@@ -848,9 +788,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .cta.liked-btn{background:rgba(6,214,160,.1);color:var(--green);border-color:rgba(6,214,160,.3)}
 .cta.faved-btn{background:rgba(255,209,102,.1);color:var(--gold);border-color:rgba(255,209,102,.3)}
 
-/* ═══════════════════════════════════════
-   ALBUM TRACKS (lista)
-═══════════════════════════════════════ */
 .album-track-list{display:flex;flex-direction:column}
 .album-track{
   display:flex;align-items:center;gap:12px;
@@ -896,9 +833,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .album-track-btn.faved-btn{color:var(--gold)!important}
 .album-track-btn.active-btn{color:var(--accent3)!important}
 
-/* ═══════════════════════════════════════
-   PÁGINA ÁLBUM HERO
-═══════════════════════════════════════ */
 .album-hero{
   position:relative;height:230px;overflow:hidden;
   margin:-22px -26px 0;border-radius:0;
@@ -961,9 +895,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .btn-back-album:hover{background:var(--accentA);border-color:var(--border2);color:var(--accent3)}
 
-/* ═══════════════════════════════════════
-   SEARCH & PILLS
-═══════════════════════════════════════ */
 .top-bar{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 .search-wrap{
   flex:1;min-width:200px;max-width:460px;
@@ -1022,9 +953,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   box-shadow:0 0 12px rgba(157,111,255,.15);
 }
 
-/* ═══════════════════════════════════════
-   LOADERS & EMPTY
-═══════════════════════════════════════ */
 .loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2);font-size:14px;gap:10px;grid-column:1/-1}
 .spin{width:18px;height:18px;border:2px solid rgba(157,111,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -1032,9 +960,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .empty-icon{font-size:48px;margin-bottom:12px;opacity:.4}
 .empty-state p{font-size:13px;line-height:1.7}
 
-/* ═══════════════════════════════════════
-   MOOD / GENRE / MIX CARDS
-═══════════════════════════════════════ */
 .genre-card,.mood-card,.mix-card{
   min-width:140px;height:100px;border-radius:14px;
   background-size:cover;background-position:center;
@@ -1049,9 +974,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   box-shadow:0 12px 36px rgba(0,0,0,.6),0 0 20px rgba(157,111,255,.15);
 }
 
-/* ═══════════════════════════════════════
-   MENÚ CONTEXTUAL
-═══════════════════════════════════════ */
 #contextMenu{
   position:fixed;inset:0;z-index:3000;
   display:flex;align-items:flex-end;justify-content:center;
@@ -1080,9 +1002,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .context-options button:hover{background:var(--accentA);color:var(--accent3)}
 .context-options button:last-child{border-bottom:none}
 
-/* ═══════════════════════════════════════
-   CHAT
-═══════════════════════════════════════ */
 .chat-container{
   display:flex;flex-direction:column;
   height:65vh;max-height:600px;
@@ -1134,9 +1053,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .chat-send-btn:hover{transform:scale(1.04);box-shadow:0 6px 20px rgba(157,111,255,.6)}
 
-/* ═══════════════════════════════════════
-   PERFIL
-═══════════════════════════════════════ */
 .page-title{font-family:var(--font-h);font-size:28px;font-weight:800;margin-bottom:6px;letter-spacing:-.5px}
 .page-sub{color:var(--text2);font-size:13px;margin-bottom:24px;line-height:1.6}
 
@@ -1160,9 +1076,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .achievement-badge:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(157,111,255,.25)}
 
-/* ═══════════════════════════════════════
-   PANEL IA / ANÁLISIS
-═══════════════════════════════════════ */
 .metrics-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:22px}
 .metric{
   background:rgba(255,255,255,.03);border:1px solid var(--border);
@@ -1205,9 +1118,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   line-height:1.7;white-space:pre-wrap;
 }
 
-/* ═══════════════════════════════════════
-   PLAYLIST
-═══════════════════════════════════════ */
 .playlist-header{display:flex;align-items:center;gap:14px;margin-bottom:20px}
 .playlist-header h2{font-family:var(--font-h);font-size:22px;font-weight:700;flex:1}
 .back-btn{font-size:24px;background:none;border:none;color:var(--text);cursor:pointer;padding:4px;border-radius:8px;transition:var(--fast)}
@@ -1221,9 +1131,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .btn-create-playlist:hover{background:var(--accent2);color:#fff;border-color:var(--accent2)}
 
-/* ═══════════════════════════════════════
-   TOAST
-═══════════════════════════════════════ */
 #toast{
   position:fixed;bottom:106px;left:50%;
   transform:translateX(-50%) translateY(10px);
@@ -1238,9 +1145,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* ═══════════════════════════════════════
-   VOICE OVERLAY
-═══════════════════════════════════════ */
 #voiceOverlay{
   position:fixed;inset:0;z-index:8000;display:none;
   align-items:center;justify-content:center;
@@ -1273,9 +1177,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .voice-cancel-btn:hover{background:rgba(255,107,107,.2);color:var(--red);border-color:var(--red)}
 
-/* ═══════════════════════════════════════
-   HAMBURGER
-═══════════════════════════════════════ */
 .hamburger{
   display:none;position:fixed;top:14px;left:14px;z-index:200;
   background:rgba(8,8,26,.9);border:1px solid var(--border);
@@ -1284,9 +1185,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .hamburger:hover{background:var(--accentA);border-color:var(--border2)}
 
-/* ═══════════════════════════════════════
-   BARRA MÓVIL
-═══════════════════════════════════════ */
 .mobile-nav{
   display:none;position:fixed;bottom:0;left:0;right:0;
   height:var(--mobile-nav-height);
@@ -1310,9 +1208,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .mobile-nav-item.active{color:var(--accent3);background:var(--accentA)}
 .mobile-nav-item:active{transform:scale(.92)}
 
-/* ═══════════════════════════════════════
-   DISC image fixes
-═══════════════════════════════════════ */
 #plDisc,.pl-disc-wrap .pl-disc{overflow:hidden!important;border-radius:50%!important}
 #plDisc .pl-disc-cover img,.pl-disc-wrap .pl-disc .pl-disc-cover img{
   width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;display:block!important;
@@ -1324,9 +1219,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 #playerBar{z-index:500!important}
 .main-content{padding-bottom:20px}
 
-/* ═══════════════════════════════════════
-   MEDIA QUERIES
-═══════════════════════════════════════ */
 @media(min-width:769px){
   .hamburger{display:none}
   .mobile-nav{display:none}
@@ -1373,7 +1265,7 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   }
   .user-header-info h2 {
     font-size: 16px;
-    white-space: normal;    /* permite que el texto haga salto de línea */
+    white-space: normal;  
     overflow: visible;
     text-overflow: unset;
     line-height: 1.3;
@@ -1451,7 +1343,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   .chat-input-area {
   padding: 8px 10px;
   gap: 6px;
-  /* Importante: que no quede tapado por el player */
   flex-shrink: 0;
 }
   .chat-input-area input {
@@ -1480,7 +1371,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   .expanded-next-up{max-height:110px}
 }
 
-/* ── Emoji picker ── */
 .emoji-picker-container {
   position: relative;
 }
@@ -1539,7 +1429,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   background: var(--accentA);
 }
 
-/* En móvil: panel de emojis ajustado */
 @media (max-width: 768px) {
   .emoji-grid-panel {
     width: 260px;
@@ -1568,13 +1457,9 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   .album-track-thumb,.album-track-thumb-placeholder{width:36px;height:36px}
 }
 
-/* ═════════════════════════════════════
-   Ranking global
-═════════════════════════════════════ */
 .ranking-fila{transition:var(--fast)}
 .ranking-fila:hover{background:var(--accentA)}
 
-/* Auth (heredado) */
 #authScreen{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:transparent;padding:20px}
 .auth-wrap{position:relative;z-index:1;width:100%;max-width:420px}
 .auth-brand{text-align:center;margin-bottom:28px}
@@ -1593,7 +1478,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 .btn-auth:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(157,111,255,.55)}
 #authMsg{min-height:20px;text-align:center;font-size:13px;color:var(--red);margin-top:12px}
 
-/* ── Like button en player ── */
 .player-like-btn {
   background: none;
   border: none;
@@ -1607,7 +1491,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
 }
 .player-like-btn:hover { color: var(--red); transform: scale(1.2); }
 
-/* ── Cola modal responsive ── */
 #queueModal {
   position: fixed;
   inset: 0;
@@ -1626,7 +1509,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   }
 }
 
-/* ── Album track: fix alto mínimo en móvil ── */
 @media (max-width: 480px) {
   .album-track {
     padding: 8px 2px;
@@ -1644,13 +1526,11 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
     align-items: center;
     justify-content: center;
   }
-  /* Ocultar género en pantallas muy pequeñas */
   .album-track-genre {
     display: none;
   }
 }
 
-/* ── Playlist header responsive ── */
 @media (max-width: 480px) {
   .playlist-header {
     flex-wrap: wrap;
@@ -1662,7 +1542,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
   }
 }
 
-/* ── Expanded player: scroll en móvil ── */
 @media (max-width: 768px) {
   .expanded-card {
     overflow-y: auto;
@@ -1672,7 +1551,6 @@ code{font-size:12px;color:var(--accent3);background:var(--bg3);padding:2px 6px;b
     max-height: 100px;
   }
 }
-/* Orden explícito de elementos en player-center */
 .pl-controls-btns    { order: 1; }
 .pl-progress-wrap    { order: 2; }
 .pl-visualizer       { order: 3; }
